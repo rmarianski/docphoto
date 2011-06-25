@@ -30,7 +30,26 @@
        (dissoc :fieldsToNull)
        non-nills))
 
-(defn query-records [ctr query]
+;; automatically reconnect on session invalidation
+;; salesforce connection must be first binding
+(defmacro defsfcommand [fname bindings & body]
+  `(defn ~fname ~bindings
+     (let [ctr# ~(first bindings)]
+       (try
+         (do ~@body)
+         (catch UnexpectedErrorFault e#
+           (if (= "INVALID_SESSION_ID"
+                  (.getLocalPart (.getFaultCode e#)))
+             (let [cfg# (.getConfig ctr#)
+                   login-result#
+                   (.login ctr#
+                           (.getUsername cfg#) (.getPassword cfg#))]
+               (.setSessionHeader ctr# (.getSessionId login-result#)))
+             ;; retry function
+             (apply ~fname ~bindings)))))))
+
+
+(defsfcommand query-records [ctr query]
   (->
    (.query ctr query)
    .getRecords))
@@ -87,13 +106,13 @@
                            " " ~(string/as-str operator) " "
                            "'" ~criteria "'")))]))))))))
 
-(defn update [ctr sobjects]
+(defsfcommand update [ctr sobjects]
   (.update ctr sobjects))
 
-(defn create [ctr sobjects]
+(defsfcommand create [ctr sobjects]
   (.create ctr sobjects))
 
-(defn describe-sobject [ctr object-name]
+(defsfcommand describe-sobject [ctr object-name]
   (when-let [description (.describeSObject ctr object-name)]
     {:name (.getName description)
      :activate? (.isActivateable description)
