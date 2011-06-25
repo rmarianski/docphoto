@@ -34,58 +34,32 @@
 ;; salesforce connection must be first binding
 (defmacro defsfcommand [fname bindings & body]
   `(defn ~fname ~bindings
-     (let [ctr# ~(first bindings)]
+     (let [conn# ~(first bindings)]
        (try
          (do ~@body)
          (catch UnexpectedErrorFault e#
            (if (= "INVALID_SESSION_ID"
                   (.getLocalPart (.getFaultCode e#)))
-             (let [cfg# (.getConfig ctr#)
+             (let [cfg# (.getConfig conn#)
                    login-result#
-                   (.login ctr#
+                   (.login conn#
                            (.getUsername cfg#) (.getPassword cfg#))]
-               (.setSessionHeader ctr# (.getSessionId login-result#)))
+               (.setSessionHeader conn# (.getSessionId login-result#)))
              ;; retry function
              (apply ~fname ~bindings)))))))
 
 
-(defsfcommand query-records [ctr query]
+(defsfcommand query-records [conn query]
   (->
-   (.query ctr query)
+   (.query conn query)
    .getRecords))
 
-;; (defn query-single-record [ctr query]
-;;   (-> (query-records ctr query) first))
-
-;; (defn default-fields-contact []
-;;   [:Id :FirstName :LastName :Email])
-
-;; (defmacro defquery-single [fname ctr field table column default-fields-symbol]
-;;   `(defn ~fname
-;;      ([~ctr ~field] (apply ~fname ~ctr ~field (~default-fields-symbol)))
-;;      ([~ctr ~field & fields#]
-;;         (sobject->map
-;;          (query-single-record
-;;           ~ctr
-;;           (str "SELECT "
-;;                (string/join ", " (map string/as-str fields#))
-;;                " FROM " (name '~table) " WHERE "
-;;                (name '~column) "='" ~field "'"))))))
-
-;; ;; XXX should investigate filtering by multiple fields
-;; (defquery-single query-single-contact-by-username ctr username
-;;   Contact UserName__c default-fields-contact)
-;; (defquery-single query-single-contact-by-id ctr id
-;;   Contact Id default-fields-contact)
-;; (defquery-single query-single-contact-by-email ctr email
-;;   Contact Email default-fields-contact)
-
-(defmacro query [ctr table select-fields select-filters & options]
+(defmacro query [conn table select-fields select-filters & options]
   (let [options (apply hash-map options)]
     `(map
       sf/sobject->map
       (query-records
-       ~ctr
+       ~conn
        (str
         ~(str
           "SELECT "
@@ -106,14 +80,16 @@
                            " " ~(string/as-str operator) " "
                            "'" ~criteria "'")))]))))))))
 
-(defsfcommand update [ctr sobjects]
-  (.update ctr sobjects))
+(defsfcommand update [conn sobjects]
+  (if (.isArray (.getClass sobjects))
+    (.update conn sobjects)
+    (update conn (sobject-array sobjects))))
 
-(defsfcommand create [ctr sobjects]
-  (.create ctr sobjects))
+(defsfcommand create [conn sobjects]
+  (.create conn sobjects))
 
-(defsfcommand describe-sobject [ctr object-name]
-  (when-let [description (.describeSObject ctr object-name)]
+(defsfcommand describe-sobject [conn object-name]
+  (when-let [description (.describeSObject conn object-name)]
     {:name (.getName description)
      :activate? (.isActivateable description)
      :fields
@@ -124,8 +100,8 @@
         :type (.getType field)
         :label (.getLabel field)})}))
 
-(defn describe-sobject-names [ctr object-name]
-  (->> object-name (describe-sobject ctr) :fields (map :name)))
+(defn describe-sobject-names [conn object-name]
+  (->> object-name (describe-sobject conn) :fields (map :name)))
 
 (defn create-sf-object [obj data-map]
   (doseq [[k v] data-map]
@@ -136,30 +112,7 @@
             (rest (name k)))
      (to-array [v]))))
 
-(defn create-contact [ctr contact-data-map]
+(defn create-contact [conn contact-data-map]
   (create
-   ctr
+   conn
    (sobject-array [(create-sf-object (Contact.) contact-data-map)])))
-
-(defn test-sample-update [ctr id firstname lastname]
-  ;; get back a save result object like this
-  ;; need error checking
-  ;; [#<SaveResult [SaveResult  errors='{[0]}'
-  ;;  id='003A000000k2GyeIAE'
-  ;;  success='true'
-  ;; ]
-  ;; >]
-  (update
-   ctr
-   (sobject-array
-    [(doto (Contact.)
-       (.setId id)
-       (.setFirstName firstname)
-       (.setLastName lastname))])))
-
-(comment
-
-  (def result-coll (into [] (test-sample-update ctr "003A000000k2GyeIAE" "Robert" "Marianski")))
-
-  (query-single-contact-by-id ctr "003A000000k2GyeIAE")
-)

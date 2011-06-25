@@ -12,6 +12,9 @@
             [docphoto.salesforce :as sf])
   (:import [org.apache.commons.codec.digest DigestUtils]))
 
+;; global salesforce connection
+(defn conn)
+
 (defn md5 [s] (DigestUtils/md5Hex s))
 
 (defn wrap-servlet-session [handler]
@@ -44,27 +47,16 @@
 (defn login-validator []
   (validate-vals :username not-empty :required
                  :password not-empty :required))
-  ;; (validations
-  ;;   (validate-val :username not-empty {:username :required})
-  ;;   (validate-val :password not-empty {:password :required})))
 
 ;; XXX explore strategy of matching salesforce names exactly
 ;; that way we don't have to adapt keys, just select them
 ;; although if we're selecting them, might as well just rename them
 
-(defn query-login-info [ctr username password]
-  (sf/sf-query ctr Contact
-               [Id UserName__c FirstName LastName Email Phone]
-               [[FirstName = username]
-                [Password = password]]))
-  ;; (sf/query-single-record
-  ;;  ctr
-  ;;  (str
-  ;;   "SELECT Id, UserName__c, FirstName, LastName, Email, Phone "
-  ;;   "FROM Contact WHERE "
-  ;;   ;; need to properly escape these strings
-  ;;   "UserName__c='" username "' AND "
-  ;;   "Password__c='" (md5 password) "'"))
+(defn query-login-info [conn username password]
+  (sf/query conn Contact
+            [Id UserName__c FirstName LastName Email Phone]
+            [[FirstName = username]
+             [Password = password]]))
 
 (defn render-login-form
   ([params] (render-login-form params {}))
@@ -90,7 +82,7 @@
       (if-let [errors ((login-validator) params)]
         (render-login-form params errors)
         (let [{:keys [username password]} params]
-          (if-let [user (query-login-info ctr username password)]
+          (if-let [user (query-login-info conn username password)]
             (do
               (login request (sf/sobject->map user))
               (redirect "/"))
@@ -143,7 +135,7 @@
                email :Email phone :Phone}
               params]
           (sf/create-contact
-           ctr
+           conn
            {:FirstName first-name
             :LastName last-name
             :Email email
