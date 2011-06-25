@@ -53,14 +53,18 @@
 ;; although if we're selecting them, might as well just rename them
 
 (defn query-login-info [ctr username password]
-  (sf/query-single-record
-   ctr
-   (str
-    "SELECT Id, UserName__c, FirstName, LastName, Email, Phone "
-    "FROM Contact WHERE "
-    ;; need to properly escape these strings
-    "UserName__c='" username "' AND "
-    "Password__c='" (md5 password) "'")))
+  (sf/sf-query ctr Contact
+               [Id UserName__c FirstName LastName Email Phone]
+               [[FirstName = username]
+                [Password = password]]))
+  ;; (sf/query-single-record
+  ;;  ctr
+  ;;  (str
+  ;;   "SELECT Id, UserName__c, FirstName, LastName, Email, Phone "
+  ;;   "FROM Contact WHERE "
+  ;;   ;; need to properly escape these strings
+  ;;   "UserName__c='" username "' AND "
+  ;;   "Password__c='" (md5 password) "'"))
 
 (defn render-login-form
   ([params] (render-login-form params {}))

@@ -1,9 +1,11 @@
 (ns docphoto.salesforce
-  (:use [clojure.string :only (capitalize)])
+  (:use [clojure.string :only (capitalize)]
+        [clojure.contrib.core :only (-?>)])
   (:require [clojure.contrib.string :as string])
   (:import [com.sforce.ws ConnectorConfig]
            [com.sforce.soap.enterprise Connector]
            [com.sforce.soap.enterprise.sobject Contact SObject]
+           [com.sforce.soap.enterprise.fault UnexpectedErrorFault]
            [org.apache.commons.codec.digest DigestUtils]))
 
 (defn connector-config [username password]
@@ -23,42 +25,67 @@
   (into-array SObject coll))
 
 (defn sobject->map [sobj]
-  (and sobj
-       (->
-        (bean sobj)
-        (dissoc :fieldsToNull)
-        non-nills)))
+  (-?> sobj
+       bean
+       (dissoc :fieldsToNull)
+       non-nills))
 
 (defn query-records [ctr query]
   (->
    (.query ctr query)
    .getRecords))
 
-(defn query-single-record [ctr query]
-  (-> (query-records ctr query) first))
+;; (defn query-single-record [ctr query]
+;;   (-> (query-records ctr query) first))
 
-(defn default-fields-contact []
-  [:Id :FirstName :LastName :Email])
+;; (defn default-fields-contact []
+;;   [:Id :FirstName :LastName :Email])
 
-(defmacro defquery-single [fname ctr field table column default-fields-symbol]
-  `(defn ~fname
-     ([~ctr ~field] (apply ~fname ~ctr ~field (~default-fields-symbol)))
-     ([~ctr ~field & fields#]
-        (sobject->map
-         (query-single-record
-          ~ctr
-          (str "SELECT "
-               (string/join ", " (map string/as-str fields#))
-               " FROM " (name '~table) " WHERE "
-               (name '~column) "='" ~field "'"))))))
+;; (defmacro defquery-single [fname ctr field table column default-fields-symbol]
+;;   `(defn ~fname
+;;      ([~ctr ~field] (apply ~fname ~ctr ~field (~default-fields-symbol)))
+;;      ([~ctr ~field & fields#]
+;;         (sobject->map
+;;          (query-single-record
+;;           ~ctr
+;;           (str "SELECT "
+;;                (string/join ", " (map string/as-str fields#))
+;;                " FROM " (name '~table) " WHERE "
+;;                (name '~column) "='" ~field "'"))))))
 
-;; XXX should investigate filtering by multiple fields
-(defquery-single query-single-contact-by-username ctr username
-  Contact UserName__c default-fields-contact)
-(defquery-single query-single-contact-by-id ctr id
-  Contact Id default-fields-contact)
-(defquery-single query-single-contact-by-email ctr email
-  Contact Email default-fields-contact)
+;; ;; XXX should investigate filtering by multiple fields
+;; (defquery-single query-single-contact-by-username ctr username
+;;   Contact UserName__c default-fields-contact)
+;; (defquery-single query-single-contact-by-id ctr id
+;;   Contact Id default-fields-contact)
+;; (defquery-single query-single-contact-by-email ctr email
+;;   Contact Email default-fields-contact)
+
+(defmacro query [ctr table select-fields select-filters & options]
+  (let [options (apply hash-map options)]
+    `(map
+      sf/sobject->map
+      (query-records
+       ~ctr
+       (str
+        ~(str
+          "SELECT "
+          (string/join ", " (map string/as-str select-fields))
+          " FROM " (capitalize (string/as-str table)))
+
+        ;; if we wanted to generic dynamic queries from a map at runtime
+        ;; we can check if we have a symbol here,
+        ;; and assume an AND for all operations
+        ~(if (not-empty select-filters)
+           `(str
+             " WHERE "
+             (string/join
+              ~(str " " (string/as-str (:compounder options "AND")) " ")
+              [~@(let [column (gensym) operator (gensym) criteria (gensym)]
+                   (for [[column operator criteria] select-filters]
+                     `(str ~(string/as-str column)
+                           " " ~(string/as-str operator) " "
+                           "'" ~criteria "'")))]))))))))
 
 (defn update [ctr sobjects]
   (.update ctr sobjects))
