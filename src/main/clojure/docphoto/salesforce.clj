@@ -44,9 +44,10 @@
                    login-result#
                    (.login conn#
                            (.getUsername cfg#) (.getPassword cfg#))]
-               (.setSessionHeader conn# (.getSessionId login-result#)))
-             ;; retry function
-             (apply ~fname ~bindings)))))))
+               (.setSessionHeader conn# (.getSessionId login-result#))
+               ;; retry function
+               (apply ~fname ~bindings))
+             (throw e#)))))))
 
 
 (defsfcommand query-records [conn query]
