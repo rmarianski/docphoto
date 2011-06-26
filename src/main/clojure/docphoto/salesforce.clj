@@ -113,7 +113,8 @@
      (apply str "set"
             (capitalize (first (name k)))
             (rest (name k)))
-     (to-array [v]))))
+     (to-array [v])))
+  obj)
 
 (defn create-contact [conn contact-data-map]
   (create
