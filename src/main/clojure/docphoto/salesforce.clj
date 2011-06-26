@@ -76,10 +76,12 @@
              (string/join
               ~(str " " (string/as-str (:compounder options "AND")) " ")
               [~@(let [column (gensym) operator (gensym) criteria (gensym)]
-                   (for [[column operator criteria] select-filters]
+                   (for [[column operator criteria noquote] select-filters]
                      `(str ~(string/as-str column)
                            " " ~(string/as-str operator) " "
-                           "'" ~criteria "'")))]))))))))
+                           ~(if noquote
+                              criteria
+                              `(str "'" ~criteria "'")))))]))))))))
 
 (defsfcommand update [conn sobjects]
   (if (.isArray (.getClass sobjects))
