@@ -9,7 +9,8 @@
         [decline.core :only
          (validations validation validate-val validate-some)])
   (:require [compojure.route :as route]
-            [docphoto.salesforce :as sf])
+            [docphoto.salesforce :as sf]
+            [clojure.contrib.string :as string])
   (:import [org.apache.commons.codec.digest DigestUtils]))
 
 ;; global salesforce connection
@@ -145,11 +146,85 @@
           (redirect "/userinfo")))
       (render-register-form params))))
 
+(defn- make-field-stanza
+  ([fieldinfo errors-symbol]
+     (if (keyword? fieldinfo)
+       (make-field-stanza
+        fieldinfo (string/capitalize (name fieldinfo)) errors-symbol)
+       (make-field-stanza
+        (first fieldinfo) (second fieldinfo) errors-symbol)))
+  ([field label errors-symbol]
+     `{:type :text :name ~field :label ~label :error (~field ~errors-symbol)}))
+
+(defn- make-form-render-fn [fields options]
+  (let [errors (gensym "errors__")]
+    `(fn [params# ~errors]
+       (xhtml
+        (render {:type :uniform
+                 :fields
+                 [~@(map #(make-field-stanza % errors) fields)]
+                 :buttons [{:type :submit
+                            :value ~(:submit-label options "Submit")}]}
+                params#)))))
+
+(defn- make-validator-stanza [fieldinfo]
+  (if (keyword? fieldinfo)
+    `(validate-val ~fieldinfo not-empty {~fieldinfo :required})
+    (let [[fieldname label & options] fieldinfo
+          opts (apply hash-map options)]
+      (if (:required opts true)
+        `(validate-val ~fieldname not-empty {~fieldname :required})))))
+
+(defn make-form-validator-fn [fields]
+  `(validations
+    ~@(keep make-validator-stanza fields)))
+
+(defmacro defformpage [fn-name fields options bindings & body]
+  (let [render-fn (gensym "render-fn__")
+        validator-fn (gensym "validator-fn__")
+        params (gensym "params__")
+        request (gensym "request__")]
+    `(let [~render-fn ~(make-form-render-fn fields options)
+           ~validator-fn ~(make-form-validator-fn fields)]
+       (defn ~fn-name [~request]
+         (let [~params (:params ~request)]
+           (if (= (:request-method ~request) :post)
+             (if-let [errors# (~validator-fn ~params)]
+               (~render-fn ~params errors#)
+               ~(let [[render-var form-var params-var request-var] bindings]
+                  `(let [~render-var ~render-fn
+                         ~form-var ~validator-fn
+                         ~params-var ~params
+                         ~request-var ~request]
+                     ~@body)))
+             (~render-fn ~params {})))))))
+
+(defn register [register-map]
+  (println "registered:" register-map))
+
+(defformpage register-page
+  [[:userName__c "Username"]
+   [:password__c "Password"]
+   [:password2 "Password"]
+   [:firstName "First Name"]
+   [:lastName "Last Name"]
+   :email
+   :phone]
+  {}
+  [render-form-fn form-data params request]
+  (let [{password1 :password__c password2 :password2} form-data]
+    (if (not (= password1 password2))
+      (render-form-fn form-data {:password__c "Passwords don't match"})
+      (do
+        (register (dissoc form-data :password2))
+        (redirect "/userinfo")))))
+
 (defroutes main-routes
   (GET "/" [] home-view)
   (ANY "/login" [] login-view)
   (ANY "/userinfo" [] userinfo-view)
   (ANY "/register" [] register-view)
+  (ANY "/macro-register" [] register-page)
   (route/files "/public")
   (route/not-found "Page not found"))
 
