@@ -182,8 +182,7 @@
 (defmacro defformpage [fn-name fields options bindings & body]
   (let [render-fn (gensym "render-fn__")
         validator-fn (gensym "validator-fn__")
-        params (gensym "params__")
-        request (gensym "request__")]
+        [render-fn-var params request] bindings]
     `(let [~render-fn ~(make-form-render-fn fields options)
            ~validator-fn ~(make-form-validator-fn fields)]
        (defn ~fn-name [~request]
@@ -191,11 +190,8 @@
            (if (= (:request-method ~request) :post)
              (if-let [errors# (~validator-fn ~params)]
                (~render-fn ~params errors#)
-               ~(let [[render-var form-var params-var request-var] bindings]
-                  `(let [~render-var ~render-fn
-                         ~form-var ~validator-fn
-                         ~params-var ~params
-                         ~request-var ~request]
+               ~(let [[render-var params-var request-var] bindings]
+                  `(let [~render-fn-var ~render-fn]
                      ~@body)))
              (~render-fn ~params {})))))))
 
@@ -211,12 +207,12 @@
    :email
    :phone]
   {}
-  [render-form-fn form-data params request]
-  (let [{password1 :password__c password2 :password2} form-data]
+  [render-form-fn params request]
+  (let [{password1 :password__c password2 :password2} params]
     (if (not (= password1 password2))
-      (render-form-fn form-data {:password__c "Passwords don't match"})
+      (render-form-fn params {:password__c "Passwords don't match"})
       (do
-        (register (dissoc form-data :password2))
+        (register (dissoc params :password2))
         (redirect "/userinfo")))))
 
 (defroutes main-routes
