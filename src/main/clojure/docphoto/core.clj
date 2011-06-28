@@ -179,21 +179,26 @@
   `(validations
     ~@(keep make-validator-stanza fields)))
 
-(defmacro defformpage [fn-name fields options bindings & body]
-  (let [render-fn (gensym "render-fn__")
-        validator-fn (gensym "validator-fn__")
-        [render-fn-var params request] bindings]
-    `(let [~render-fn ~(make-form-render-fn fields options)
-           ~validator-fn ~(make-form-validator-fn fields)]
-       (defn ~fn-name [~request]
-         (let [~params (:params ~request)]
-           (if (= (:request-method ~request) :post)
-             (if-let [errors# (~validator-fn ~params)]
-               (~render-fn ~params errors#)
-               ~(let [[render-var params-var request-var] bindings]
-                  `(let [~render-fn-var ~render-fn]
-                     ~@body)))
-             (~render-fn ~params {})))))))
+(defmacro defformpage
+  ([fn-name fields bindings body]
+     `(defformpage ~fn-name ~fields {} ~bindings ~body))
+  ([fn-name fields options bindings body]
+     (let [render-fn (gensym "render-fn__")
+           validator-fn (gensym "validator-fn__")
+           params (gensym "params__")
+           request (gensym "request__")]
+       `(let [~render-fn ~(make-form-render-fn fields options)
+              ~validator-fn ~(make-form-validator-fn fields)]
+          (defn ~fn-name [~request]
+            (let [~params (:params ~request)]
+              (if (= (:request-method ~request) :post)
+                (if-let [errors# (~validator-fn ~params)]
+                  (~render-fn ~params errors#)
+                  (let [~@bindings {:render ~render-fn
+                                    :params ~params
+                                    :request ~request}]
+                    ~body))
+                (~render-fn ~params {}))))))))
 
 (defn register [register-map]
   (println "registered:" register-map))
@@ -206,8 +211,7 @@
    [:lastName "Last Name"]
    :email
    :phone]
-  {}
-  [render-form-fn params request]
+  [{render-form-fn :render params :params}]
   (let [{password1 :password__c password2 :password2} params]
     (if (not (= password1 password2))
       (render-form-fn params {:password__c "Passwords don't match"})
