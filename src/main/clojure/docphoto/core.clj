@@ -143,71 +143,86 @@
 ;;           (redirect "/userinfo")))
 ;;       (render-register-form params))))
 
-(defn- make-field-stanza [field fieldinfo]
-  `(~field ~@fieldinfo))
+(defn register [register-map]
+  (println "registered:" register-map))
 
-(defn- make-form-render-fn [fields options]
+(defn- make-fields-render-fn [fields options]
   (let [field (gensym "field__")]
     `(fn [params# errors#]
-       (let [~field (->
-                     html4-fields
-                     wrap-form-field
-                     wrap-shortcuts
-                     (wrap-errors errors#)
-                     (wrap-params params#))]
-         (xhtml
-          [:form.uniForm {:method :post :action "."}
-           [:p "Register!"]
-           [:fieldset
-            ~@(map #(make-field-stanza field %) fields)]
-           [:input {:type :submit
-                    :value "Register"}]])))))
+       (let [~field (-> html4-fields
+                        wrap-form-field
+                        wrap-shortcuts
+                        (wrap-errors errors#)
+                        (wrap-params params#))]
+         (list
+          ~@(map (fn [fieldinfo]
+                   (if-let [fieldspec (:field fieldinfo)]
+                     `(~field ~@fieldspec)))
+                 fields))))))
 
 (defn- make-validator-stanza [fieldinfo]
-  (if (keyword? fieldinfo)
-    `(validate-val ~fieldinfo not-empty {~fieldinfo :required})
-    (let [[fieldname label & options] fieldinfo
-          opts (apply hash-map options)]
-      (if (:required opts true)
-        `(validate-val ~fieldname not-empty {~fieldname :required})))))
+  (let [{:keys [field validator]} fieldinfo
+        {:keys [fn msg]} validator
+        [_ _ name] field]
+    (if (some nil? [fn msg name])
+      `nil
+      `(validate-val ~name ~fn {~name ~msg}))))
 
 (defn make-form-validator-fn [fields]
   `(validations
     ~@(keep make-validator-stanza fields)))
 
+(defn make-form-render-fn [binding fields-render-fn form-body options]
+  `(fn [params# errors#]
+     (let [~@binding {:render-fields ~fields-render-fn
+                      :params params#
+                      :errors errors#}]
+       ~form-body)))
+
 (defmacro defformpage
-  ([fn-name fields bindings body]
-     `(defformpage ~fn-name ~fields {} ~bindings ~body))
-  ([fn-name fields options bindings body]
-     (let [render-fn (gensym "render-fn__")
+  ([fn-name fields field-render-bindings form-render-body
+    success-bindings success-body]
+     `(defformpage ~fn-name ~fields {}
+        ~field-render-bindings ~form-render-body
+        ~success-bindings ~success-body))
+  ([fn-name fields options field-render-bindings form-render-body
+    success-bindings success-body]
+     (let [fields-render-fn (gensym "fields-render-fn__")
+           form-render-fn (gensym "form-render-fn__")
            validator-fn (gensym "validator-fn__")
            params (gensym "params__")
            request (gensym "request__")]
-       `(let [~render-fn ~(make-form-render-fn fields options)
+       `(let [~fields-render-fn ~(make-fields-render-fn fields options)
+              ~form-render-fn ~(make-form-render-fn
+                                field-render-bindings fields-render-fn
+                                form-render-body options)
               ~validator-fn ~(make-form-validator-fn fields)]
           (defn ~fn-name [~request]
             (let [~params (:params ~request)]
               (if (= (:request-method ~request) :post)
                 (if-let [errors# (~validator-fn ~params)]
-                  (~render-fn ~params errors#)
-                  (let [~@bindings {:render ~render-fn
-                                    :params ~params
-                                    :request ~request}]
-                    ~body))
-                (~render-fn ~params {}))))))))
-
-(defn register [register-map]
-  (println "registered:" register-map))
+                  (~form-render-fn ~params errors#)
+                  (let [~@success-bindings {:render-form ~form-render-fn
+                                            :params ~params
+                                            :request ~request}]
+                    ~success-body))
+                (~form-render-fn ~params {}))))))))
 
 (defformpage register-page
-  [[:text {} :userName__c {:label "Username"}]
-   [:password {} :password__c {:label "Password"}]
-   [:password {} :password2 {:label "Password"}]
-   [:text {} :firstName {:label "First Name"}]
-   [:text {} :lastName {:label "Last Name"}]
-   [:text {} :email {:label "Email"}]
-   [:text {} :phone {:label "Phone"}]]
-  [{render-form-fn :render params :params}]
+  [{:field [:text {} :userName__c {:label "Username"}] :validator {:fn not-empty :msg :required}}
+   {:field [:password {} :password__c {:label "Password"}] :validator {:fn not-empty :msg :required}}
+   {:field [:password {} :password2 {:label "Password"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :firstName {:label "First Name"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :lastName {:label "Last Name"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :email {:label "Email"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :phone {:label "Phone"}] :validator {:fn not-empty :msg :required}}]
+  [{:keys [render-fields params errors]}]
+  (xhtml
+   [:form {:method :post :action "/macro-register"}
+    [:h2 "Register"]
+    (render-fields params errors)
+    [:input {:type :submit :value "Register"}]])
+  [{render-form-fn :render-form params :params}]
   (let [{password1 :password__c password2 :password2} params]
     (if (not (= password1 password2))
       (render-form-fn params {:password__c "Passwords don't match"})
