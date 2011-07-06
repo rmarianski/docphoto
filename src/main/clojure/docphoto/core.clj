@@ -203,12 +203,23 @@
           (login request (query-user username (md5 password1)))
           (redirect "/userinfo"))))))
 
+(defn exhibit-view [request exhibit-name]
+  (if-let [exhibit (first
+                    (sf/query conn exhibit__c
+                              [name description__c]
+                              [[name = exhibit-name]]))]
+    (xhtml [:div
+            [:h1 (:name exhibit)]
+            [:p (:description__c exhibit)]])))
+
 (defroutes main-routes
   (GET "/" [] home-view)
   (GET "/userinfo" [] userinfo-view)
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
   (ANY "/register" [] register-view)
+  (ANY "/exhibit/:exhibit-name" [exhibit-name :as request]
+       (exhibit-view request exhibit-name))
   (route/files "/public")
   (route/not-found "Page not found"))
 
