@@ -105,7 +105,7 @@
 (defn home-view [request]
   (xhtml [:div [:h1 "hi world"]
           [:p (str "user: "
-                   (or (-?> (session-get-user request) :firstName)
+                   (or (-?> (session-get-user request) :name)
                        "anonymous"))]]))
 
 (defmacro validate-vals [& val-data]
@@ -135,7 +135,7 @@
 (defn- query-user [username password]
   (first
    (sf/query conn contact
-             [Id UserName__c FirstName LastName Email Phone]
+             [Id UserName__c FirstName LastName Name Email Phone]
              [[userName__c = username]
               [password__c = password]])))
 
