@@ -120,13 +120,24 @@
       (list [:dt k] [:dd v]))]))
 
 (defn register [register-map]
-  (println "registered:" register-map))
+  (sf/create-contact
+   conn
+   (select-keys
+    register-map
+    [:firstName :lastName :email :phone :userName__c :password__c])))
 
 (defn login [request user]
   (session-save-user request user))
 
 (defn logout [request]
   (session-delete request))
+
+(defn- query-user [username password]
+  (first
+   (sf/query conn contact
+             [Id UserName__c FirstName LastName Email Phone]
+             [[userName__c = username]
+              [password__c = password]])))
 
 (defformpage login-view
   [{:field [:text {} :userName__c {:label "Username"}] :validator {:fn not-empty :msg :required}}
@@ -138,11 +149,7 @@
     (render-fields params errors)
     [:input {:type :submit :value "Login"}]])
   [{render-form-fn :render-form params :params request :request}]
-  (if-let [user (first
-                 (sf/query conn Contact
-                           [Id UserName__c FirstName LastName Email Phone]
-                           [[userName__c = (:userName__c params)]
-                            [password__c = (md5 (:password__c params))]]))]
+  (if-let [user (query-user (:userName__c params) (md5 (:password__c params)))]
     (do (login request user) (redirect "/userinfo"))
     (render-form-fn params {:userName__c "Invalid Credentials"})))
 
@@ -158,17 +165,24 @@
    {:field [:text {} :phone {:label "Phone"}] :validator {:fn not-empty :msg :required}}]
   [{:keys [render-fields params errors]}]
   (xhtml
-   [:form {:method :post :action "/macro-register"}
+   [:form {:method :post :action "/register"}
     [:h2 "Register"]
     (render-fields params errors)
     [:input {:type :submit :value "Register"}]])
-  [{render-form-fn :render-form params :params}]
-  (let [{password1 :password__c password2 :password2} params]
+  [{render-form-fn :render-form params :params request :request}]
+  (let [{password1 :password__c password2 :password2
+         username :userName__c} params]
     (if (not (= password1 password2))
       (render-form-fn params {:password__c "Passwords don't match"})
-      (do
-        (register (dissoc params :password2))
-        (redirect "/userinfo")))))
+      (if-let [user (first
+                     (sf/query conn contact
+                               [id] [[userName__c = username]]))]
+        (render-form-fn params {:userName__c "User already exists"})
+        (do
+          (register (update-in (dissoc params :password2)
+                               [:password__c] md5))
+          (login request (query-user username (md5 password1)))
+          (redirect "/userinfo"))))))
 
 (defroutes main-routes
   (GET "/" [] home-view)
