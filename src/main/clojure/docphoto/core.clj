@@ -38,6 +38,18 @@
 (defn session-delete [request]
   (.invalidate (:session request)))
 
+(defn- query-user [username password]
+  (first
+   (sf/query conn contact
+             [id username__c firstname lastname name email phone]
+             [[username__c = username]
+              [password__c = password]])))
+
+(defn- query-exhibits []
+  (sf/query conn exhibit__c
+            [id name application_start_date__c description__c]
+            [[closed__c = false noquote]]))
+
 (defn- make-fields-render-fn [fields options]
   (let [field (gensym "field__")]
     `(fn [params# errors#]
@@ -102,11 +114,23 @@
                     ~success-body))
                 (~form-render-fn ~params {}))))))))
 
+(defn- exhibit-link [request exhibit]
+  (str "/exhibit/" (:name exhibit)))
+
+(defn- exhibits-html [request]
+  (let [exhibits (query-exhibits)]
+    (if (not-empty exhibits)
+      [:ul
+       (map #(vector :li [:a {:href (exhibit-link request %)} (:name %)])
+            exhibits)])))
+
 (defn home-view [request]
-  (xhtml [:div [:h1 "hi world"]
-          [:p (str "user: "
-                   (or (-?> (session-get-user request) :name)
-                       "anonymous"))]]))
+  (xhtml
+   [:div
+    [:p (str "user: "
+             (or (-?> (session-get-user request) :name)
+                 "anonymous"))]
+    (exhibits-html request)]))
 
 (defmacro validate-vals [& val-data]
   `(validations
@@ -132,20 +156,15 @@
 (defn logout [request]
   (session-delete request))
 
-(defn- query-user [username password]
-  (first
-   (sf/query conn contact
-             [Id UserName__c FirstName LastName Name Email Phone]
-             [[userName__c = username]
-              [password__c = password]])))
-
 (defformpage login-view
   [{:field [:text {} :userName__c {:label "Username"}] :validator {:fn not-empty :msg :required}}
    {:field [:password {} :password__c {:label "Password"}] :validator {:fn not-empty :msg :required}}]
-  [{:keys [render-fields params errors]}]
+  [{:keys [render-fields request params errors]}]
   (xhtml
    [:form {:method :post :action "/login"}
     [:h2 "Login"]
+    (when-let [user (session-get-user request)]
+      [:p (str "Already logged in as: " (:name user))])
     (render-fields params errors)
     [:input {:type :submit :value "Login"}]])
   [{render-form-fn :render-form params :params request :request}]
@@ -153,7 +172,7 @@
     (do (login request user) (redirect "/userinfo"))
     (render-form-fn params {:userName__c "Invalid Credentials"})))
 
-(defn logout-view [request] (logout request) (redirect "/"))
+(defn logout-view [request] (logout request) (redirect "/login"))
 
 (defformpage register-view
   [{:field [:text {} :userName__c {:label "Username"}] :validator {:fn not-empty :msg :required}}
