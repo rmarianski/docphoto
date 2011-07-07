@@ -1,6 +1,7 @@
 (ns docphoto.salesforce
   (:use [clojure.string :only (capitalize)]
-        [clojure.contrib.core :only (-?>)])
+        [clojure.contrib.core :only (-?>)]
+        [clojure.contrib.seq :only (find-first)])
   (:require [clojure.contrib.string :as string])
   (:import [com.sforce.ws ConnectorConfig]
            [com.sforce.soap.enterprise Connector]
@@ -32,23 +33,30 @@
 
 ;; automatically reconnect on session invalidation
 ;; salesforce connection must be first binding
-(defmacro defsfcommand [fname bindings & body]
-  `(defn ~fname ~bindings
-     (let [conn# ~(first bindings)]
-       (try
-         (do ~@body)
-         (catch UnexpectedErrorFault e#
-           (if (= "INVALID_SESSION_ID"
-                  (.getLocalPart (.getFaultCode e#)))
-             (let [cfg# (.getConfig conn#)
-                   login-result#
-                   (.login conn#
-                           (.getUsername cfg#) (.getPassword cfg#))]
-               (.setSessionHeader conn# (.getSessionId login-result#))
-               ;; retry function
-               (apply ~fname ~bindings))
-             (throw e#)))))))
-
+(defmacro defsfcommand
+  ([fname bindings body] `(defsfcommand ~fname no-check ~bindings ~body))
+  ([fname check-results bindings body]
+     `(defn ~fname ~bindings
+        (let [conn# ~(first bindings)]
+          (try
+            ~(if (= check-results 'check-results)
+               `(let [results# ~body]
+                  (if (not-every? #(.isSuccess %) results#)
+                    (throw (IllegalStateException.
+                            (str (find-first #(not (.isSuccess %)) results#))))
+                    results#))
+               body)
+            (catch UnexpectedErrorFault e#
+              (if (= "INVALID_SESSION_ID"
+                     (.getLocalPart (.getFaultCode e#)))
+                (let [cfg# (.getConfig conn#)
+                      login-result#
+                      (.login conn#
+                              (.getUsername cfg#) (.getPassword cfg#))]
+                  (.setSessionHeader conn# (.getSessionId login-result#))
+                  ;; retry function
+                  (apply ~fname ~bindings))
+                (throw e#))))))))
 
 (defsfcommand query-records [conn query]
   (->
@@ -83,7 +91,7 @@
                               criteria
                               `(str "'" ~criteria "'")))))]))))))))
 
-(defsfcommand update-records [conn sobjects]
+(defsfcommand update-records check-results [conn sobjects]
   (.update conn sobjects))
 
 (defmacro update [conn class & update-maps]
@@ -93,7 +101,7 @@
      (map (partial create-sf-object (new ~class))
           (vector ~@update-maps)))))
 
-(defsfcommand create [conn sobjects]
+(defsfcommand create check-results [conn sobjects]
   (.create conn sobjects))
 
 (defsfcommand describe-sobject [conn object-name]
