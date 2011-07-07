@@ -83,10 +83,15 @@
                               criteria
                               `(str "'" ~criteria "'")))))]))))))))
 
-(defsfcommand update [conn sobjects]
-  (if (.isArray (.getClass sobjects))
-    (.update conn sobjects)
-    (update conn (sobject-array sobjects))))
+(defsfcommand update-records [conn sobjects]
+  (.update conn sobjects))
+
+(defmacro update [conn class & update-maps]
+  `(update-records
+    ~conn
+    (sobject-array
+     (map (partial create-sf-object (new ~class))
+          (vector ~@update-maps)))))
 
 (defsfcommand create [conn sobjects]
   (.create conn sobjects))
