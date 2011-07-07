@@ -89,7 +89,9 @@
                            " " ~(string/as-str operator) " "
                            ~(if noquote
                               criteria
-                              `(str "'" ~criteria "'")))))]))))))))
+                              `(str "'" ~criteria "'")))))])))
+        ~(if-let [to-append (:append options)]
+           (str " " to-append)))))))
 
 (defsfcommand update-records check-results [conn sobjects]
   (.update conn sobjects))
