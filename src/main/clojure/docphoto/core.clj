@@ -11,7 +11,7 @@
         [ring.util.response :only (redirect)]
         [decline.core :only
          (validations validation validate-val validate-some)]
-        [clojure.contrib.core :only (-?>)])
+        [clojure.contrib.core :only (-?> -?>>)])
   (:require [compojure.route :as route]
             [docphoto.salesforce :as sf]
             [clojure.contrib.string :as string])
@@ -47,8 +47,15 @@
 
 (defn- query-exhibits []
   (sf/query conn exhibit__c
-            [id name application_start_date__c description__c]
+            [id name slug__c application_start_date__c description__c]
             [[closed__c = false noquote]]))
+
+(defn- query-latest-exhibit []
+  (first
+   (sf/query conn exhibit__c
+             [id name slug__c application_start_date__c description__c]
+             [[closed__c = false noquote]]
+             :append "order by application_start_date__c desc limit 1")))
 
 (defn- make-fields-render-fn [fields options]
   (let [field (gensym "field__")]
@@ -115,7 +122,7 @@
                 (~form-render-fn ~params {}))))))))
 
 (defn- exhibit-link [request exhibit]
-  (str "/exhibit/" (:name exhibit)))
+  (str "/exhibit/" (:slug__c exhibit)))
 
 (defn- exhibits-html [request]
   (let [exhibits (query-exhibits)]
@@ -203,11 +210,11 @@
           (login request (query-user username (md5 password1)))
           (redirect "/userinfo"))))))
 
-(defn exhibit-view [request exhibit-name]
+(defn exhibit-view [request exhibit-slug]
   (if-let [exhibit (first
                     (sf/query conn exhibit__c
                               [name description__c]
-                              [[name = exhibit-name]]))]
+                              [[slug__c = exhibit-slug]]))]
     (xhtml [:div
             [:h1 (:name exhibit)]
             [:p (:description__c exhibit)]])))
@@ -218,8 +225,12 @@
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
   (ANY "/register" [] register-view)
-  (ANY "/exhibit/:exhibit-name" [exhibit-name :as request]
-       (exhibit-view request exhibit-name))
+  (GET "/exhibit" [] (redirect (or (-?>> (query-latest-exhibit)
+                                         :slug__c
+                                         (str "/exhibit/"))
+                                   "/")))
+  (GET "/exhibit/:exhibit-slug" [exhibit-slug :as request]
+       (exhibit-view request exhibit-slug))
   (route/files "/public")
   (route/not-found "Page not found"))
 
