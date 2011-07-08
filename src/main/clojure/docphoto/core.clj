@@ -155,7 +155,9 @@
    conn
    (select-keys
     register-map
-    [:firstName :lastName :email :phone :userName__c :password__c])))
+    [:firstName :lastName :email :phone :userName__c :password__c
+     :mailingStreet :mailingCity :mailingState :mailingPostalCode
+     :mailingCountry])))
 
 (defn login [request user]
   (session-save-user request user))
@@ -188,7 +190,12 @@
    {:field [:text {} :firstName {:label "First Name"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :lastName {:label "Last Name"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :email {:label "Email"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :phone {:label "Phone"}] :validator {:fn not-empty :msg :required}}]
+   {:field [:text {} :phone {:label "Phone"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :mailingStreet {:label "Address"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :mailingCity {:label "City"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :mailingState {:label "State"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :mailingPostalCode {:label "Postal Code"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :mailingCountry {:label "Country"}] :validator {:fn not-empty :msg :required}}]
   [{:keys [render-fields params errors]}]
   (xhtml
    [:form {:method :post :action "/register"}
