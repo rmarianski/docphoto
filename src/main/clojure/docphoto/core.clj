@@ -226,13 +226,27 @@
             [:h1 (:name exhibit)]
             [:p (:description__c exhibit)]])))
 
-(defn exhibit-apply-view [request exhibit-slug]
+(defformpage exhibit-apply-view
+  [{:field [:text {} :statementrich__c {:label "Project Statement"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :title__c {:label "Project Title"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :biography__c {:label "Short Narrative Bio"}] :validator {:fn not-empty :msg :required}}
+   ;; cv
+   {:field [:text {} :website__c {:label "Website"}]}]
+  {:fn-bindings [exhibit-slug]}
+  [{:keys [render-fields request params errors]}]
   (if-let [exhibit (first
                     (sf/query conn exhibit__c
                               [name description__c]
                               [[slug__c = exhibit-slug]]))]
     (xhtml [:div
-            [:h1 (str "Apply to " (:name exhibit))]])))
+            [:h1 (str "Apply to " (:name exhibit))]
+            [:form {:method :post :action (:uri request)}
+             [:fieldset
+              [:legend "Apply"]
+              (render-fields params errors)]
+             [:input {:type :submit :value "Apply"}]]]))
+  [request]
+  (xhtml [:h1 "success"]))
 
 (defroutes main-routes
   (GET "/" [] home-view)
@@ -240,7 +254,7 @@
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
   (ANY "/register" [] register-view)
-  (GET "/exhibit/:exhibit-slug/apply"
+  (ANY "/exhibit/:exhibit-slug/apply"
        [exhibit-slug :as request] (exhibit-apply-view request exhibit-slug))
   (GET "/exhibit/:exhibit-slug" [exhibit-slug :as request]
        (exhibit-view request exhibit-slug))
