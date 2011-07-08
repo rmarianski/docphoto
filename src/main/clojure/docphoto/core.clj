@@ -106,7 +106,7 @@
            request (gensym "request__")]
        `(let [~fields-render-fn ~(make-fields-render-fn fields options)
               ~validator-fn ~(make-form-validator-fn fields)]
-          (defn ~fn-name [~request]
+          (defn ~fn-name [~request ~@(:fn-bindings options)]
             (let [~params (:params ~request)
                   ~form-render-fn ~(make-form-render-fn
                                     request
