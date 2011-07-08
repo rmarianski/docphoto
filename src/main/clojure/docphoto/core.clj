@@ -219,18 +219,28 @@
             [:h1 (:name exhibit)]
             [:p (:description__c exhibit)]])))
 
+(defn exhibit-apply-view [request exhibit-slug]
+  (if-let [exhibit (first
+                    (sf/query conn exhibit__c
+                              [name description__c]
+                              [[slug__c = exhibit-slug]]))]
+    (xhtml [:div
+            [:h1 (str "Apply to " (:name exhibit))]])))
+
 (defroutes main-routes
   (GET "/" [] home-view)
   (GET "/userinfo" [] userinfo-view)
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
   (ANY "/register" [] register-view)
+  (GET "/exhibit/:exhibit-slug/apply"
+       [exhibit-slug :as request] (exhibit-apply-view request exhibit-slug))
+  (GET "/exhibit/:exhibit-slug" [exhibit-slug :as request]
+       (exhibit-view request exhibit-slug))
   (GET "/exhibit" [] (redirect (or (-?>> (query-latest-exhibit)
                                          :slug__c
                                          (str "/exhibit/"))
                                    "/")))
-  (GET "/exhibit/:exhibit-slug" [exhibit-slug :as request]
-       (exhibit-view request exhibit-slug))
   (route/files "/public")
   (route/not-found "Page not found"))
 
