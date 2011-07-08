@@ -1,5 +1,5 @@
 (ns docphoto.core
-  (:use [compojure.core :only (defroutes GET ANY)]
+  (:use [compojure.core :only (defroutes GET ANY routes)]
         [compojure.handler :only (api)]
         [ring.middleware.multipart-params :only (wrap-multipart-params)]
         [hiccup.page-helpers :only (xhtml)]
@@ -217,11 +217,14 @@
           (login request (query-user username (md5 password1)))
           (redirect "/userinfo"))))))
 
-(defn exhibit-view [request exhibit-slug]
-  (if-let [exhibit (first
-                    (sf/query conn exhibit__c
-                              [name description__c]
-                              [[slug__c = exhibit-slug]]))]
+(defn- query-exhibit [exhibit-slug]
+  (first
+   (sf/query conn exhibit__c
+             [name description__c]
+             [[slug__c = exhibit-slug]])))
+
+(defn exhibit-view [request exhibit]
+  (if exhibit
     (xhtml [:div
             [:h1 (:name exhibit)]
             [:p (:description__c exhibit)]])))
@@ -232,12 +235,9 @@
    {:field [:text {} :biography__c {:label "Short Narrative Bio"}] :validator {:fn not-empty :msg :required}}
    ;; cv
    {:field [:text {} :website__c {:label "Website"}]}]
-  {:fn-bindings [exhibit-slug]}
+  {:fn-bindings [exhibit]}
   [{:keys [render-fields request params errors]}]
-  (if-let [exhibit (first
-                    (sf/query conn exhibit__c
-                              [name description__c]
-                              [[slug__c = exhibit-slug]]))]
+  (if exhibit
     (xhtml [:div
             [:h1 (str "Apply to " (:name exhibit))]
             [:form {:method :post :action (:uri request)}
@@ -248,16 +248,26 @@
   [request]
   (xhtml [:h1 "success"]))
 
+(defn- add-bindings [bindings-to-add handler]
+  (let [[method route bindings body] handler]
+    `(~method ~route ~bindings
+              (let ~bindings-to-add ~body))))
+
+(defmacro with-route-bindings [bindings & handlers]
+  `(routes
+    ~@(map (partial add-bindings bindings) handlers)))
+
 (defroutes main-routes
   (GET "/" [] home-view)
   (GET "/userinfo" [] userinfo-view)
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
   (ANY "/register" [] register-view)
-  (ANY "/exhibit/:exhibit-slug/apply"
-       [exhibit-slug :as request] (exhibit-apply-view request exhibit-slug))
-  (GET "/exhibit/:exhibit-slug" [exhibit-slug :as request]
-       (exhibit-view request exhibit-slug))
+  (with-route-bindings [exhibit (query-exhibit exhibit-slug)]
+    (ANY "/exhibit/:exhibit-slug/apply"
+         [exhibit-slug :as request] (exhibit-apply-view request exhibit))
+    (GET "/exhibit/:exhibit-slug" [exhibit-slug :as request]
+         (exhibit-view request exhibit)))
   (GET "/exhibit" [] (redirect (or (-?>> (query-latest-exhibit)
                                          :slug__c
                                          (str "/exhibit/"))
