@@ -248,14 +248,19 @@
   [request]
   (xhtml [:h1 "success"]))
 
-(defn- add-bindings [bindings-to-add handler]
-  (let [[method route bindings body] handler]
-    `(~method ~route ~bindings
-              (let ~bindings-to-add ~body))))
-
-(defmacro with-route-bindings [bindings & handlers]
+(defn wrap-route-body
+  "higher order utility function for modifying compojure route bodies"
+  [f & handlers]
   `(routes
-    ~@(map (partial add-bindings bindings) handlers)))
+    ~@(map (fn [[method route bindings body]]
+             `(~method ~route ~bindings
+                       ~(f body)))
+           handlers)))
+
+(defmacro let-route [bindings & handlers]
+  (apply wrap-route-body
+         (fn [body] `(if-let ~bindings ~body))
+         handlers))
 
 (defroutes main-routes
   (GET "/" [] home-view)
@@ -263,7 +268,7 @@
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
   (ANY "/register" [] register-view)
-  (with-route-bindings [exhibit (query-exhibit exhibit-slug)]
+  (let-route [exhibit (query-exhibit exhibit-slug)]
     (ANY "/exhibit/:exhibit-slug/apply"
          [exhibit-slug :as request] (exhibit-apply-view request exhibit))
     (GET "/exhibit/:exhibit-slug" [exhibit-slug :as request]
