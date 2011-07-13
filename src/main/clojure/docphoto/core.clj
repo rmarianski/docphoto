@@ -1,5 +1,5 @@
 (ns docphoto.core
-  (:use [compojure.core :only (defroutes GET ANY routes)]
+  (:use [compojure.core :only (defroutes GET ANY routes routing)]
         [compojure.handler :only (api)]
         [ring.middleware.multipart-params :only (wrap-multipart-params)]
         [hiccup.page-helpers :only (xhtml)]
@@ -14,7 +14,8 @@
         [clojure.contrib.core :only (-?> -?>>)])
   (:require [compojure.route :as route]
             [docphoto.salesforce :as sf]
-            [clojure.contrib.string :as string])
+            [clojure.contrib.string :as string]
+            [clojure.walk])
   (:import [org.apache.commons.codec.digest DigestUtils]))
 
 ;; global salesforce connection
@@ -248,31 +249,62 @@
   [request]
   (xhtml [:h1 "success"]))
 
+;; stubbed out for now
+(defn has-permission [user permission] true)
+
+(defn- compojure-route? [form]
+  (and (list? form)
+       (#{'ANY 'GET 'POST 'PUT 'DELETE} (first form))))
+
+(defn- wrap-body [f form]
+  ;; this doesn't seem to work recursively
+  ;; if there are two separate macros calling wrap-body underneath
+  ;; they don't nest properly
+  (clojure.walk/prewalk
+   #(if (compojure-route? %)
+      (let [[method route bindings body] %]
+        `(~method ~route ~bindings
+                  ~(f body)))
+      %)
+   form))
+
 (defn wrap-route-body
   "higher order utility function for modifying compojure route bodies"
   [f & handlers]
   `(routes
-    ~@(map (fn [[method route bindings body]]
-             `(~method ~route ~bindings
-                       ~(f body)))
-           handlers)))
+    ~@(map (partial wrap-body f) handlers)))
 
 (defmacro let-route [bindings & handlers]
   (apply wrap-route-body
          (fn [body] `(if-let ~bindings ~body))
          handlers))
 
+(defn forbidden [request]
+  {:status 403
+   :headers {}
+   :body "Forbidden"})
+
+(defmacro protect [permission & handlers]
+  `(fn [request#]
+     (if-let [user# (session-get-user request#)]
+       (if (has-permission user# ~permission)
+         (routing request# ~@handlers)
+         (forbidden request#))
+       ;; XXX came from?
+       (redirect "/login"))))
+
 (defroutes main-routes
-  (GET "/" [] home-view)
+  (GET "/" request home-view)
   (GET "/userinfo" [] userinfo-view)
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
   (ANY "/register" [] register-view)
-  (let-route [exhibit (query-exhibit exhibit-slug)]
-    (ANY "/exhibit/:exhibit-slug/apply"
-         [exhibit-slug :as request] (exhibit-apply-view request exhibit))
-    (GET "/exhibit/:exhibit-slug" [exhibit-slug :as request]
-         (exhibit-view request exhibit)))
+  (protect "view"
+    (let-route [exhibit (query-exhibit exhibit-slug)]
+      (ANY "/exhibit/:exhibit-slug/apply"
+           [exhibit-slug :as request] (exhibit-apply-view request exhibit))
+      (GET "/exhibit/:exhibit-slug" [exhibit-slug :as request]
+           (exhibit-view request exhibit))))
   (GET "/exhibit" [] (redirect (or (-?>> (query-latest-exhibit)
                                          :slug__c
                                          (str "/exhibit/"))
