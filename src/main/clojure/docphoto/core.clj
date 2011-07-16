@@ -253,20 +253,27 @@
 (defn has-permission [user permission] true)
 
 (defn- compojure-route? [form]
-  (and (list? form)
-       (#{'ANY 'GET 'POST 'PUT 'DELETE} (first form))))
+  (and (symbol? form)
+       (#{'ANY 'GET 'POST 'PUT 'DELETE} form)))
+
+(defn- replace-route [f form]
+  (let [[method route bindings body] form]
+    `(~method ~route ~bindings ~(f body))))
 
 (defn- wrap-body [f form]
-  ;; this doesn't seem to work recursively
-  ;; if there are two separate macros calling wrap-body underneath
-  ;; they don't nest properly
-  (clojure.walk/prewalk
-   #(if (compojure-route? %)
-      (let [[method route bindings body] %]
-        `(~method ~route ~bindings
-                  ~(f body)))
-      %)
-   form))
+  (if (compojure-route? (first form))
+    (replace-route f form)
+    (letfn [(walker [form]
+                    (if (seq form)
+                      (let [[head & tail] form]
+                        (if (compojure-route? head)
+                          (replace-route f form)
+                          (cons
+                           (if (list? head)
+                             (walker head)
+                             head)
+                           (walker tail))))))]
+      (walker form))))
 
 (defn wrap-route-body
   "higher order utility function for modifying compojure route bodies"
@@ -284,14 +291,16 @@
    :headers {}
    :body "Forbidden"})
 
-(defmacro protect [permission & handlers]
-  `(fn [request#]
-     (if-let [user# (session-get-user request#)]
-       (if (has-permission user# ~permission)
-         (routing request# ~@handlers)
-         (forbidden request#))
-       ;; XXX came from?
-       (redirect "/login"))))
+(defmacro protect [request permission & handlers]
+  (apply wrap-route-body
+         (fn [body]
+           `(if-let [user# (session-get-user ~request)]
+              (if (has-permission user# ~permission)
+                ~body
+                (forbidden ~request))
+              ;; XXX came from?
+              (redirect "/login")))
+         handlers))
 
 (defroutes main-routes
   (GET "/" request home-view)
@@ -299,7 +308,7 @@
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
   (ANY "/register" [] register-view)
-  (protect "view"
+  (protect request "view"
     (let-route [exhibit (query-exhibit exhibit-slug)]
       (ANY "/exhibit/:exhibit-slug/apply"
            [exhibit-slug :as request] (exhibit-apply-view request exhibit))
