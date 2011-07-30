@@ -232,6 +232,15 @@
              [id name description__c slug__c]
              [[slug__c = exhibit-slug]])))
 
+(defn- query-application [app-id]
+  (-?>
+   (sf/query conn exhibit_application__c
+             [id biography__c title__c website__c statementRich__c
+              exhibit__r.name exhibit__r.slug__c]
+             [[id = app-id]])
+   first
+   (update-in [:exhibit__r] sf/sobject->map)))
+
 (defn exhibit-view [request exhibit]
   (if exhibit
     (layout {}
@@ -262,6 +271,16 @@
                    params
                    {:contact__c (:id (session-get-user request))
                     :exhibit__c (:id exhibit)})))))
+
+(defn app-view [request application]
+  (layout
+   {:title (:title__c application)}
+   (list [:h2 (:title__c application)]
+         [:dl
+          (for [[k v] application]
+            (list
+             [:dt k]
+             [:dd v]))])))
 
 ;; stubbed out for now
 (defn has-permission [user permission] true)
@@ -331,6 +350,9 @@
                                          :slug__c
                                          (str "/exhibit/"))
                                    "/")))
+  (let-route [application (query-application app-id)]
+             (GET "/application/:app-id" [app-id :as request]
+                  (app-view request application)))
   (route/files "/public")
   (route/not-found "Page not found"))
 
