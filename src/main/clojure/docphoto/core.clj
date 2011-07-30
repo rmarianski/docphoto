@@ -58,6 +58,13 @@
              [[closed__c = false noquote]]
              :append "order by application_start_date__c desc limit 1")))
 
+(defn layout [options body]
+  (xhtml
+   [:head
+    [:title (:title options "Docphoto")]]
+   [:body
+    body]))
+
 (defn- make-fields-render-fn [fields options]
   (let [field (gensym "field__")]
     `(fn [params# errors#]
@@ -133,7 +140,8 @@
             exhibits)])))
 
 (defn home-view [request]
-  (xhtml
+  (layout
+   {}
    [:div
     [:p (str "user: "
              (or (-?> (session-get-user request) :name)
@@ -146,19 +154,17 @@
        `(validate-val ~k ~f {~k ~error}))))
 
 (defn userinfo-view [request]
-  (xhtml
+  (layout
+   {}
    [:dl
     (for [[k v] (.getAttribute (:session request) "user")]
       (list [:dt k] [:dd v]))]))
 
 (defn register [register-map]
-  (sf/create-contact
-   conn
-   (select-keys
-    register-map
-    [:firstName :lastName :email :phone :userName__c :password__c
-     :mailingStreet :mailingCity :mailingState :mailingPostalCode
-     :mailingCountry])))
+  (sf/create-contact conn register-map))
+
+(defn create-application [application-map]
+  (sf/create-application conn application-map))
 
 (defn login [request user]
   (session-save-user request user))
@@ -170,7 +176,8 @@
   [{:field [:text {} :userName__c {:label "Username"}] :validator {:fn not-empty :msg :required}}
    {:field [:password {} :password__c {:label "Password"}] :validator {:fn not-empty :msg :required}}]
   [{:keys [render-fields request params errors]}]
-  (xhtml
+  (layout
+   {}
    [:form {:method :post :action "/login"}
     [:h2 "Login"]
     (when-let [user (session-get-user request)]
@@ -198,7 +205,8 @@
    {:field [:text {} :mailingPostalCode {:label "Postal Code"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :mailingCountry {:label "Country"}] :validator {:fn not-empty :msg :required}}]
   [{:keys [render-fields params errors]}]
-  (xhtml
+  (layout
+   {}
    [:form {:method :post :action "/register"}
     [:h2 "Register"]
     (render-fields params errors)
@@ -221,17 +229,18 @@
 (defn- query-exhibit [exhibit-slug]
   (first
    (sf/query conn exhibit__c
-             [name description__c]
+             [id name description__c slug__c]
              [[slug__c = exhibit-slug]])))
 
 (defn exhibit-view [request exhibit]
   (if exhibit
-    (xhtml [:div
+    (layout {}
+            [:div
             [:h1 (:name exhibit)]
             [:p (:description__c exhibit)]])))
 
 (defformpage exhibit-apply-view
-  [{:field [:text {} :statementrich__c {:label "Project Statement"}] :validator {:fn not-empty :msg :required}}
+  [{:field [:text {} :statementRich__c {:label "Project Statement"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :title__c {:label "Project Title"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :biography__c {:label "Short Narrative Bio"}] :validator {:fn not-empty :msg :required}}
    ;; cv
@@ -246,8 +255,13 @@
               [:legend "Apply"]
               (render-fields params errors)]
              [:input {:type :submit :value "Apply"}]]]))
-  [request]
-  (xhtml [:h1 "success"]))
+  [{:keys [params request]}]
+  (redirect (str "/application/"
+                 (create-application
+                  (merge
+                   params
+                   {:contact__c (:id (session-get-user request))
+                    :exhibit__c (:id exhibit)})))))
 
 ;; stubbed out for now
 (defn has-permission [user permission] true)
@@ -308,12 +322,11 @@
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
   (ANY "/register" [] register-view)
-  (protect request "view"
-    (let-route [exhibit (query-exhibit exhibit-slug)]
-      (ANY "/exhibit/:exhibit-slug/apply"
-           [exhibit-slug :as request] (exhibit-apply-view request exhibit))
-      (GET "/exhibit/:exhibit-slug" [exhibit-slug :as request]
-           (exhibit-view request exhibit))))
+  (let-route [exhibit (query-exhibit exhibit-slug)]
+    (ANY "/exhibit/:exhibit-slug/apply"
+         [exhibit-slug :as request] (exhibit-apply-view request exhibit))
+    (GET "/exhibit/:exhibit-slug" [exhibit-slug :as request]
+         (exhibit-view request exhibit)))
   (GET "/exhibit" [] (redirect (or (-?>> (query-latest-exhibit)
                                          :slug__c
                                          (str "/exhibit/"))

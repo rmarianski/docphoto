@@ -5,7 +5,8 @@
   (:require [clojure.contrib.string :as string])
   (:import [com.sforce.ws ConnectorConfig]
            [com.sforce.soap.enterprise Connector]
-           [com.sforce.soap.enterprise.sobject Contact SObject]
+           [com.sforce.soap.enterprise.sobject
+            Contact SObject Exhibit_Application__c]
            [com.sforce.soap.enterprise.fault UnexpectedErrorFault]
            [org.apache.commons.codec.digest DigestUtils]))
 
@@ -134,4 +135,24 @@
 (defn create-contact [conn contact-data-map]
   (create
    conn
-   (sobject-array [(create-sf-object (Contact.) contact-data-map)])))
+   (sobject-array
+    [(create-sf-object
+      (Contact.)
+      (select-keys
+       contact-data-map
+       [:firstName :lastName :email :phone :userName__c :password__c
+        :mailingStreet :mailingCity :mailingState :mailingPostalCode
+        :mailingCountry]))])))
+
+(defn create-application [conn application-map]
+  (-?> (create
+        conn
+        (sobject-array
+         [(create-sf-object
+           (Exhibit_Application__c.)
+           (select-keys
+            application-map
+            [:statementRich__c :title__c :biography__c :website__c
+             :contact__c :exhibit__c]))]))
+       first
+       .getId))
