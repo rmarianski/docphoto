@@ -224,7 +224,7 @@
           (register (update-in (dissoc params :password2)
                                [:password__c] md5))
           (login request (query-user username (md5 password1)))
-          (redirect "/userinfo"))))))
+          (redirect "/exhibit"))))))
 
 (defn- query-exhibit [exhibit-slug]
   (first
