@@ -1,8 +1,10 @@
 (ns docphoto.core
-  (:use [compojure.core :only (defroutes GET ANY routes routing)]
+  (:use [compojure.core :only (defroutes GET POST ANY routes routing)]
         [compojure.handler :only (api)]
+        [compojure.response :only (render)]
         [ring.middleware.multipart-params :only (wrap-multipart-params)]
-        [hiccup.page-helpers :only (xhtml)]
+        [hiccup.page-helpers :only (xhtml include-css
+                                          include-js javascript-tag)]
         [ring.adapter.jetty-servlet :only (run-jetty)]
         [flutter.html4 :only (html4-fields)]
         [flutter.shortcuts :only (wrap-shortcuts)]
@@ -11,7 +13,9 @@
         [ring.util.response :only (redirect)]
         [decline.core :only
          (validations validation validate-val validate-some)]
-        [clojure.contrib.core :only (-?> -?>>)])
+        [clojure.contrib.core :only (-?> -?>>)]
+        [clojure.contrib.trace :only (deftrace)]
+        [clojure.java.io :only (copy file input-stream output-stream)])
   (:require [compojure.route :as route]
             [docphoto.salesforce :as sf]
             [clojure.contrib.string :as string]
@@ -61,7 +65,10 @@
 (defn layout [options body]
   (xhtml
    [:head
-    [:title (:title options "Docphoto")]]
+    [:title (:title options "Docphoto")]
+    (apply include-css (:css options))
+    (apply include-js (:js options))
+    (map javascript-tag (:js-script options))]
    [:body
     body]))
 
@@ -282,58 +289,106 @@
              [:dt k]
              [:dd v]))])))
 
-;; stubbed out for now
-(defn has-permission [user permission] true)
+(defn app-upload [request application]
+  (if (= (:request-method request) :post)
+    (xhtml "files uploaded!")
+    (layout
+     {:title "Upload images"
+      :css [(str "/public/plupload/js/jquery.plupload.queue"
+                 "/css/jquery.plupload.queue.css")]
+      :js ["/public/jquery-1.6.1.min.js"
+           "/public/plupload/js/plupload.full.js"
+           "/public/plupload/js/plupload.gears.js"
+           "/public/plupload/js/jquery.plupload.queue/jquery.plupload.queue.js"
+           "/public/upload.js"]
+      :js-script
+      [(format "
+var docphoto = docphoto || {};
+$(document).ready(function() {
+docphoto.url = \"%s\";
+docphoto.upload();
+});" (:uri request))]}
+     (list
+      [:h2 "Upload images"]
+      [:form {:method :post
+              :action (str "/application/" (:id application) "/upload")}
+       [:div#uploader
+        [:p
+         (str "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus "
+              "or HTML5 support.")]]]))))
 
-(defn- compojure-route? [form]
-  (and (symbol? form)
-       (#{'ANY 'GET 'POST 'PUT 'DELETE} form)))
+(def ^{:dynamic true} *base-storage-path* (file (System/getProperty "user.dir") "store"))
 
-(defn- replace-route [f form]
-  (let [[method route bindings body] form]
-    `(~method ~route ~bindings ~(f body))))
+(defn image-file-path
+  ([exhibit-id app-id filename] (image-file-path *base-storage-path* exhibit-id app-id filename))
+  ([basedir exhibit-id app-id filename]
+     (file basedir exhibit-id app-id "images" filename)))
 
-(defn- wrap-body [f form]
-  (if (compojure-route? (first form))
-    (replace-route f form)
-    (letfn [(walker [form]
-                    (if (seq form)
-                      (let [[head & tail] form]
-                        (if (compojure-route? head)
-                          (replace-route f form)
-                          (cons
-                           (if (list? head)
-                             (walker head)
-                             head)
-                           (walker tail))))))]
-      (walker form))))
+(defn ensure-dir-exists [& paths] (.mkdirs (apply file paths)))
 
-(defn wrap-route-body
-  "higher order utility function for modifying compojure route bodies"
-  [f & handlers]
-  `(routes
-    ~@(map (partial wrap-body f) handlers)))
+(defn ensure-image-path
+  ([exhibit-id app-id] (ensure-image-path *base-storage-path* exhibit-id app-id))
+  ([basedir exhibit-id app-id]
+     (ensure-dir-exists basedir exhibit-id app-id "images")))
 
-(defmacro let-route [bindings & handlers]
-  (apply wrap-route-body
-         (fn [body] `(if-let ~bindings ~body))
-         handlers))
+(defn app-upload-image [request application]
+  (let [params (:params request)
+        chunk (params "chunk")
+        n-chunks (params "chunks")
+        tmpfile (-> (params "file") :tempfile)
+        ;; TODO need to make filename safe
+        filename (-> (params "file") :filename)
+        exhibit-slug (:slug__c (:exhibit__r application))]
+    (ensure-image-path exhibit-slug (:id application))
+    (with-open [rdr (input-stream tmpfile)
+                wtr (output-stream (image-file-path exhibit-slug (:id application) filename) :append true)]
+      (copy rdr wtr)
+      {:status 200})))
 
 (defn forbidden [request]
   {:status 403
    :headers {}
    :body "Forbidden"})
 
-(defmacro protect [request permission & handlers]
-  (apply wrap-route-body
-         (fn [body]
-           `(if-let [user# (session-get-user ~request)]
-              (if (has-permission user# ~permission)
-                ~body
-                (forbidden ~request))
-              ;; XXX came from?
-              (redirect "/login")))
-         handlers))
+(defn parse-exhibit-slug [uri]
+  (and (.startsWith uri "/exhibit/")
+       (nth (string/split #"/" uri) 2 nil)))
+
+(defn parse-application-id [uri]
+  (and (.startsWith uri "/application/")
+       (nth (string/split #"/" uri) 2 nil)))
+
+(defn remove-from-beginning [uri & parts]
+  (subs uri
+        (reduce + (map count parts))))
+
+(defn exhibit-routes [request]
+  (if (#{"/exhibit" "/exhibit/"} (:uri request))
+    (redirect (or (-?>> (query-latest-exhibit)
+                        :slug__c
+                        (str "/exhibit/"))
+                  "/"))
+    (if-let [exhibit-slug (parse-exhibit-slug (:uri request))]
+      (if-let [exhibit (query-exhibit exhibit-slug)]
+        (render
+         (condp = (remove-from-beginning (:uri request) "/exhibit/" exhibit-slug)
+           "/apply" (exhibit-apply-view request exhibit)
+           "" (exhibit-view request exhibit)
+           nil)
+         request)))))
+
+(defn application-routes [request]
+  (if-let [app-id (parse-application-id (:uri request))]
+    (if-let [application (query-application app-id)]
+      (render
+       (condp = (remove-from-beginning (:uri request) "/application/" app-id)
+         "/upload" (condp = (:request-method request)
+                     :post (app-upload-image request application)
+                     :get (app-upload request application)
+                     nil)
+         "" (app-view request application)
+         nil)
+       request))))
 
 (defroutes main-routes
   (GET "/" request home-view)
@@ -341,19 +396,11 @@
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
   (ANY "/register" [] register-view)
-  (let-route [exhibit (query-exhibit exhibit-slug)]
-    (ANY "/exhibit/:exhibit-slug/apply"
-         [exhibit-slug :as request] (exhibit-apply-view request exhibit))
-    (GET "/exhibit/:exhibit-slug" [exhibit-slug :as request]
-         (exhibit-view request exhibit)))
-  (GET "/exhibit" [] (redirect (or (-?>> (query-latest-exhibit)
-                                         :slug__c
-                                         (str "/exhibit/"))
-                                   "/")))
-  (let-route [application (query-application app-id)]
-             (GET "/application/:app-id" [app-id :as request]
-                  (app-view request application)))
-  (route/files "/public")
+
+  exhibit-routes
+  application-routes
+
+  (route/files "/public" {:root "src/main/resources/public"})
   (route/not-found "Page not found"))
 
 (def app
