@@ -146,6 +146,9 @@
        (map #(vector :li [:a {:href (exhibit-link request %)} (:name %)])
             exhibits)])))
 
+(defn- application-link [application-id application-title]
+  [:a {:href (str "/application/" application-id)} application-title])
+
 (defn home-view [request]
   (layout
    {}
@@ -239,6 +242,9 @@
              [id name description__c slug__c]
              [[slug__c = exhibit-slug]])))
 
+(defn- tweak-application-result [application]
+  (update-in application [:exhibit__r] sf/sobject->map))
+
 (defn- query-application [app-id]
   (-?>
    (sf/query conn exhibit_application__c
@@ -246,7 +252,16 @@
               exhibit__r.name exhibit__r.slug__c]
              [[id = app-id]])
    first
-   (update-in [:exhibit__r] sf/sobject->map)))
+   tweak-application-result))
+
+(defn- query-applications [userid]
+  (map tweak-application-result
+       (sf/query
+        conn
+        exhibit_application__c
+        [id title__c exhibit__r.name exhibit__r.slug__c]
+        [[exhibit_application__c.exhibit__r.closed__c = false noquote]
+         [exhibit_application__c.contact__r.id = userid]])))
 
 (defn exhibit-view [request exhibit]
   (if exhibit
@@ -390,6 +405,20 @@ docphoto.upload();
          nil)
        request))))
 
+(defn my-applications-view [request]
+  (layout
+   {:title "My applications"}
+   (let [userid (:id (session-get-user request))
+         apps (query-applications userid)
+         apps-by-exhibit (group-by (comp :name :exhibit__r) apps)]
+     (list
+      (for [[exhibit-name apps] apps-by-exhibit]
+        [:div
+         [:h2 exhibit-name]
+         [:ul
+          (map #(vector :li (application-link (:id %) (:title__c %)))
+               apps)]])))))
+
 (defroutes main-routes
   (GET "/" request home-view)
   (GET "/userinfo" [] userinfo-view)
@@ -399,6 +428,8 @@ docphoto.upload();
 
   exhibit-routes
   application-routes
+
+  (GET "/my-applications" [] my-applications-view)
 
   (route/files "/public" {:root "src/main/resources/public"})
   (route/not-found "Page not found"))
