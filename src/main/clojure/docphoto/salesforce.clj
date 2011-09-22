@@ -67,7 +67,7 @@
 (defmacro query [conn table select-fields select-filters & options]
   (let [options (apply hash-map options)]
     `(map
-      sf/sobject->map
+      sobject->map
       (query-records
        ~conn
        (str
