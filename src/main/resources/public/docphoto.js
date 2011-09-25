@@ -38,11 +38,20 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId, filesListId,
   goog.events.listen(uploadLink, goog.events.EventType.CLICK,
                      this.onUpload, false, this);
 
+  this.uploader.bind('Init', goog.bind(this.onInit, this));
   this.uploader.init();
   this.uploader.bind('FilesAdded', goog.bind(this.onFilesAdded, this));
   this.uploader.bind('UploadProgress', goog.bind(this.onUploadProgress, this));
   this.uploader.bind('Error', goog.bind(this.onUploadError, this));
   this.uploader.bind('FileUploaded', goog.bind(this.onUploadDone, this));
+};
+
+/**
+ * @param {Object} up
+ * @param {Object} params
+ */
+docphoto.Uploader.prototype.onInit = function(up, params) {
+  goog.dom.removeChildren(this.filesList);
 };
 
 /**
