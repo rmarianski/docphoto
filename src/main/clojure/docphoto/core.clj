@@ -67,10 +67,9 @@
    [:head
     [:title (:title options "Docphoto")]
     (apply include-css (:css options))
-    (apply include-js (:js options))
-    (map javascript-tag (:js-script options))]
-   [:body
-    body]))
+    (apply include-js (:js options))]
+   [:body (list body
+                (map javascript-tag (:js-script options)))]))
 
 (defn- make-fields-render-fn [fields options]
   (let [field (gensym "field__")]
@@ -309,28 +308,22 @@
     (xhtml "files uploaded!")
     (layout
      {:title "Upload images"
-      :css [(str "/public/plupload/js/jquery.plupload.queue"
-                 "/css/jquery.plupload.queue.css")]
-      :js ["/public/jquery-1.6.1.min.js"
-           "/public/plupload/js/plupload.full.js"
-           "/public/plupload/js/plupload.gears.js"
-           "/public/plupload/js/jquery.plupload.queue/jquery.plupload.queue.js"
-           "/public/upload.js"]
+      :css ["/public/docphoto.css"]
+      :js ["/public/plupload/js/plupload.full.js"
+           "http://localhost:9810/compile?id=docphoto"]
       :js-script
-      [(format "
-var docphoto = docphoto || {};
-$(document).ready(function() {
-docphoto.url = \"%s\";
-docphoto.upload();
-});" (:uri request))]}
+      [(format (str "new docphoto.Uploader('plupload', 'pick-files', "
+                    "'upload', 'files-list', {url: \"%s\"});")
+               (:uri request))]}
      (list
       [:h2 "Upload images"]
-      [:form {:method :post
-              :action (str "/application/" (:id application) "/upload")}
-       [:div#uploader
-        [:p
+      [:form {:method :post :action (:uri request)} 
+       [:div#plupload
+        [:div#files-list
          (str "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus "
-              "or HTML5 support.")]]]))))
+              "or HTML5 support.")]
+        [:a#pick-files {:href "#"} "Select files"]
+        [:a#upload {:href "#"} "Upload"]]]))))
 
 (def ^{:dynamic true} *base-storage-path* (file (System/getProperty "user.dir") "store"))
 
