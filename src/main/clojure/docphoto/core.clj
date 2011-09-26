@@ -43,6 +43,17 @@
 (defn session-delete [request]
   (.invalidate (:session request)))
 
+(defn session-get-application [request application-id]
+  (get (.getAttribute (:session request) "applications") application-id))
+
+(defn session-save-application [request application-id application]
+  (let [session (:session request)]
+    (.setAttribute session
+                   "applications"
+                   (assoc (or (.getAttribute session "applications") {})
+                     application-id application))
+    application-id))
+
 (defn- query-user [username password]
   (first
    (sf/query conn contact
@@ -244,14 +255,20 @@
 (defn- tweak-application-result [application]
   (update-in application [:exhibit__r] sf/sobject->map))
 
-(defn- query-application [app-id]
-  (-?>
-   (sf/query conn exhibit_application__c
-             [id biography__c title__c website__c statementRich__c
-              exhibit__r.name exhibit__r.slug__c]
-             [[id = app-id]])
-   first
-   tweak-application-result))
+(defn- query-application
+  ([app-id]
+     (-?>
+      (sf/query conn exhibit_application__c
+                [id biography__c title__c website__c statementRich__c
+                 exhibit__r.name exhibit__r.slug__c]
+                [[id = app-id]])
+      first
+      tweak-application-result))
+  ([app-id request]
+     (or (session-get-application request app-id)
+         (if-let [application (query-application app-id)]
+           (do (session-save-application request app-id application)
+               application)))))
 
 (defn- query-applications [userid]
   (map tweak-application-result
@@ -286,12 +303,13 @@
               (render-fields params errors)]
              [:input {:type :submit :value "Apply"}]]]))
   [{:keys [params request]}]
-  (redirect (str "/application/"
-                 (create-application
-                  (merge
-                   params
-                   {:contact__c (:id (session-get-user request))
-                    :exhibit__c (:id exhibit)})))))
+  (redirect
+   (str "/application/"
+        (create-application
+         (merge
+          params
+          {:contact__c (:id (session-get-user request))
+           :exhibit__c (:id exhibit)})))))
 
 (defn app-view [request application]
   (layout
@@ -387,7 +405,7 @@
 
 (defn application-routes [request]
   (if-let [app-id (parse-application-id (:uri request))]
-    (if-let [application (query-application app-id)]
+    (if-let [application (query-application app-id request)]
       (render
        (condp = (remove-from-beginning (:uri request) "/application/" app-id)
          "/upload" (condp = (:request-method request)
