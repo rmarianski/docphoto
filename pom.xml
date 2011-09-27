@@ -86,6 +86,10 @@
       <id>clojars</id>
       <url>http://clojars.org/repo/</url>
     </repository>
+    <repository>
+      <id>The Buzz Media Maven Repository</id>
+      <url>http://maven.thebuzzmedia.com</url>
+    </repository>
   </repositories>
 
   <dependencies>
@@ -159,6 +163,11 @@
       <groupId>clj-decline</groupId>
       <artifactId>clj-decline</artifactId>
       <version>0.0.5</version>
+    </dependency>
+    <dependency>
+      <groupId>com.thebuzzmedia</groupId>
+      <artifactId>imgscalr-lib</artifactId>
+      <version>3.2</version>
     </dependency>
   </dependencies>
 </project>
