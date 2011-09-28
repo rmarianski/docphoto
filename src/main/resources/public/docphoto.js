@@ -108,7 +108,7 @@ docphoto.Uploader.prototype.onUploadDone = function(up, file) {
  */
 docphoto.Uploader.prototype.onUploadError = function(up, error) {
   var file = error.file;
-  var msg = 'Error: ' + err.code + ' - ' + err.message;
+  var msg = 'Error: ' + error.code + ' - ' + error.message;
   if (goog.isDefAndNotNull(file)) {
     this.updateFilePercentage(file, msg);
   } else {
