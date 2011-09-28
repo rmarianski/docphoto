@@ -6,7 +6,7 @@
   (:import [com.sforce.ws ConnectorConfig]
            [com.sforce.soap.enterprise Connector]
            [com.sforce.soap.enterprise.sobject
-            Contact SObject Exhibit_Application__c]
+            Contact SObject Exhibit_Application__c Image__c]
            [com.sforce.soap.enterprise.fault UnexpectedErrorFault]
            [org.apache.commons.codec.digest DigestUtils]))
 
@@ -154,5 +154,19 @@
             application-map
             [:statementRich__c :title__c :biography__c :website__c
              :contact__c :exhibit__c]))]))
+       first
+       .getId))
+
+(defn create-image [conn image-map]
+  (-?> (create
+        conn
+        (sobject-array
+         [(create-sf-object
+           ;; this should be image XXX
+           (Image__c.)
+           (select-keys
+            image-map
+            [:caption__c :Exhibit_Application__c :filename__c
+             :mime_type__c :order__c :url__c]))]))
        first
        .getId))

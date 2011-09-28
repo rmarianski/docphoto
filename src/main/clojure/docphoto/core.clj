@@ -18,6 +18,7 @@
         [clojure.java.io :only (copy file input-stream output-stream)])
   (:require [compojure.route :as route]
             [docphoto.salesforce :as sf]
+            [docphoto.persist :as persist]
             [clojure.contrib.string :as string]
             [clojure.walk])
   (:import [org.apache.commons.codec.digest DigestUtils]))
@@ -186,6 +187,9 @@
 (defn create-application [application-map]
   (sf/create-application conn application-map))
 
+(defn create-image [image-map]
+  (sf/create-image conn image-map))
+
 (defn login [request user]
   (session-save-user request user))
 
@@ -343,33 +347,17 @@
         [:a#pick-files {:href "#"} "Select files"]
         [:a#upload {:href "#"} "Upload"]]]))))
 
-(def ^{:dynamic true} *base-storage-path* (file (System/getProperty "user.dir") "store"))
-
-(defn image-file-path
-  ([exhibit-id app-id filename] (image-file-path *base-storage-path* exhibit-id app-id filename))
-  ([basedir exhibit-id app-id filename]
-     (file basedir exhibit-id app-id "images" filename)))
-
-(defn ensure-dir-exists [& paths] (.mkdirs (apply file paths)))
-
-(defn ensure-image-path
-  ([exhibit-id app-id] (ensure-image-path *base-storage-path* exhibit-id app-id))
-  ([basedir exhibit-id app-id]
-     (ensure-dir-exists basedir exhibit-id app-id "images")))
-
 (defn app-upload-image [request application]
   (let [params (:params request)
-        chunk (params "chunk")
-        n-chunks (params "chunks")
-        tmpfile (-> (params "file") :tempfile)
-        ;; TODO need to make filename safe
-        filename (-> (params "file") :filename)
-        exhibit-slug (:slug__c (:exhibit__r application))]
-    (ensure-image-path exhibit-slug (:id application))
-    (with-open [rdr (input-stream tmpfile)
-                wtr (output-stream (image-file-path exhibit-slug (:id application) filename) :append true)]
-      (copy rdr wtr)
-      {:status 200})))
+        [filename content-type tempfile] ((juxt :filename :content-type :tempfile)
+                                          (params "file"))
+        exhibit-slug (:slug__c (:exhibit__r application))
+        image-id (create-image
+                  {:filename__c filename
+                   :mime_type__c content-type
+                   :Exhibit_Application__c (:id application)})]
+    (persist/persist-image-chunk tempfile exhibit-slug (:id application) image-id)
+    {:status 200}))
 
 (defn forbidden [request]
   {:status 403
@@ -453,3 +441,5 @@
 
 (defn run-server []
   (run-jetty #'app {:port 8080 :join? false}))
+
+(def tmprequest (atom []))
