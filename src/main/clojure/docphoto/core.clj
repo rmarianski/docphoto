@@ -386,7 +386,8 @@
                   {:filename__c filename
                    :mime_type__c content-type
                    :exhibit_application__c application-id
-                   :order__c (-> (query-images application-id) count double)})]
+                   :order__c (-> (query-images application-id)
+                                 count inc double)})]
     (persist/persist-image-chunk tempfile exhibit-slug application-id image-id)
     {:status 200}))
 
