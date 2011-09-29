@@ -356,27 +356,25 @@
       [:p (:caption__c image)]])])
 
 (defn app-upload [request application]
-  (if (= (:request-method request) :post)
-    (xhtml "files uploaded!")
-    (layout
-     {:title "Upload images"
-      :css ["/public/docphoto.css"]
-      :js ["/public/plupload/js/plupload.full.js"
-           "http://localhost:9810/compile?id=docphoto"]
-      :js-script
-      [(format (str "new docphoto.Uploader('plupload', 'pick-files', "
-                    "'upload', 'files-list', {url: \"%s\"});")
-               (:uri request))]}
-     (list
-      [:h2 "Upload images"]
-      [:form {:method :post :action (:uri request)} 
-       [:div#plupload
-        [:div#files-list
-         (str "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus "
-              "or HTML5 support.")]
-        [:a#pick-files {:href "#"} "Select files"]
-        [:a#upload {:href "#"} "Upload"]]]
-      (display-images request (query-images (:id application)))))))
+  (layout
+   {:title "Upload images"
+    :css ["/public/docphoto.css"]
+    :js ["/public/plupload/js/plupload.full.js"
+         "http://localhost:9810/compile?id=docphoto"]
+    :js-script
+    [(format (str "new docphoto.Uploader('plupload', 'pick-files', "
+                  "'upload', 'files-list', {url: \"%s\"});")
+             (:uri request))]}
+   (list
+    [:h2 "Upload images"]
+    [:form {:method :post :action (:uri request)} 
+     [:div#plupload
+      [:div#files-list
+       (str "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus "
+            "or HTML5 support.")]
+      [:a#pick-files {:href "#"} "Select files"]
+      [:a#upload {:href "#"} "Upload"]]]
+    (display-images request (query-images (:id application))))))
 
 (defn app-upload-image [request application]
   (let [params (:params request)
