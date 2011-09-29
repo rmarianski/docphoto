@@ -157,8 +157,10 @@
        (map #(vector :li [:a {:href (exhibit-link request %)} (:name %)])
             exhibits)])))
 
-(defn- application-link [application-id application-title]
-  [:a {:href (str "/application/" application-id)} application-title])
+(defn- application-link [application-id]
+  (str "/application/" application-id))
+
+(defn- image-link [image-id] (str "/image/" image-id))
 
 (defn home-view [request]
   (layout
@@ -298,6 +300,12 @@
         [[exhibit_application__c.exhibit__r.closed__c = false noquote]
          [exhibit_application__c.contact__r.id = userid]])))
 
+(defn query-images [application-id]
+  (sf/query conn image__c
+            [id caption__c]
+            [[exhibit_application__c = application-id]]
+            :append "order by order__c"))
+
 (defn exhibit-view [request exhibit]
   (if exhibit
     (layout {}
@@ -340,6 +348,13 @@
              [:dt k]
              [:dd v]))])))
 
+(defn display-images [request images]
+  [:ul
+   (for [image images]
+     [:li
+      [:img {:src (image-link (:id image))}]
+      [:p (:caption__c image)]])])
+
 (defn app-upload [request application]
   (if (= (:request-method request) :post)
     (xhtml "files uploaded!")
@@ -360,7 +375,8 @@
          (str "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus "
               "or HTML5 support.")]
         [:a#pick-files {:href "#"} "Select files"]
-        [:a#upload {:href "#"} "Upload"]]]))))
+        [:a#upload {:href "#"} "Upload"]]]
+      (display-images request (query-images (:id application)))))))
 
 (defn app-upload-image [request application]
   (let [params (:params request)
@@ -454,8 +470,8 @@
         [:div
          [:h2 exhibit-name]
          [:ul
-          (map #(vector :li (application-link (:id %) (:title__c %)))
-               apps)]])))))
+          (for [app apps]
+            [:li [:a {:href (application-link (:id app))} (:title__c app)]])]])))))
 
 (defroutes main-routes
   (GET "/" request home-view)
