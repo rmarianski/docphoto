@@ -162,11 +162,10 @@
         conn
         (sobject-array
          [(create-sf-object
-           ;; this should be image XXX
            (Image__c.)
            (select-keys
             image-map
-            [:caption__c :Exhibit_Application__c :filename__c
+            [:caption__c :exhibit_application__c :filename__c
              :mime_type__c :order__c :url__c]))]))
        first
        .getId))

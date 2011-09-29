@@ -12,10 +12,10 @@
   "make the filename trustable for filesystem use"
   (.getName (file filename)))
 
-(defn- image-file-path [exhibit-slug app-id image-id]
+(defn image-file-path [exhibit-slug app-id image-id]
   (file *base-storage-path* exhibit-slug app-id "images" image-id))
 
-(defn- cv-file-path [exhibit-slug app-id filename]
+(defn cv-file-path [exhibit-slug app-id filename]
   (file *base-storage-path* exhibit-slug app-id "cv" filename))
 
 (defn- ensure-dir-exists [& paths] (.mkdirs (apply file paths)))

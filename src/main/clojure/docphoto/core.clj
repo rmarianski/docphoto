@@ -259,6 +259,11 @@
 (defn- tweak-application-result [application]
   (update-in application [:exhibit__r] sf/sobject->map))
 
+(defn- tweak-image-result [image]
+  (->
+   (update-in image [:exhibit_application__r] sf/sobject->map)
+   (update-in [:exhibit_application__r :exhibit__r] sf/sobject->map)))
+
 (defn- query-application
   ([app-id]
      (-?>
@@ -273,6 +278,16 @@
          (if-let [application (query-application app-id)]
            (do (session-save-application request app-id application)
                application)))))
+
+(defn- query-image [image-id]
+  (-?>
+   (sf/query conn image__c
+             [id caption__c filename__c mime_type__c order__c
+              exhibit_application__r.id
+              exhibit_application__r.exhibit__r.slug__c]
+             [[id = image-id]])
+   first
+   tweak-image-result))
 
 (defn- query-applications [userid]
   (map tweak-application-result
@@ -355,9 +370,20 @@
         image-id (create-image
                   {:filename__c filename
                    :mime_type__c content-type
-                   :Exhibit_Application__c (:id application)})]
+                   :exhibit_application__c (:id application)})]
     (persist/persist-image-chunk tempfile exhibit-slug (:id application) image-id)
     {:status 200}))
+
+(defn image-view [request image]
+  (let [f (file
+           (persist/image-file-path
+            (-> image :exhibit_application__r :exhibit__r :slug__c)
+            (:id (:exhibit_application__r image))
+            (:id image)))]
+    (if (.exists f)
+      {:headers {"Content-Type" (:mime_type__c image)}
+       :status 200
+       :body f})))
 
 (defn forbidden [request]
   {:status 403
@@ -370,6 +396,10 @@
 
 (defn parse-application-id [uri]
   (and (.startsWith uri "/application/")
+       (nth (string/split #"/" uri) 2 nil)))
+
+(defn parse-image-id [uri]
+  (and (.startsWith uri "/image/")
        (nth (string/split #"/" uri) 2 nil)))
 
 (defn remove-from-beginning [uri & parts]
@@ -404,6 +434,15 @@
          nil)
        request))))
 
+(defn image-routes [request]
+  (if-let [image-id (parse-image-id (:uri request))]
+    (if-let [image (query-image image-id)]
+      (render
+       (condp = (remove-from-beginning (:uri request) "/image/" image-id)
+         "" (image-view request image)
+         nil)
+       request))))
+
 (defn my-applications-view [request]
   (layout
    {:title "My applications"}
@@ -427,6 +466,7 @@
 
   exhibit-routes
   application-routes
+  image-routes
 
   (GET "/my-applications" [] my-applications-view)
 
