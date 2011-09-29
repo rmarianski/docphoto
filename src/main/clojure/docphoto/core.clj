@@ -381,11 +381,13 @@
         [filename content-type tempfile] ((juxt :filename :content-type :tempfile)
                                           (params "file"))
         exhibit-slug (:slug__c (:exhibit__r application))
+        application-id (:id application)
         image-id (create-image
                   {:filename__c filename
                    :mime_type__c content-type
-                   :exhibit_application__c (:id application)})]
-    (persist/persist-image-chunk tempfile exhibit-slug (:id application) image-id)
+                   :exhibit_application__c application-id
+                   :order__c (-> (query-images application-id) count double)})]
+    (persist/persist-image-chunk tempfile exhibit-slug application-id image-id)
     {:status 200}))
 
 (defn image-view [request image]
