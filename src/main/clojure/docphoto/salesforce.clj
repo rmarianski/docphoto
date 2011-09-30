@@ -169,3 +169,20 @@
              :mime_type__c :order__c :url__c]))]))
        first
        .getId))
+
+(defn delete-ids [conn ids]
+  "delete passed in ids"
+  (let [delete-results (.delete conn (into-array String ids))]
+    (if (not-every? #(.isSuccess %) delete-results)
+      (throw (IllegalStateException.
+              (str (find-first #(not (.isSuccess %)) delete-results))))
+      delete-results)))
+
+(defn delete-images-for-application [conn application-id]
+  "delete all images associated with an application"
+  (delete-ids
+   conn
+   (map
+    :id
+    (query conn image__c [id] [[exhibit_application__c = application-id]]))))
+
