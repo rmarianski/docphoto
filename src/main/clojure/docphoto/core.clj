@@ -3,6 +3,7 @@
         [compojure.handler :only (api)]
         [compojure.response :only (render)]
         [ring.middleware.multipart-params :only (wrap-multipart-params)]
+        [hiccup.core :only (html)]
         [hiccup.page-helpers :only (xhtml include-css
                                           include-js javascript-tag)]
         [ring.adapter.jetty-servlet :only (run-jetty)]
@@ -348,12 +349,15 @@
              [:dt k]
              [:dd v]))])))
 
-(defn display-images [request images]
+(defn render-image [request image]
+  [:div
+   [:img {:src (image-link (:id image))}]
+   [:p (:caption__c image)]])
+
+(defn render-images [request images]
   [:ul
    (for [image images]
-     [:li
-      [:img {:src (image-link (:id image))}]
-      [:p (:caption__c image)]])])
+     [:li (render-image request image)])])
 
 (defn app-upload [request application]
   (layout
@@ -363,7 +367,7 @@
          "http://localhost:9810/compile?id=docphoto"]
     :js-script
     [(format (str "new docphoto.Uploader('plupload', 'pick-files', "
-                  "'upload', 'files-list', {url: \"%s\"});")
+                  "'upload', 'files-list', 'images', {url: \"%s\"});")
              (:uri request))]}
    (list
     [:h2 "Upload images"]
@@ -374,7 +378,8 @@
             "or HTML5 support.")]
       [:a#pick-files {:href "#"} "Select files"]
       [:a#upload {:href "#"} "Upload"]]]
-    (display-images request (query-images (:id application))))))
+    [:div#images
+     (render-images request (query-images (:id application)))])))
 
 (defn app-upload-image [request application]
   (let [params (:params request)
@@ -389,7 +394,7 @@
                    :order__c (-> (query-images application-id)
                                  count inc double)})]
     (persist/persist-image-chunk tempfile exhibit-slug application-id image-id)
-    {:status 200}))
+    (html (render-image request (query-image image-id)))))
 
 (defn image-view [request image]
   (let [f (file

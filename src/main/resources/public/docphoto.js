@@ -13,8 +13,8 @@ goog.require('goog.events.EventType');
  * @param options {Object}
  * @constructor
  */
-docphoto.Uploader = function(containerId, pickFilesId, uploadId, filesListId,
-                      options) {
+docphoto.Uploader = function(containerId, pickFilesId, uploadId,
+                      filesListId, imagesId, options) {
   var defaultOptions = {
     'runtimes': 'gears,html5,flash,silverlight,browserplus',
     'browse_button': pickFilesId,
@@ -33,6 +33,7 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId, filesListId,
   this.uploader = new plupload.Uploader(uploadOptions);
 
   this.filesList = goog.dom.getElement(filesListId);
+  this.images = goog.dom.getElement(imagesId);
 
   var uploadLink = goog.dom.getElement(uploadId);
   goog.events.listen(uploadLink, goog.events.EventType.CLICK,
@@ -97,8 +98,14 @@ docphoto.Uploader.prototype.onUploadProgress = function(up, file) {
 /**
  * @param {Object} up
  * @param {Object} file
+ * @param {Object} responseObject
  */
-docphoto.Uploader.prototype.onUploadDone = function(up, file) {
+docphoto.Uploader.prototype.onUploadDone = function(up, file, responseObject) {
+  var imageHtml = responseObject.response;
+  var li = goog.dom.createElement(goog.dom.TagName.LI);
+  li.innerHTML = imageHtml;
+  goog.dom.appendChild(this.images, li);
+
   this.updateFilePercentage(file, 'Success');
 };
 
