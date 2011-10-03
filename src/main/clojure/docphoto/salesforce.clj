@@ -185,4 +185,3 @@
    (map
     :id
     (query conn image__c [id] [[exhibit_application__c = application-id]]))))
-

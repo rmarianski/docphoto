@@ -20,6 +20,7 @@
   (:require [compojure.route :as route]
             [docphoto.salesforce :as sf]
             [docphoto.persist :as persist]
+            [docphoto.image :as image]
             [clojure.contrib.string :as string]
             [clojure.walk])
   (:import [org.apache.commons.codec.digest DigestUtils]))
@@ -161,7 +162,7 @@
 (defn- application-link [application-id]
   (str "/application/" application-id))
 
-(defn- image-link [image-id] (str "/image/" image-id))
+(defn- image-link [image-id scale] (str "/image/" image-id "/" scale))
 
 (defn home-view [request]
   (layout
@@ -307,6 +308,10 @@
             [[exhibit_application__c = application-id]]
             :append "order by order__c"))
 
+(defn delete-images [exhibit-slug application-id]
+  (sf/delete-images-for-application conn application-id)
+  (persist/delete-images-for-application exhibit-slug application-id))
+
 (defn exhibit-view [request exhibit]
   (if exhibit
     (layout {}
@@ -351,7 +356,7 @@
 
 (defn render-image [request image]
   [:div
-   [:img {:src (image-link (:id image))}]
+   [:img {:src (image-link (:id image) "small")}]
    [:p (:caption__c image)]])
 
 (defn render-images [request images]
@@ -381,6 +386,20 @@
     [:div#images
      (render-images request (query-images (:id application)))])))
 
+(defn persist-all-image-scales [^File chunk exhibit-slug application-id image-id]
+  "save all necessary image scales for a particular image"
+  (persist/ensure-image-path exhibit-slug application-id image-id)
+  (let [base-image-path (persist/image-file-path exhibit-slug application-id image-id)
+        orig-file (file base-image-path "original")]
+    (persist/persist-image-chunk chunk exhibit-slug application-id image-id "original")
+    (dorun
+     (for [[scale-type [width height]] [["small" [100 100]]
+                                      ["large" [600 600]]]]
+       (image/scale
+        orig-file
+        (file base-image-path scale-type)
+        width height)))))
+
 (defn app-upload-image [request application]
   (let [params (:params request)
         [filename content-type tempfile] ((juxt :filename :content-type :tempfile)
@@ -393,15 +412,15 @@
                    :exhibit_application__c application-id
                    :order__c (-> (query-images application-id)
                                  count inc double)})]
-    (persist/persist-image-chunk tempfile exhibit-slug application-id image-id)
+    (persist-all-image-scales tempfile exhibit-slug application-id image-id)
     (html (render-image request (query-image image-id)))))
 
-(defn image-view [request image]
-  (let [f (file
-           (persist/image-file-path
-            (-> image :exhibit_application__r :exhibit__r :slug__c)
-            (:id (:exhibit_application__r image))
-            (:id image)))]
+(defn image-view [request image scale-type]
+  (let [f (persist/image-file-path
+           (-> image :exhibit_application__r :exhibit__r :slug__c)
+           (:id (:exhibit_application__r image))
+           (:id image)
+           scale-type)]
     (if (.exists f)
       {:headers {"Content-Type" (:mime_type__c image)}
        :status 200
@@ -461,7 +480,11 @@
     (if-let [image (query-image image-id)]
       (render
        (condp = (remove-from-beginning (:uri request) "/image/" image-id)
-         "" (image-view request image)
+         "/original" (image-view request image "original")
+         "/small" (image-view request image "small")
+         "/large" (image-view request image "large")
+         "/" (image-view request image "original")
+         "" (image-view request image "original")
          nil)
        request))))
 
