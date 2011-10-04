@@ -479,13 +479,14 @@
   (if-let [image-id (parse-image-id (:uri request))]
     (if-let [image (query-image image-id)]
       (render
-       (condp = (remove-from-beginning (:uri request) "/image/" image-id)
-         "/original" (image-view request image "original")
-         "/small" (image-view request image "small")
-         "/large" (image-view request image "large")
-         "/" (image-view request image "original")
-         "" (image-view request image "original")
-         nil)
+       (let [rest-of-uri (remove-from-beginning
+                          (:uri request) "/image/" image-id)]
+         (if (#{"" "/" "/original"} rest-of-uri)
+           (image-view request image "original")
+           (condp = rest-of-uri
+             "/small" (image-view request image "small")
+             "/large" (image-view request image "large")
+             nil)))
        request))))
 
 (defn my-applications-view [request]
