@@ -431,16 +431,9 @@
    :headers {}
    :body "Forbidden"})
 
-(defn parse-exhibit-slug [uri]
-  (and (.startsWith uri "/exhibit/")
-       (nth (string/split #"/" uri) 2 nil)))
-
-(defn parse-application-id [uri]
-  (and (.startsWith uri "/application/")
-       (nth (string/split #"/" uri) 2 nil)))
-
-(defn parse-image-id [uri]
-  (and (.startsWith uri "/image/")
+(defn- parse-mounted-route [uri uri-start]
+  "returns 2nd element of route assuming mount on a prefix"
+  (and (.startsWith uri uri-start)
        (nth (string/split #"/" uri) 2 nil)))
 
 (defn remove-from-beginning [uri & parts]
@@ -453,7 +446,8 @@
                         :slug__c
                         (str "/exhibit/"))
                   "/"))
-    (if-let [exhibit-slug (parse-exhibit-slug (:uri request))]
+    (if-let [exhibit-slug (parse-mounted-route
+                           (:uri request) "/exhibit/")]
       (if-let [exhibit (query-exhibit exhibit-slug)]
         (render
          (condp = (remove-from-beginning (:uri request) "/exhibit/" exhibit-slug)
@@ -463,7 +457,8 @@
          request)))))
 
 (defn application-routes [request]
-  (if-let [app-id (parse-application-id (:uri request))]
+  (if-let [app-id (parse-mounted-route
+                   (:uri request) "/application/")]
     (if-let [application (query-application app-id request)]
       (render
        (condp = (remove-from-beginning (:uri request) "/application/" app-id)
@@ -476,7 +471,8 @@
        request))))
 
 (defn image-routes [request]
-  (if-let [image-id (parse-image-id (:uri request))]
+  (if-let [image-id (parse-mounted-route
+                     (:uri request) "/image/")]
     (if-let [image (query-image image-id)]
       (render
        (let [rest-of-uri (remove-from-beginning
