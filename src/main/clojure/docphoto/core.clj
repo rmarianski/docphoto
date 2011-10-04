@@ -298,7 +298,7 @@
        (sf/query
         conn
         exhibit_application__c
-        [id title__c exhibit__r.name exhibit__r.slug__c]
+        [id title__c exhibit__r.name exhibit__r.slug__c lastModifiedDate]
         [[exhibit_application__c.exhibit__r.closed__c = false noquote]
          [exhibit_application__c.contact__r.id = userid]])))
 
@@ -500,7 +500,7 @@
         [:div
          [:h2 exhibit-name]
          [:ul
-          (for [app apps]
+          (for [app (sort-by :lastModifiedDate apps)]
             [:li [:a {:href (application-link (:id app))} (:title__c app)]])]])))))
 
 (defroutes main-routes
