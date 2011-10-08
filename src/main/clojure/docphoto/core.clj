@@ -551,5 +551,3 @@
 
 (defn run-server []
   (run-jetty #'app {:port 8080 :join? false}))
-
-(def tmprequest (atom []))
