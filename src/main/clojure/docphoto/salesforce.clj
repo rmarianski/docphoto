@@ -185,5 +185,8 @@
     :id
     (query conn image__c [id] [[exhibit_application__c = application-id]]))))
 
+(defn delete-image [conn image-id]
+  (delete-ids conn [image-id]))
+
 (defn update-application-captions [conn caption-maps]
   (update conn Image__c (map #(select-keys % [:id :caption__c]) caption-maps)))

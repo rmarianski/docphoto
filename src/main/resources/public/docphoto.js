@@ -2,8 +2,11 @@ goog.provide('docphoto');
 
 goog.require('goog.dom');
 goog.require('goog.dom.TagName');
+goog.require('goog.dom.classes');
 goog.require('goog.events');
 goog.require('goog.events.EventType');
+goog.require('goog.net.EventType');
+goog.require('goog.net.XhrIo');
 
 /**
  * @param containerId {!string}
@@ -41,6 +44,9 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
   var uploadLink = goog.dom.getElement(uploadId);
   goog.events.listen(uploadLink, goog.events.EventType.CLICK,
                      this.onUpload, false, this);
+
+  goog.events.listen(this.images, goog.events.EventType.CLICK,
+                     this.onImageDelete, false, this);
 
   this.uploader.bind('Init', goog.bind(this.onInit, this));
   this.uploader.init();
@@ -125,6 +131,50 @@ docphoto.Uploader.prototype.onUploadError = function(up, error) {
     var node = goog.dom.createDom('p', undefined, msg);
     goog.dom.appendChild(this.filesList, node);
   }
+};
+
+/**
+ * @param {!Event} event
+ */
+docphoto.Uploader.prototype.onImageDelete = function(event) {
+  var target = event.target;
+  if (goog.dom.classes.has(target, 'image-delete')) {
+    event.preventDefault();
+    var el = target;
+    while (el !== null) {
+      if (el.nodeName === goog.dom.TagName.IMG) {
+        var imageId = this.parseImageId_(el);
+        var xhr = new goog.net.XhrIo();
+        goog.events.listen(xhr, goog.net.EventType.SUCCESS,
+                           goog.bind(this.handleImageDeleted_, this,
+                                     el, xhr),
+                           false, this);
+        xhr.send('/image/' + imageId + '/delete', "POST");
+        break;
+      }
+      el = goog.dom.getPreviousElementSibling(el);
+    }
+  }
+};
+
+/**
+ * @param {!Element} imageEl
+ */
+docphoto.Uploader.prototype.parseImageId_ = function(imageEl) {
+  var src = imageEl.getAttribute('src');
+  var fields = src.split('/');
+  var imageId = fields[2];
+  return imageId;
+};
+
+/**
+ * @param {!Element} imageElement
+ * @param {!Object} xhr
+ */
+docphoto.Uploader.prototype.handleImageDeleted_ = function(imageElement, xhr) {
+  var li = imageElement.parentNode.parentNode;
+  goog.dom.removeNode(li);
+  xhr.dispose();
 };
 
 goog.exportSymbol('docphoto.Uploader', docphoto.Uploader);

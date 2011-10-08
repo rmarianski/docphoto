@@ -55,3 +55,7 @@
 (defn delete-images-for-application [exhibit-slug application-id]
   (FileUtils/deleteDirectory
    (file *base-storage-path* exhibit-slug application-id "images")))
+
+(defn delete-image [exhibit-slug application-id image-id]
+  (FileUtils/deleteDirectory
+   (file *base-storage-path* exhibit-slug application-id "images" image-id)))

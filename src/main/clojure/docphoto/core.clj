@@ -315,6 +315,10 @@
   (sf/delete-images-for-application conn application-id)
   (persist/delete-images-for-application exhibit-slug application-id))
 
+(defn delete-image [exhibit-slug application-id image-id]
+  (sf/delete-image conn image-id)
+  (persist/delete-image exhibit-slug application-id image-id))
+
 (defn exhibit-view [request exhibit]
   (if exhibit
     (layout {}
@@ -360,11 +364,16 @@
 (defn caption-save-link [application-id]
   (str "/application/" application-id "/caption"))
 
+(defn image-delete-link [image-id]
+  (str "/image/" image-id "/delete"))
+
 (defn render-image [request image]
   [:div
    [:img {:src (image-link (:id image) "small")}]
    [:textarea {:name (str "caption-" (:id image))}
-    (or (:caption__c image) "")]])
+    (or (:caption__c image) "")]
+   [:a {:href (image-delete-link (:id image))
+        :class "image-delete"} "Delete"]])
 
 (defn render-images [request images]
   [:ul
@@ -501,6 +510,17 @@
          nil)
        request))))
 
+(defn image-details [image]
+  (let [app (:exhibit_application__r image)]
+    (conj ((juxt (comp :slug__c :exhibit__r) :id) app) (:id image))))
+
+(defn image-delete-view [request image]
+  (if (= (:request-method request) :post)
+    (let [[exhibit-slug application-id image-id]
+          (image-details image)]
+      (delete-image exhibit-slug application-id image-id)
+      "")))
+
 (defn image-routes [request]
   (if-let [image-id (parse-mounted-route
                      (:uri request) "/image/")]
@@ -513,6 +533,7 @@
            (condp = rest-of-uri
              "/small" (image-view request image "small")
              "/large" (image-view request image "large")
+             "/delete" (image-delete-view request image)
              nil)))
        request))))
 
