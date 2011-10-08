@@ -398,9 +398,11 @@
 (defn persist-all-image-scales [^File chunk exhibit-slug application-id image-id]
   "save all necessary image scales for a particular image"
   (persist/ensure-image-path exhibit-slug application-id image-id)
-  (let [base-image-path (persist/image-file-path exhibit-slug application-id image-id)
+  (let [base-image-path (persist/image-file-path exhibit-slug
+                                                 application-id image-id)
         orig-file (file base-image-path "original")]
-    (persist/persist-image-chunk chunk exhibit-slug application-id image-id "original")
+    (persist/persist-image-chunk chunk exhibit-slug application-id
+                                 image-id "original")
     (dorun
      (for [[scale-type [width height]] [["small" [100 100]]
                                       ["large" [600 600]]]]
@@ -477,7 +479,8 @@
                            (:uri request) "/exhibit/")]
       (if-let [exhibit (query-exhibit exhibit-slug)]
         (render
-         (condp = (remove-from-beginning (:uri request) "/exhibit/" exhibit-slug)
+         (condp = (remove-from-beginning (:uri request)
+                                         "/exhibit/" exhibit-slug)
            "/apply" (exhibit-apply-view request exhibit)
            "" (exhibit-view request exhibit)
            nil)
@@ -525,7 +528,8 @@
          [:h2 exhibit-name]
          [:ul
           (for [app (sort-by :lastModifiedDate apps)]
-            [:li [:a {:href (application-link (:id app))} (:title__c app)]])]])))))
+            [:li [:a {:href (application-link (:id app))}
+                  (:title__c app)]])]])))))
 
 (defroutes main-routes
   (GET "/" request home-view)
