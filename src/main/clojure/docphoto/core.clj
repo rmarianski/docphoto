@@ -162,6 +162,9 @@
 (defn- application-link [application-id]
   (str "/application/" application-id))
 
+(defn- application-upload-link [application-id]
+  (str (application-link application-id) "/upload"))
+
 (defn- image-link [image-id scale] (str "/image/" image-id "/" scale))
 
 (defn home-view [request]
@@ -354,10 +357,14 @@
              [:dt k]
              [:dd v]))])))
 
+(defn caption-save-link [application-id]
+  (str "/application/" application-id "/caption"))
+
 (defn render-image [request image]
   [:div
    [:img {:src (image-link (:id image) "small")}]
-   [:p (:caption__c image)]])
+   [:textarea {:name (str "caption-" (:id image))}
+    (or (:caption__c image) "")]])
 
 (defn render-images [request images]
   [:ul
@@ -376,7 +383,7 @@
              (:uri request))]}
    (list
     [:h2 "Upload images"]
-    [:form {:method :post :action (:uri request)} 
+    [:form {:method :post :action (:uri request)}
      [:div#plupload
       [:div#files-list
        (str "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus "
@@ -384,7 +391,9 @@
       [:a#pick-files {:href "#"} "Select files"]
       [:a#upload {:href "#"} "Upload"]]]
     [:div#images
-     (render-images request (query-images (:id application)))])))
+     [:form {:method :post :action (caption-save-link (:id application))}
+      (render-images request (query-images (:id application)))
+      [:input {:type "submit" :value "Save"}]]])))
 
 (defn persist-all-image-scales [^File chunk exhibit-slug application-id image-id]
   "save all necessary image scales for a particular image"
@@ -426,6 +435,24 @@
        :status 200
        :body f})))
 
+(let [n (count "caption-")]
+  (defn parse-caption-maps [params]
+    (keep
+     identity
+     (map (fn [[k v]]
+            (if (.startsWith k "caption-")
+              {:id (subs k n)
+               :caption__c (or v "")}))
+          params))))
+
+(defn application-save-captions [request application]
+  (if (= :post (:request-method request))
+    (let [caption-maps (parse-caption-maps (:form-params request))]
+      (if (not-empty caption-maps)
+        (redirect
+         (and (sf/update-application-captions conn caption-maps)
+              (application-upload-link (:id application))))))))
+
 (defn forbidden [request]
   {:status 403
    :headers {}
@@ -466,6 +493,7 @@
                      :post (app-upload-image request application)
                      :get (app-upload request application)
                      nil)
+         "/caption" (application-save-captions request application)
          "" (app-view request application)
          nil)
        request))))

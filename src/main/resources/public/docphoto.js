@@ -34,7 +34,9 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
 
   this.filesList = goog.dom.getElement(filesListId);
   var imagesDiv = goog.dom.getElement(imagesId);
-  this.images = goog.dom.getFirstElementChild(imagesDiv);
+  this.images = goog.dom.getElementsByTagNameAndClass('ul',
+                                                      undefined,
+                                                      imagesDiv);
 
   var uploadLink = goog.dom.getElement(uploadId);
   goog.events.listen(uploadLink, goog.events.EventType.CLICK,

@@ -1,3 +1,7 @@
 a#pick-files:hover {
     cursor: pointer;
 }
+
+#images textarea {
+    height: 100px;
+}

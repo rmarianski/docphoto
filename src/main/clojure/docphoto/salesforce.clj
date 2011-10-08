@@ -97,12 +97,11 @@
 (defsfcommand update-records check-results [conn sobjects]
   (.update conn sobjects))
 
-(defmacro update [conn class & update-maps]
+(defmacro update [conn class update-maps]
   `(update-records
     ~conn
     (sobject-array
-     (map (partial create-sf-object (new ~class))
-          (vector ~@update-maps)))))
+     (map #(create-sf-object (new ~class) %) ~update-maps))))
 
 (defsfcommand create check-results [conn sobjects]
   (.create conn sobjects))
@@ -185,3 +184,6 @@
    (map
     :id
     (query conn image__c [id] [[exhibit_application__c = application-id]]))))
+
+(defn update-application-captions [conn caption-maps]
+  (update conn Image__c (map #(select-keys % [:id :caption__c]) caption-maps)))
