@@ -9,7 +9,7 @@
 (def ^{:dynamic true} *base-storage-path*
   (file (System/getProperty "user.dir") "store"))
 
-(defn- safe-filename [filename]
+(defn safe-filename [filename]
   "make the filename trustable for filesystem use"
   (.getName (file filename)))
 

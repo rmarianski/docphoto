@@ -5,6 +5,8 @@ goog.require('goog.dom.TagName');
 goog.require('goog.dom.classes');
 goog.require('goog.events');
 goog.require('goog.events.EventType');
+goog.require('goog.fx.DragListDirection');
+goog.require('goog.fx.DragListGroup');
 goog.require('goog.net.EventType');
 goog.require('goog.net.XhrIo');
 
@@ -48,12 +50,35 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
   goog.events.listen(this.images, goog.events.EventType.CLICK,
                      this.onImageDelete, false, this);
 
+  this.dlg = new goog.fx.DragListGroup();
+  this.dlg.addDragList(this.images, goog.fx.DragListDirection.DOWN);
+  this.dlg.setHysteresis(30);
+  goog.events.listen(this.dlg, goog.fx.DragListGroup.EventType.DRAGEND,
+                     this.onDrag, false, this);
+  this.dlg.init();
+
+  // the dragger fights with clicking on the textarea
+  // rig the fight through event capturing
+  goog.events.listen(this.images, goog.events.EventType.CLICK,
+                     this.focusTextAreaOnClick, true, this);
+
   this.uploader.bind('Init', goog.bind(this.onInit, this));
   this.uploader.init();
   this.uploader.bind('FilesAdded', goog.bind(this.onFilesAdded, this));
   this.uploader.bind('UploadProgress', goog.bind(this.onUploadProgress, this));
   this.uploader.bind('Error', goog.bind(this.onUploadError, this));
   this.uploader.bind('FileUploaded', goog.bind(this.onUploadDone, this));
+};
+
+/**
+ * @param {!Event} event
+ */
+docphoto.Uploader.prototype.focusTextAreaOnClick = function(event) {
+  var target = event.target;
+  if (target.nodeName === goog.dom.TagName.TEXTAREA) {
+    event.preventDefault();
+    target.focus();
+  }
 };
 
 /**
@@ -143,7 +168,7 @@ docphoto.Uploader.prototype.onImageDelete = function(event) {
     var el = target;
     while (el !== null) {
       if (el.nodeName === goog.dom.TagName.IMG) {
-        var imageId = this.parseImageId_(el);
+        var imageId = docphoto.parseImageId_(el);
         var xhr = new goog.net.XhrIo();
         goog.events.listen(xhr, goog.net.EventType.SUCCESS,
                            goog.bind(this.handleImageDeleted_, this,
@@ -160,7 +185,7 @@ docphoto.Uploader.prototype.onImageDelete = function(event) {
 /**
  * @param {!Element} imageEl
  */
-docphoto.Uploader.prototype.parseImageId_ = function(imageEl) {
+docphoto.parseImageId_ = function(imageEl) {
   var src = imageEl.getAttribute('src');
   var fields = src.split('/');
   var imageId = fields[2];
@@ -175,6 +200,24 @@ docphoto.Uploader.prototype.handleImageDeleted_ = function(imageElement, xhr) {
   var li = imageElement.parentNode.parentNode;
   goog.dom.removeNode(li);
   xhr.dispose();
+};
+
+/**
+ * @param {!Event} event
+ */
+docphoto.Uploader.prototype.onDrag = function(event) {
+  var ids = goog.array.map(goog.dom.getChildren(this.images),
+                           function(li) {
+                             var imageEl = goog.dom.getElementsByTagNameAndClass('img',
+                                                                                 undefined,
+                                                                                 li)[0];
+                             return docphoto.parseImageId_(imageEl);
+                           });
+  var paramString = 'order=' + ids.join(',');
+  goog.net.XhrIo.send('/reorder-images',
+                      goog.nullFunction,
+                      'POST',
+                      paramString);
 };
 
 goog.exportSymbol('docphoto.Uploader', docphoto.Uploader);

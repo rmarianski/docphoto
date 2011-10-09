@@ -190,3 +190,6 @@
 
 (defn update-application-captions [conn caption-maps]
   (update conn Image__c (map #(select-keys % [:id :caption__c]) caption-maps)))
+
+(defn update-image-order [conn image-maps]
+  (update conn Image__c (map #(select-keys % [:id :order__c]) image-maps)))

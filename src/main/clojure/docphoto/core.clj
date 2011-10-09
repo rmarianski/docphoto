@@ -22,7 +22,8 @@
             [docphoto.persist :as persist]
             [docphoto.image :as image]
             [clojure.contrib.string :as string]
-            [clojure.walk])
+            [clojure.walk]
+            [ring.middleware.multipart-params :as multipart])
   (:import [org.apache.commons.codec.digest DigestUtils]))
 
 ;; global salesforce connection
@@ -191,8 +192,16 @@
 (defn register [register-map]
   (sf/create-contact conn register-map))
 
-(defn create-application [application-map]
-  (sf/create-application conn application-map))
+(defn create-application [exhibit-slug application-map]
+  (let [[filename tempfile] ((juxt (comp persist/safe-filename :filename)
+                                   :tempfile) (:cv application-map))
+        application-id (sf/create-application
+                        conn (dissoc (assoc application-map
+                                       :submission_Status__c "Draft")
+                                     :cv))]
+    (persist/persist-cv
+     tempfile exhibit-slug application-id filename)
+    application-id))
 
 (defn create-image [image-map]
   (sf/create-image conn image-map))
@@ -330,14 +339,15 @@
   [{:field [:text {} :statementRich__c {:label "Project Statement"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :title__c {:label "Project Title"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :biography__c {:label "Short Narrative Bio"}] :validator {:fn not-empty :msg :required}}
-   ;; cv
+   {:field [:file {} :cv {:label "Upload CV"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :website__c {:label "Website"}]}]
   {:fn-bindings [exhibit]}
   [{:keys [render-fields request params errors]}]
   (if exhibit
     (xhtml [:div
             [:h1 (str "Apply to " (:name exhibit))]
-            [:form {:method :post :action (:uri request)}
+            [:form {:method :post :action (:uri request)
+                    :enctype "multipart/form-data"}
              [:fieldset
               [:legend "Apply"]
               (render-fields params errors)]
@@ -346,6 +356,7 @@
   (redirect
    (str "/application/"
         (create-application
+         (:slug__c exhibit)
          (merge
           params
           {:contact__c (:id (session-get-user request))
@@ -421,9 +432,9 @@
         width height)))))
 
 (defn app-upload-image [request application]
-  (let [params (:params request)
-        [filename content-type tempfile] ((juxt :filename :content-type :tempfile)
-                                          (params "file"))
+  (let [[filename content-type tempfile] ((juxt
+                                           :filename :content-type :tempfile)
+                                          (:file (:params request)))
         exhibit-slug (:slug__c (:exhibit__r application))
         application-id (:id application)
         image-id (create-image
@@ -451,14 +462,15 @@
     (keep
      identity
      (map (fn [[k v]]
-            (if (.startsWith k "caption-")
-              {:id (subs k n)
-               :caption__c (or v "")}))
+            (let [caption (name k)]
+              (if (.startsWith caption "caption-")
+                {:id (subs caption n)
+                 :caption__c (or v "")})))
           params))))
 
 (defn application-save-captions [request application]
   (if (= :post (:request-method request))
-    (let [caption-maps (parse-caption-maps (:form-params request))]
+    (let [caption-maps (parse-caption-maps (:params request))]
       (if (not-empty caption-maps)
         (redirect
          (and (sf/update-application-captions conn caption-maps)
@@ -537,6 +549,19 @@
              nil)))
        request))))
 
+(defn reorder-images-view [order-string]
+  (and
+   order-string
+   (let [image-ids (.split order-string ",")]
+     (sf/update-image-order
+      conn
+      (map-indexed
+       (fn [n image-id]
+         {:id image-id
+          :order__c (double (inc n))})
+       image-ids))
+     "")))
+
 (defn my-applications-view [request]
   (layout
    {:title "My applications"}
@@ -563,14 +588,35 @@
   application-routes
   image-routes
 
+  (POST "/reorder-images" [order] (reorder-images-view order))
+
   (GET "/my-applications" [] my-applications-view)
 
   (route/files "/public" {:root "src/main/resources/public"})
   (route/not-found "Page not found"))
 
+(defn multipart-form? [request]
+  (@#'multipart/multipart-form? request))
+
+(defn convert-params-to-keywords [params]
+  (into
+   {}
+   (map (fn [[k v]]
+          [(if (instance? String k) (keyword k) k) v])
+        params)))
+
+(defn wrap-multipart-convert-params [handler]
+  "when multipart params are used, ring doesn't stick keywords into
+  the params map. this middleware works around that"
+  (fn [request]
+    (handler (if (multipart-form? request)
+               (update-in request [:params] convert-params-to-keywords)
+               request))))
+
 (def app
      (-> main-routes
          wrap-servlet-session
+         wrap-multipart-convert-params
          wrap-multipart-params
          api))
 
