@@ -44,8 +44,8 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
     'browse_button': pickFilesId,
     'container': containerId,
     'max_file_size': '10mb',
-    'flash_swf_url': '/public/plupload/js/plupload.flash.swf',
-    'silverlight_xap_url': '/public/plupload/js/plupload.silverlight.xap',
+    'flash_swf_url': '/public/js/plupload/js/plupload.flash.swf',
+    'silverlight_xap_url': '/public/js/plupload/js/plupload.silverlight.xap',
     'filters': [
       {'title': "Image files", 'extensions': "jpg,gif,png"}
     ]
