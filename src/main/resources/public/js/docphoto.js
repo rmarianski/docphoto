@@ -69,12 +69,8 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
   goog.events.listen(this.images, goog.events.EventType.CLICK,
                      this.onImageDelete, false, this);
 
-  this.dlg = new goog.fx.DragListGroup();
-  this.dlg.addDragList(this.images, goog.fx.DragListDirection.DOWN);
-  this.dlg.setHysteresis(30);
-  goog.events.listen(this.dlg, goog.fx.DragListGroup.EventType.DRAGEND,
-                     this.onDrag, false, this);
-  this.dlg.init();
+  this.dlg = null;
+  this.initializeDragDrop();
 
   // the dragger fights with clicking on the textarea
   // rig the fight through event capturing
@@ -88,6 +84,19 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
   this.uploader.bind('Error', goog.bind(this.onUploadError, this));
   this.uploader.bind('FileUploaded', goog.bind(this.onUploadDone, this));
 };
+
+docphoto.Uploader.prototype.initializeDragDrop = function() {
+  if (goog.isDefAndNotNull(this.dlg)) {
+    this.dlg.dispose();
+  }
+  this.dlg = new goog.fx.DragListGroup();
+  this.dlg.addDragList(this.images, goog.fx.DragListDirection.DOWN);
+  this.dlg.setHysteresis(30);
+  goog.events.listen(this.dlg, goog.fx.DragListGroup.EventType.DRAGEND,
+                     this.onDrag, false, this);
+  this.dlg.init();
+};
+
 
 /**
  * @param {!Event} event
@@ -160,6 +169,8 @@ docphoto.Uploader.prototype.onUploadDone = function(up, file, responseObject) {
   goog.dom.appendChild(this.images, li);
 
   this.updateFilePercentage(file, 'Success');
+
+  this.initializeDragDrop();
 };
 
 /**
