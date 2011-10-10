@@ -332,6 +332,19 @@ docphoto.editor.updateFieldContents_ = function(dataField, editorField) {
   dataField.value = editorField.getCleanContents();
 };
 
+// remove target=_blank attributes automatically added by salesforce
+// to links in their rich text editor
+docphoto.removeAnchorTargets = function() {
+  goog.array.forEach(goog.dom.getElementsByTagNameAndClass(goog.dom.TagName.A),
+                     function(a) {
+                       if (a.hasAttribute('target')) {
+                         a.removeAttribute('target');
+                       }
+                     });
+};
+
 goog.exportSymbol('docphoto.Uploader', docphoto.Uploader);
 goog.exportSymbol('docphoto.editor.triggerEditors',
                   docphoto.editor.triggerEditors);
+goog.exportSymbol('docphoto.removeAnchorTargets',
+                  docphoto.removeAnchorTargets);

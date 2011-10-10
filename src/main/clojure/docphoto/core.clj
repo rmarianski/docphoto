@@ -62,7 +62,9 @@
 (defn- query-user [username password]
   (first
    (sf/query conn contact
-             [id username__c firstname lastname name email phone]
+             [id username__c firstname lastname name email phone
+              mailingStreet mailingCity mailingState mailingPostalCode
+              mailingCountry]
              [[username__c = username]
               [password__c = password]])))
 
@@ -78,13 +80,14 @@
              [[closed__c = false noquote]]
              :append "order by application_start_date__c desc limit 1")))
 
-(defn layout [options body]
+(defn layout [request options body]
   (xhtml
    [:head
     [:title (:title options "Docphoto")]
     (apply include-css (:css options))
     (apply include-js (:js options))]
-   [:body (list body
+   [:body (list (login-logout-snippet request)
+                body
                 (map javascript-tag (:js-script options)))]))
 
 (defn- list-all-editor-css-files []
@@ -105,17 +108,22 @@
     ["/public/docphoto.css"]))
 
 (defn- make-fields-render-fn [fields options]
-  (let [field (gensym "field__")]
-    `(fn [params# errors#]
+  (let [field (gensym "field__")
+        params (gensym "params__")
+        request (gensym "request__")
+        errors (gensym "errors__")]
+    `(fn [~request ~params ~errors]
        (let [~field (-> html4-fields
                         wrap-form-field
                         wrap-shortcuts
-                        (wrap-errors errors#)
-                        (wrap-params params#))]
+                        (wrap-errors ~errors)
+                        (wrap-params ~params))]
          (list
           ~@(map (fn [fieldinfo]
-                   (if-let [fieldspec (:field fieldinfo)]
-                     `(~field ~@fieldspec)))
+                   (if-let [customfn (:custom fieldinfo)]
+                     `(~customfn ~request ~params ~errors)
+                     (if-let [fieldspec (:field fieldinfo)]
+                       `(~field ~@fieldspec))))
                  fields))))))
 
 (defn- make-validator-stanza [fieldinfo]
@@ -168,14 +176,17 @@
                     ~success-body))
                 (~form-render-fn ~params {}))))))))
 
+(defn- exhibits-link [request] (str "/exhibit/"))
+
 (defn- exhibit-link [request exhibit]
-  (str "/exhibit/" (:slug__c exhibit)))
+  (str (exhibits-link request) (:slug__c exhibit)))
 
 (defn- exhibits-html [request]
   (let [exhibits (query-exhibits)]
     (if (not-empty exhibits)
       [:ul
-       (map #(vector :li [:a {:href (exhibit-link request %)} (:name %)])
+       (map #(vector :li [:a {:href (exhibit-link request %)}
+                          (:name %)])
             exhibits)])))
 
 (defn- application-link [application-id]
@@ -184,16 +195,35 @@
 (defn- application-upload-link [application-id]
   (str (application-link application-id) "/upload"))
 
+(defn- application-submit-link [application-id]
+  (str (application-link application-id) "/submit"))
+
+(defn application-success-link [application-id]
+  (str (application-link application-id) "/success"))
+
+(defn my-applications-link [request]
+  "/my-applications")
+
+(defn cv-link [application-id]
+  (str (application-link application-id) "/cv"))
+
+(defn profile-update-link [request] "/")
+
+(defn application-update-link [request] "/")
+
 (defn- image-link [image-id scale] (str "/image/" image-id "/" scale))
+
+(defn login-logout-snippet [request]
+  [:div.login-logout
+   (if-let [user (session-get-user request)]
+     [:a {:href "/logout"} (str "Logout " (:userName__c user))]
+     [:a {:href "/login"} "Login"])])
 
 (defn home-view [request]
   (layout
-   {}
-   [:div
-    [:p (str "user: "
-             (or (-?> (session-get-user request) :name)
-                 "anonymous"))]
-    (exhibits-html request)]))
+   request
+   {:title "Documentary Photography Project"}
+   [:div (exhibits-html request)]))
 
 (defmacro validate-vals [& val-data]
   `(validations
@@ -202,6 +232,7 @@
 
 (defn userinfo-view [request]
   (layout
+   request
    {}
    [:dl
     (for [[k v] (.getAttribute (:session request) "user")]
@@ -232,19 +263,28 @@
 
 (defformpage login-view
   [{:field [:text {} :userName__c {:label "Username"}] :validator {:fn not-empty :msg :required}}
-   {:field [:password {} :password__c {:label "Password"}] :validator {:fn not-empty :msg :required}}]
+   {:field [:password {} :password__c {:label "Password"}] :validator {:fn not-empty :msg :required}}
+   {:custom (fn [request params errors]
+              [:input {:type :hidden
+                       :name "came-from"
+                       :value (or (:came-from params)
+                                  ((:headers request) "referer"))}])}]
   [{:keys [render-fields request params errors]}]
   (layout
+   request
    {}
    [:form {:method :post :action "/login"}
     [:h2 "Login"]
-    (when-let [user (session-get-user request)]
+    (if-let [user (session-get-user request)]
       [:p (str "Already logged in as: " (:name user))])
-    (render-fields params errors)
+    (render-fields request params errors)
     [:input {:type :submit :value "Login"}]])
   [{render-form-fn :render-form params :params request :request}]
   (if-let [user (query-user (:userName__c params) (md5 (:password__c params)))]
-    (do (login request user) (redirect "/userinfo"))
+    (do (login request user)
+        (redirect (if-let [came-from (:came-from params)]
+                    (if (.endsWith came-from "/login") "/" came-from)
+                    "/")))
     (render-form-fn params {:userName__c "Invalid Credentials"})))
 
 (defn logout-view [request] (logout request) (redirect "/login"))
@@ -262,12 +302,13 @@
    {:field [:text {} :mailingState {:label "State"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :mailingPostalCode {:label "Postal Code"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :mailingCountry {:label "Country"}] :validator {:fn not-empty :msg :required}}]
-  [{:keys [render-fields params errors]}]
+  [{:keys [render-fields request params errors]}]
   (layout
+   request
    {}
    [:form {:method :post :action "/register"}
     [:h2 "Register"]
-    (render-fields params errors)
+    (render-fields request params errors)
     [:input {:type :submit :value "Register"}]])
   [{render-form-fn :render-form params :params request :request}]
   (let [{password1 :password__c password2 :password2
@@ -328,7 +369,8 @@
        (sf/query
         conn
         exhibit_application__c
-        [id title__c exhibit__r.name exhibit__r.slug__c lastModifiedDate]
+        [id title__c exhibit__r.name exhibit__r.slug__c
+         lastModifiedDate submission_Status__c]
         [[exhibit_application__c.exhibit__r.closed__c = false noquote]
          [exhibit_application__c.contact__r.id = userid]])))
 
@@ -348,10 +390,14 @@
 
 (defn exhibit-view [request exhibit]
   (if exhibit
-    (layout {}
-            [:div
-            [:h1 (:name exhibit)]
-            [:p (:description__c exhibit)]])))
+    (layout
+     request
+     {:title (:name exhibit)
+      :js ["http://localhost:9810/compile?id=docphoto"]
+      :js-script ["docphoto.removeAnchorTargets();"]}
+     [:div
+      [:h1 (:name exhibit)]
+      [:p (:description__c exhibit)]])))
 
 (defformpage exhibit-apply-view
   [{:field [:text {} :title__c {:label "Project Title"}] :validator {:fn not-empty :msg :required}}
@@ -363,6 +409,7 @@
   [{:keys [render-fields request params errors]}]
   (if exhibit
     (layout
+     request
      {:title (str "Apply to " (:name exhibit))
       :css (editor-css)
       :js ["http://localhost:9810/compile?id=docphoto"]
@@ -374,7 +421,7 @@
               :enctype "multipart/form-data"}
        [:fieldset
         [:legend "Apply"]
-        (render-fields params errors)]
+        (render-fields request params errors)]
        [:input {:type :submit :value "Apply"}]]]))
   [{:keys [params request]}]
   (redirect
@@ -384,10 +431,12 @@
          (merge
           params
           {:contact__c (:id (session-get-user request))
-           :exhibit__c (:id exhibit)})))))
+           :exhibit__c (:id exhibit)}))
+        "/upload")))
 
 (defn app-view [request application]
   (layout
+   request
    {:title (:title__c application)}
    (list [:h2 (:title__c application)]
          [:dl
@@ -417,6 +466,7 @@
 
 (defn app-upload [request application]
   (layout
+   request
    {:title "Upload images"
     :css ["/public/docphoto.css"]
     :js ["/public/js/plupload/js/plupload.full.js"
@@ -492,13 +542,63 @@
                  :caption__c (or v "")})))
           params))))
 
-(defn application-save-captions [request application]
+(defn application-save-captions-view [request application]
   (if (= :post (:request-method request))
     (let [caption-maps (parse-caption-maps (:params request))]
       (if (not-empty caption-maps)
         (redirect
          (and (sf/update-application-captions conn caption-maps)
-              (application-upload-link (:id application))))))))
+              (application-submit-link (:id application))))))))
+
+(defn application-submit-view [request application]
+  (let [app-id (:id application)]
+    (if (= :post (:request-method request))
+      (and (sf/update-application-status conn app-id "Final")
+           (redirect (application-success-link app-id)))
+      (layout
+       request
+       {:title "Review submission"}
+       [:div
+        [:fieldset
+         [:legend "Contact info"]
+         (let [user (session-get-user request)]
+           (list
+            [:h2 (:name user)]
+            [:p (:email user)]
+            [:p (:phone user)]
+            [:div
+             (:mailingStreet user) [:br]
+             (:mailingCity user) ", " (:mailingState user) " "
+             (:mailingPostalCode user) [:br]
+             (:mailingCountry user)]
+            [:a {:href (profile-update-link request)} "Update"]))]
+        [:fieldset
+         [:legend "Application"]
+         [:h2 (:title__c application)]
+         [:div (:statementRich__c application)]
+         [:div (:biography__c application)]
+         [:a {:href (cv-link app-id)} "CV"]
+         [:p (:website__c application "No website")]
+         [:a {:href (application-update-link request)} "Update"]]
+        [:fieldset
+         [:legend "Images"]
+         [:ol
+          (for [image (query-images app-id)]
+            [:li
+             [:img {:src (image-link (:id image) "small")}]
+             [:span (:caption__c image)]])]
+         [:a {:href (application-upload-link app-id)} "Update"]]
+        [:form {:method :post :action (application-submit-link app-id)}
+         [:input {:type "submit" :value "Submit"}]]]))))
+
+(defn application-success-view [request application]
+  (layout
+   request
+   {:title "Thank you for your submission"}
+   [:div
+    [:h1 "Thank you for your submission"]
+    [:p "You can view all your "
+     [:a {:href (my-applications-link request)} "applications"]]]))
 
 (defn forbidden [request]
   {:status 403
@@ -541,7 +641,9 @@
                      :post (app-upload-image request application)
                      :get (app-upload request application)
                      nil)
-         "/caption" (application-save-captions request application)
+         "/caption" (application-save-captions-view request application)
+         "/submit" (application-submit-view request application)
+         "/success" (application-success-view request application)
          "" (app-view request application)
          nil)
        request))))
@@ -588,18 +690,24 @@
 
 (defn my-applications-view [request]
   (layout
+   request
    {:title "My applications"}
    (let [userid (:id (session-get-user request))
          apps (query-applications userid)
          apps-by-exhibit (group-by (comp :name :exhibit__r) apps)]
-     (list
-      (for [[exhibit-name apps] apps-by-exhibit]
-        [:div
-         [:h2 exhibit-name]
-         [:ul
-          (for [app (sort-by :lastModifiedDate apps)]
-            [:li [:a {:href (application-link (:id app))}
-                  (:title__c app)]])]])))))
+     (if (empty? apps)
+       [:p "You have no applications. Perhaps you would like to "
+        [:a {:href (exhibits-link request)} "apply"]]
+       (list
+        (for [[exhibit-name apps] apps-by-exhibit]
+          [:div
+           [:h2 exhibit-name]
+           [:ul
+            (for [app (sort-by :lastModifiedDate apps)]
+              [:li
+               [:a {:href (application-link (:id app))} (:title__c app)]
+               (if (= (:submission_Status__c app) "Final")
+                 " - (submitted)")])]]))))))
 
 (defroutes main-routes
   (GET "/" request home-view)
