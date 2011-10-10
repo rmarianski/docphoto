@@ -419,7 +419,7 @@
   (layout
    {:title "Upload images"
     :css ["/public/docphoto.css"]
-    :js ["/public/plupload/js/plupload.full.js"
+    :js ["/public/js/plupload/js/plupload.full.js"
          "http://localhost:9810/compile?id=docphoto"]
     :js-script
     [(format (str "new docphoto.Uploader('plupload', 'pick-files', "
