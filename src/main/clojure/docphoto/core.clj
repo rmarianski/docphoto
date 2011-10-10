@@ -21,6 +21,7 @@
             [docphoto.salesforce :as sf]
             [docphoto.persist :as persist]
             [docphoto.image :as image]
+            [docphoto.config :as cfg]
             [clojure.contrib.string :as string]
             [clojure.walk]
             [ring.middleware.multipart-params :as multipart])
@@ -85,6 +86,23 @@
     (apply include-js (:js options))]
    [:body (list body
                 (map javascript-tag (:js-script options)))]))
+
+(defn- list-all-editor-css-files []
+  "convenience function to list all google editor css files to include"
+  (letfn [(css? [filename] (.endsWith filename ".css"))
+          (files-in [path]
+            (filter css?
+             (map #(str "/public/css/" path "/" (.getName %))
+                  (.listFiles
+                   (file "./src/main/resources/public/css/" path)))))]
+    (concat (files-in "google")
+            (files-in "google/editor")
+            ["/public/css/docphoto.css"])))
+
+(defmacro editor-css []
+  (if cfg/*debug*
+    (vec (list-all-editor-css-files))
+    ["/public/docphoto.css"]))
 
 (defn- make-fields-render-fn [fields options]
   (let [field (gensym "field__")]
@@ -336,22 +354,28 @@
             [:p (:description__c exhibit)]])))
 
 (defformpage exhibit-apply-view
-  [{:field [:text {} :statementRich__c {:label "Project Statement"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :title__c {:label "Project Title"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :biography__c {:label "Short Narrative Bio"}] :validator {:fn not-empty :msg :required}}
+  [{:field [:text {} :title__c {:label "Project Title"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#statement.editor {} :statementRich__c {:label "Project Statement"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"}] :validator {:fn not-empty :msg :required}}
    {:field [:file {} :cv {:label "Upload CV"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :website__c {:label "Website"}]}]
   {:fn-bindings [exhibit]}
   [{:keys [render-fields request params errors]}]
   (if exhibit
-    (xhtml [:div
-            [:h1 (str "Apply to " (:name exhibit))]
-            [:form {:method :post :action (:uri request)
-                    :enctype "multipart/form-data"}
-             [:fieldset
-              [:legend "Apply"]
-              (render-fields params errors)]
-             [:input {:type :submit :value "Apply"}]]]))
+    (layout
+     {:title (str "Apply to " (:name exhibit))
+      :css (editor-css)
+      :js ["http://localhost:9810/compile?id=docphoto"]
+      :js-script
+      ["docphoto.editor.triggerEditors();"]}
+     [:div
+      [:h1 (str "Apply to " (:name exhibit))]
+      [:form {:method :post :action (:uri request)
+              :enctype "multipart/form-data"}
+       [:fieldset
+        [:legend "Apply"]
+        (render-fields params errors)]
+       [:input {:type :submit :value "Apply"}]]]))
   [{:keys [params request]}]
   (redirect
    (str "/application/"
@@ -599,11 +623,9 @@
   (@#'multipart/multipart-form? request))
 
 (defn convert-params-to-keywords [params]
-  (into
-   {}
-   (map (fn [[k v]]
-          [(if (instance? String k) (keyword k) k) v])
-        params)))
+  (into {}
+        (map (fn [[k v]] [(if (instance? String k) (keyword k) k) v])
+             params)))
 
 (defn wrap-multipart-convert-params [handler]
   "when multipart params are used, ring doesn't stick keywords into

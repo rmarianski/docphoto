@@ -1,6 +1,8 @@
 (ns docphoto.config
   (:use [docphoto.salesforce :only (connector)]))
 
+(def *debug* false)
+
 (defn prod-hardcoded-connector []
   (connector "username"
              (str "password" "api-key")))
