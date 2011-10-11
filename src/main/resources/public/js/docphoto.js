@@ -28,13 +28,17 @@ goog.require('goog.editor.plugins.UndoRedo');
 goog.require('goog.ui.editor.DefaultToolbar');
 goog.require('goog.ui.editor.ToolbarController');
 
+// to make google advanced mode happy
+goog.require('goog.debug.ErrorHandler');
+goog.require('goog.Uri');
 
 /**
- * @param containerId {!string}
- * @param pickFilesId {!string}
- * @param uploadId {!string}
- * @param filesListId {!string}
- * @param options {Object}
+ * @param {!string} containerId
+ * @param {!string} pickFilesId
+ * @param {!string} uploadId
+ * @param {!string} filesListId
+ * @param {!string} imagesId
+ * @param {Object} options
  * @constructor
  */
 docphoto.Uploader = function(containerId, pickFilesId, uploadId,
@@ -102,7 +106,7 @@ docphoto.Uploader.prototype.initializeDragDrop = function() {
  * @param {!Event} event
  */
 docphoto.Uploader.prototype.focusTextAreaOnClick = function(event) {
-  var target = event.target;
+  var target = /** @type {!Element} */ event.target;
   if (target.nodeName === goog.dom.TagName.TEXTAREA) {
     event.preventDefault();
     target.focus();
@@ -140,7 +144,7 @@ docphoto.Uploader.prototype.onFilesAdded = function(up, files) {
 };
 
 /**
- * @param {object} file
+ * @param {Object} file
  * @param {string} string
  */
 docphoto.Uploader.prototype.updateFilePercentage = function(file, string) {
@@ -151,7 +155,7 @@ docphoto.Uploader.prototype.updateFilePercentage = function(file, string) {
 
 /**
  * @param {Object} up
- * @param {Object} file
+ * @param {{percent: string}} file
  */
 docphoto.Uploader.prototype.onUploadProgress = function(up, file) {
   this.updateFilePercentage(file, file.percent + '%');
@@ -192,20 +196,22 @@ docphoto.Uploader.prototype.onUploadError = function(up, error) {
  * @param {!Event} event
  */
 docphoto.Uploader.prototype.onImageDelete = function(event) {
-  var target = event.target;
+  var target = /** @type {!Element} */ event.target;
   if (goog.dom.classes.has(target, 'image-delete')) {
     event.preventDefault();
     var el = target;
     while (el !== null) {
       if (goog.dom.classes.has(el, 'image-container')) {
         var image = goog.dom.getFirstElementChild(el);
-        var imageId = docphoto.parseImageId_(image);
-        var xhr = new goog.net.XhrIo();
-        goog.events.listen(xhr, goog.net.EventType.SUCCESS,
-                           goog.bind(this.handleImageDeleted_, this,
-                                     image, xhr),
-                           false, this);
-        xhr.send('/image/' + imageId + '/delete', "POST");
+        if (goog.isDefAndNotNull(image)) {
+          var imageId = docphoto.parseImageId_(image);
+          var xhr = new goog.net.XhrIo();
+          goog.events.listen(xhr, goog.net.EventType.SUCCESS,
+                             goog.bind(this.handleImageDeleted_, this,
+                                       image, xhr),
+                             false, this);
+          xhr.send('/image/' + imageId + '/delete', "POST");
+        }
         break;
       }
       el = goog.dom.getPreviousElementSibling(el);
