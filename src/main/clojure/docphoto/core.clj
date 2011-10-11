@@ -880,6 +880,15 @@
      "About Documentary Photography"]
     [:p (lorem-ipsum)]]))
 
+(defn not-found-view [request]
+  {:status 404
+   :body (layout
+          request
+          {:title "404 Page not found"}
+          [:div
+           [:h2 "Page not found"]
+           [:p "We could not find the page you are looking for."]])})
+
 (defroutes main-routes
   (GET "/" request home-view)
   (GET "/about" [] about-view)
@@ -898,7 +907,8 @@
   (GET "/my-applications" [] my-applications-view)
 
   (route/files "/public" {:root "src/main/resources/public"})
-  (route/not-found "Page not found"))
+
+  not-found-view)
 
 (defn multipart-form? [request]
   (@#'multipart/multipart-form? request))
