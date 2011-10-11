@@ -93,29 +93,32 @@
 (defmacro editor-css []
   (if cfg/*debug*
     (vec (list-all-editor-css-files))
-    ["/public/docphoto.css"]))
+    ["/public/css/docphoto-min.css"]))
 
 (defn lorem-ipsum []
   "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
 
 (defmacro theme-css [editor-css?]
-  ;; debug/prod same for now, but plan to minify
-  (let [debug-css-files ["/public/css/theme/style.css"
-                         "/public/css/uni-form.css"
-                         "/public/css/docphoto.css"]]
-    `(if ~editor-css?
-       ~(vec
-         (concat debug-css-files
-                 (editor-css)))
-       ~debug-css-files)))
+  (if cfg/*debug*
+    (let [debug-css-files ["/public/css/theme/style.css"
+                           "/public/css/uni-form.css"
+                           "/public/css/docphoto.css"]]
+      `(if ~editor-css?
+         ~(vec
+           (concat debug-css-files
+                   (editor-css)))
+         ~debug-css-files))
+    ["/public/css/docphoto-min.css"]))
 
 (defmacro theme-js [include-upload-js?]
-  (let [debug-js-file "http://localhost:9810/compile?id=docphoto"]
-    `(apply
-      include-js
-      (if ~include-upload-js?
-        ["/public/js/plupload/js/plupload.full.js" ~debug-js-file]
-        [~debug-js-file]))))
+  (if cfg/*debug*
+    (let [debug-js-file "http://localhost:9810/compile?id=docphoto"]
+      `(apply
+        include-js
+        (if ~include-upload-js?
+          ["/public/js/plupload/js/plupload.full.js" ~debug-js-file]
+          [~debug-js-file])))
+    `(include-js "/public/js/docphoto-min.js")))
 
 (defmacro theme-menu [uri]
   (let [uri-sym (gensym "uri_")]
