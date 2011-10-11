@@ -136,6 +136,77 @@
                      {:class "current_page_item"})
                [:a {:href ~link} ~text]])])]))
 
+(defn- tweak-application-result [application]
+  (update-in application [:exhibit__r] sf/sobject->map))
+
+(defn- tweak-image-result [image]
+  (->
+   (update-in image [:exhibit_application__r] sf/sobject->map)
+   (update-in [:exhibit_application__r :exhibit__r] sf/sobject->map)))
+
+(defn- query-applications [userid]
+  (map tweak-application-result
+       (sf/query
+        conn
+        exhibit_application__c
+        [id title__c exhibit__r.name exhibit__r.slug__c
+         lastModifiedDate submission_Status__c]
+        [[exhibit_application__c.exhibit__r.closed__c = false noquote]
+         [exhibit_application__c.contact__r.id = userid]])))
+
+(defn- application-link [application-id]
+  (str "/application/" application-id))
+
+(defn- application-upload-link [application-id]
+  (str (application-link application-id) "/upload"))
+
+(defn- application-submit-link [application-id]
+  (str (application-link application-id) "/submit"))
+
+(defn application-success-link [application-id]
+  (str (application-link application-id) "/success"))
+
+(defn my-applications-link [request]
+  "/my-applications")
+
+(defn cv-link [application-id]
+  (str (application-link application-id) "/cv"))
+
+(defn came-from-link-snippet [came-from]
+  (if came-from
+    (str "?came-from=" came-from)))
+
+(defn profile-update-link [request & [came-from]]
+  (str "/profile"
+       (came-from-link-snippet came-from)))
+
+(defn application-update-link [application-id request & [came-from]]
+  (str (application-link application-id) "/update"
+       (came-from-link-snippet came-from)))
+
+(defn- image-link [image-id scale] (str "/image/" image-id "/" scale))
+
+(defn login-logout-snippet [request]
+  (let [user (session-get-user request)]
+    (list
+     [:div.login-logout
+      (if user
+        [:a {:href "/logout" :title (str "Logout " (:userName__c user))}
+         "Logout"]
+        (list
+         [:a {:href "/login"} "Login"]
+         " | "
+         [:a {:href "/register"} "Register"]))]
+     (if user
+       [:div.applications
+        [:h2 "applications"]
+        (let [apps (query-applications (:id user))]
+          [:ul
+           (for [app (reverse (sort-by :lastModifiedDate apps))]
+             [:li
+              [:a {:href (application-submit-link (:id app))}
+               (:title__c app)]])])]))))
+
 (defn layout [request options body]
   (xhtml
    [:head
@@ -281,59 +352,6 @@
        (map #(vector :li [:a {:href (exhibit-link request %)}
                           (:name %)])
             exhibits)])))
-
-(defn- application-link [application-id]
-  (str "/application/" application-id))
-
-(defn- application-upload-link [application-id]
-  (str (application-link application-id) "/upload"))
-
-(defn- application-submit-link [application-id]
-  (str (application-link application-id) "/submit"))
-
-(defn application-success-link [application-id]
-  (str (application-link application-id) "/success"))
-
-(defn my-applications-link [request]
-  "/my-applications")
-
-(defn cv-link [application-id]
-  (str (application-link application-id) "/cv"))
-
-(defn came-from-link-snippet [came-from]
-  (if came-from
-    (str "?came-from=" came-from)))
-
-(defn profile-update-link [request & [came-from]]
-  (str "/profile"
-       (came-from-link-snippet came-from)))
-
-(defn application-update-link [application-id request & [came-from]]
-  (str (application-link application-id) "/update"
-       (came-from-link-snippet came-from)))
-
-(defn- image-link [image-id scale] (str "/image/" image-id "/" scale))
-
-(defn login-logout-snippet [request]
-  (let [user (session-get-user request)]
-    (list
-     [:div.login-logout
-      (if user
-        [:a {:href "/logout" :title (str "Logout " (:userName__c user))}
-         "Logout"]
-        (list
-         [:a {:href "/login"} "Login"]
-         " | "
-         [:a {:href "/register"} "Register"]))]
-     (if user
-       [:div.applications
-        [:h2 "applications"]
-        (let [apps (query-applications (:id user))]
-          [:ul
-           (for [app (reverse (sort-by :lastModifiedDate apps))]
-             [:li
-              [:a {:href (application-submit-link (:id app))}
-               (:title__c app)]])])]))))
 
 (defn home-view [request]
   (layout
@@ -483,14 +501,6 @@
              [id name description__c slug__c]
              [[slug__c = exhibit-slug]])))
 
-(defn- tweak-application-result [application]
-  (update-in application [:exhibit__r] sf/sobject->map))
-
-(defn- tweak-image-result [image]
-  (->
-   (update-in image [:exhibit_application__r] sf/sobject->map)
-   (update-in [:exhibit_application__r :exhibit__r] sf/sobject->map)))
-
 (defn- query-application
   [app-id]
   (-?>
@@ -510,16 +520,6 @@
              [[id = image-id]])
    first
    tweak-image-result))
-
-(defn- query-applications [userid]
-  (map tweak-application-result
-       (sf/query
-        conn
-        exhibit_application__c
-        [id title__c exhibit__r.name exhibit__r.slug__c
-         lastModifiedDate submission_Status__c]
-        [[exhibit_application__c.exhibit__r.closed__c = false noquote]
-         [exhibit_application__c.contact__r.id = userid]])))
 
 (defn query-images [application-id]
   (sf/query conn image__c
