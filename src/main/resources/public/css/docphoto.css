@@ -84,3 +84,12 @@ a#pick-files:hover {
 .application-submit .submit-button {
     margin: 2em 0;
 }
+#sidebar .applications {
+    margin-top: 1em;
+}
+#sidebar .applications ul,
+#sidebar .applications li,
+#sidebar h2 {
+    padding: 0;
+    margin-left: 0;
+}

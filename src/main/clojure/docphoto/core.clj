@@ -283,13 +283,25 @@
 (defn- image-link [image-id scale] (str "/image/" image-id "/" scale))
 
 (defn login-logout-snippet [request]
-  [:div.login-logout
-   (if-let [user (session-get-user request)]
-     [:a {:href "/logout" :title (str "Logout " (:userName__c user))} "Logout"]
-     [:p
-      [:a {:href "/login"} "Login"]
-      " | "
-      [:a {:href "/register"} "Register"]])])
+  (let [user (session-get-user request)]
+    (list
+     [:div.login-logout
+      (if user
+        [:a {:href "/logout" :title (str "Logout " (:userName__c user))}
+         "Logout"]
+        (list
+         [:a {:href "/login"} "Login"]
+         " | "
+         [:a {:href "/register"} "Register"]))]
+     (if user
+       [:div.applications
+        [:h2 "applications"]
+        (let [apps (query-applications (:id user))]
+          [:ul
+           (for [app (reverse (sort-by :lastModifiedDate apps))]
+             [:li
+              [:a {:href (application-submit-link (:id app))}
+               (:title__c app)]])])]))))
 
 (defn home-view [request]
   (layout
