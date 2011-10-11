@@ -78,16 +78,6 @@
              [[closed__c = false noquote]]
              :append "order by application_start_date__c desc limit 1")))
 
-(defn layout [request options body]
-  (xhtml
-   [:head
-    [:title (:title options "Docphoto")]
-    (apply include-css (:css options))
-    (apply include-js (:js options))]
-   [:body (list (login-logout-snippet request)
-                body
-                (map javascript-tag (:js-script options)))]))
-
 (defn- list-all-editor-css-files []
   "convenience function to list all google editor css files to include"
   (letfn [(css? [filename] (.endsWith filename ".css"))
@@ -104,6 +94,67 @@
   (if cfg/*debug*
     (vec (list-all-editor-css-files))
     ["/public/docphoto.css"]))
+
+(defn lorem-ipsum []
+  "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
+
+(defmacro theme-css [editor-css?]
+  ;; debug/prod same for now, but plan to minify
+  (let [debug-css-files ["/public/css/theme/style.css"
+                         "/public/css/docphoto.css"]]
+    `(if ~editor-css?
+       ~(vec
+         (concat debug-css-files
+                 (editor-css)))
+       ~debug-css-files)))
+
+(defmacro theme-js [include-upload-js?]
+  (let [debug-js-file "http://localhost:9810/compile?id=docphoto"]
+    `(apply
+      include-js
+      (if ~include-upload-js?
+        ["/public/js/plupload/js/plupload.full.js" ~debug-js-file]
+        [~debug-js-file]))))
+
+(defmacro theme-menu [uri]
+  (let [uri-sym (gensym "uri_")]
+    [:div#menu
+     `(let [~uri-sym ~uri]
+        [:ul
+         ~@(for [[link text active-link-fn]
+                 [["/" "Home"]
+                  ["/exhibit" "Exhibits" :starts-with]
+                  ["/about" "About"]]]
+             `[:li (if ~(if (= :starts-with active-link-fn)
+                          `(.startsWith ~uri-sym ~link)
+                          `(= ~uri-sym ~link))
+                     {:class "current_page_item"})
+               [:a {:href ~link} ~text]])])]))
+
+(defn layout [request options body]
+  (xhtml
+   [:head
+    [:meta {:http-equiv "content-type" :content "text/html; charset=utf-8"}]
+    [:title (:title options "Docphoto")]
+    (apply include-css (theme-css (:include-editor-css options)))]
+   [:body
+    [:div#wrapper
+     [:div#header-wrapper
+      [:div#header
+       [:div#logo
+        [:h1
+         [:a {:href "/"} [:span "Documentary"] " Photography"]]]
+       (theme-menu (:uri request))]]
+     [:div#page
+      [:div#content body]]
+     [:div#sidebar
+      (login-logout-snippet request)]]
+    [:div#footer
+     [:p "Copyright (c) 2011 Docphoto. All rights reserved. Design by "
+      [:a {:href "http://www.freecsstemplates.org/"} "CSS Templates."]]]
+    (theme-js (:include-upload-js options))
+    (if-let [js (:js-script options)]
+      (javascript-tag js))]))
 
 (defn- make-fields-render-fn [fields options]
   (let [field (gensym "field__")
@@ -222,14 +273,21 @@
 (defn login-logout-snippet [request]
   [:div.login-logout
    (if-let [user (session-get-user request)]
-     [:a {:href "/logout"} (str "Logout " (:userName__c user))]
-     [:a {:href "/login"} "Login"])])
+     [:a {:href "/logout" :title (str "Logout " (:userName__c user))} "Logout"]
+     [:p
+      [:a {:href "/login"} "Login"]
+      " | "
+      [:a {:href "/register"} "Register"]])])
 
 (defn home-view [request]
   (layout
    request
    {:title "Documentary Photography Project"}
-   [:div (exhibits-html request)]))
+   [:div
+    [:h2 "Welcome"]
+    [:p "Here is some introductory text, briefly describing docphoto"]
+    [:h3 {:style "margin-top: 2em"} "Competitions open for application"]
+    (exhibits-html request)]))
 
 (defmacro validate-vals [& val-data]
   `(validations
@@ -424,8 +482,7 @@
     (layout
      request
      {:title (:name exhibit)
-      :js ["http://localhost:9810/compile?id=docphoto"]
-      :js-script ["docphoto.removeAnchorTargets();"]}
+      :js-script "docphoto.removeAnchorTargets();"}
      [:div
       [:h1 (:name exhibit)]
       [:p (:description__c exhibit)]])))
@@ -442,10 +499,8 @@
     (layout
      request
      {:title (str "Apply to " (:name exhibit))
-      :css (editor-css)
-      :js ["http://localhost:9810/compile?id=docphoto"]
-      :js-script
-      ["docphoto.editor.triggerEditors();"]}
+      :include-editor-css true
+      :js-script "docphoto.editor.triggerEditors();"}
      [:div
       [:h1 (str "Apply to " (:name exhibit))]
       [:form {:method :post :action (:uri request)
@@ -476,10 +531,8 @@
   (layout
    request
    {:title (str "Update application")
-    :css (editor-css)
-    :js ["http://localhost:9810/compile?id=docphoto"]
-    :js-script
-    ["docphoto.editor.triggerEditors();"]}
+    :include-editor-css true
+    :js-script "docphoto.editor.triggerEditors();"}
    [:div
     [:form {:method :post :action (:uri request)
             :enctype "multipart/form-data"}
@@ -533,13 +586,10 @@
   (layout
    request
    {:title "Upload images"
-    :css ["/public/docphoto.css"]
-    :js ["/public/js/plupload/js/plupload.full.js"
-         "http://localhost:9810/compile?id=docphoto"]
-    :js-script
-    [(format (str "new docphoto.Uploader('plupload', 'pick-files', "
-                  "'upload', 'files-list', 'images', {url: \"%s\"});")
-             (:uri request))]}
+    :include-upload-js true
+    :js-script (format (str "new docphoto.Uploader('plupload', 'pick-files', "
+                            "'upload', 'files-list', 'images', {url: \"%s\"});")
+                       (:uri request))}
    (list
     [:h2 "Upload images"]
     [:form {:method :post :action (:uri request)}
@@ -776,8 +826,18 @@
                (if (= (:submission_Status__c app) "Final")
                  " - (submitted)")])]]))))))
 
+(defn about-view [request]
+  (layout
+   request
+   {:title "About the Documentary Photography Project"}
+   [:div
+    [:h2
+     "About Documentary Photography"]
+    [:p (lorem-ipsum)]]))
+
 (defroutes main-routes
   (GET "/" request home-view)
+  (GET "/about" [] about-view)
   (GET "/userinfo" [] userinfo-view)
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)

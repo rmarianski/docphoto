@@ -1,3 +1,28 @@
+/**
+ * theme overrides
+ */
+#footer {
+    clear: both;
+}
+#logo h1 {
+    text-transform: inherit;
+}
+#logo {
+    width: 450px;
+}
+#menu {
+    width: 500px;
+}
+#header {
+    background: none;
+}
+#content {
+    margin-bottom: 2em;
+}
+
+/**
+ * style specific
+ */
 a#pick-files:hover {
     cursor: pointer;
 }
