@@ -197,12 +197,13 @@ docphoto.Uploader.prototype.onImageDelete = function(event) {
     event.preventDefault();
     var el = target;
     while (el !== null) {
-      if (el.nodeName === goog.dom.TagName.IMG) {
-        var imageId = docphoto.parseImageId_(el);
+      if (goog.dom.classes.has(el, 'image-container')) {
+        var image = goog.dom.getFirstElementChild(el);
+        var imageId = docphoto.parseImageId_(image);
         var xhr = new goog.net.XhrIo();
         goog.events.listen(xhr, goog.net.EventType.SUCCESS,
                            goog.bind(this.handleImageDeleted_, this,
-                                     el, xhr),
+                                     image, xhr),
                            false, this);
         xhr.send('/image/' + imageId + '/delete', "POST");
         break;
@@ -227,7 +228,7 @@ docphoto.parseImageId_ = function(imageEl) {
  * @param {!Object} xhr
  */
 docphoto.Uploader.prototype.handleImageDeleted_ = function(imageElement, xhr) {
-  var li = imageElement.parentNode.parentNode;
+  var li = imageElement.parentNode.parentNode.parentNode;
   goog.dom.removeNode(li);
   xhr.dispose();
 };

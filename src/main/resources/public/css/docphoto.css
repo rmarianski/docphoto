@@ -19,6 +19,23 @@
 #content {
     margin-bottom: 2em;
 }
+h2,h3 {
+    margin-bottom: 0.25em;
+}
+.uniForm legend {
+    display: none;
+}
+.uniForm .ctrlHolder {
+    margin: 2em 0;
+}
+.uniForm .ctrlHolder .error {
+    font-weight: bold;
+    font-size: 1.2em;
+    color: red;
+}
+.uniForm .ctrlHolder label {
+    cursor: auto;
+}
 
 /**
  * style specific
@@ -26,7 +43,44 @@
 a#pick-files:hover {
     cursor: pointer;
 }
-
 #images textarea {
     height: 100px;
+    width: 450px;
+    padding: 5px;
+}
+.image-container {
+    height: 100px;
+    width: 125px;
+    display: inline-block;
+}
+#images a {
+    position: relative;
+    top: -50px;
+    left: 15px;
+}
+#images li {
+    list-style: none;
+    margin: 2em 0;
+    padding: 0;
+}
+#images ul {
+    padding: 0;
+}
+.application-submit legend {
+    margin: 2em 0;
+}
+.application-submit dt {
+    margin: 1em 0;
+    font-weight: bold;
+}
+.application-submit ol li {
+    margin: 2em 0;
+}
+.application-submit ol span {
+    position: relative;
+    top: -80px;
+    left: 15px;
+}
+.application-submit .submit-button {
+    margin: 2em 0;
 }

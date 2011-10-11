@@ -101,6 +101,7 @@
 (defmacro theme-css [editor-css?]
   ;; debug/prod same for now, but plan to minify
   (let [debug-css-files ["/public/css/theme/style.css"
+                         "/public/css/uni-form.css"
                          "/public/css/docphoto.css"]]
     `(if ~editor-css?
        ~(vec
@@ -156,6 +157,16 @@
     (if-let [js (:js-script options)]
       (javascript-tag js))]))
 
+(defn wrap-textinput-classes [f]
+  "add a textInput class to text inputs"
+  (fn [type attrs name opts value]
+    (if (#{:text :password} type)
+      (f type (if (:class attrs)
+                (str (:class attrs) " textInput")
+                (assoc attrs :class "textInput"))
+         name opts value)
+      (f type attrs name opts value))))
+
 (defn- make-fields-render-fn [fields options]
   (let [field (gensym "field__")
         params (gensym "params__")
@@ -164,6 +175,7 @@
     `(fn [~request ~params ~errors]
        (let [~field (-> html4-fields
                         wrap-form-field
+                        wrap-textinput-classes
                         wrap-shortcuts
                         (wrap-errors ~errors)
                         (wrap-params ~params))]
@@ -341,12 +353,14 @@
   (layout
    request
    {}
-   [:form {:method :post :action "/login"}
+   (list
     [:h2 "Login"]
-    (if-let [user (session-get-user request)]
-      [:p (str "Already logged in as: " (:name user))])
-    (render-fields request params errors)
-    [:input {:type :submit :value "Login"}]])
+    [:form.uniForm {:method :post :action "/login"}
+     [:fieldset
+      (if-let [user (session-get-user request)]
+        [:p (str "Already logged in as: " (:name user))])
+      (render-fields request params errors)
+      [:input {:type :submit :value "Login"}]]]))
   [{render-form-fn :render-form params :params request :request}]
   (if-let [user (query-user (:userName__c params) (md5 (:password__c params)))]
     (do (login request user)
@@ -372,7 +386,7 @@
   (layout
    request
    {}
-   [:form {:method :post :action (profile-update-link request)}
+   [:form.uniForm {:method :post :action (profile-update-link request)}
     [:h2 "Update profile"]
     (render-fields request (merge (session-get-user request) params) errors)
     [:input {:type :submit :value "Update"}]])
@@ -400,7 +414,7 @@
   (layout
    request
    {}
-   [:form {:method :post :action "/register"}
+   [:form.uniForm {:method :post :action "/register"}
     [:h2 "Register"]
     (render-fields request params errors)
     [:input {:type :submit :value "Register"}]])
@@ -438,7 +452,7 @@
   (-?>
    (sf/query conn exhibit_application__c
              [id biography__c title__c website__c statementRich__c
-              exhibit__r.name exhibit__r.slug__c]
+              submission_Status__c exhibit__r.name exhibit__r.slug__c]
              [[id = app-id]])
    first
    tweak-application-result))
@@ -484,14 +498,17 @@
      {:title (:name exhibit)
       :js-script "docphoto.removeAnchorTargets();"}
      [:div
-      [:h1 (:name exhibit)]
+      [:h2 (:name exhibit)]
       [:p (:description__c exhibit)]])))
+
+(defn filesize-not-empty [fileobject]
+  (pos? (:size fileobject 0)))
 
 (defformpage exhibit-apply-view
   [{:field [:text {} :title__c {:label "Project Title"}] :validator {:fn not-empty :msg :required}}
    {:field [:text-area#statement.editor {} :statementRich__c {:label "Project Statement"}] :validator {:fn not-empty :msg :required}}
    {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"}] :validator {:fn not-empty :msg :required}}
-   {:field [:file {} :cv {:label "Upload CV"}] :validator {:fn not-empty :msg :required}}
+   {:field [:file {} :cv {:label "Upload CV"}] :validator {:fn filesize-not-empty :msg :required}}
    {:field [:text {} :website__c {:label "Website"}]}]
   {:fn-bindings [exhibit]}
   [{:keys [render-fields request params errors]}]
@@ -502,8 +519,8 @@
       :include-editor-css true
       :js-script "docphoto.editor.triggerEditors();"}
      [:div
-      [:h1 (str "Apply to " (:name exhibit))]
-      [:form {:method :post :action (:uri request)
+      [:h2 (str "Apply to " (:name exhibit))]
+      [:form.uniForm {:method :post :action (:uri request)
               :enctype "multipart/form-data"}
        [:fieldset
         [:legend "Apply"]
@@ -534,7 +551,7 @@
     :include-editor-css true
     :js-script "docphoto.editor.triggerEditors();"}
    [:div
-    [:form {:method :post :action (:uri request)
+    [:form.uniForm {:method :post :action (:uri request)
             :enctype "multipart/form-data"}
      [:fieldset
       [:legend "Update application"]
@@ -571,7 +588,8 @@
 
 (defn render-image [request image]
   [:div
-   [:img {:src (image-link (:id image) "small")}]
+   [:div.image-container.goog-inline-block
+    [:img {:src (image-link (:id image) "small")}]]
    [:textarea {:name (str "caption-" (:id image))}
     (or (:caption__c image) "")]
    [:a {:href (image-delete-link (:id image))
@@ -592,12 +610,13 @@
                        (:uri request))}
    (list
     [:h2 "Upload images"]
-    [:form {:method :post :action (:uri request)}
+    [:form.uniForm {:method :post :action (:uri request)}
      [:div#plupload
       [:div#files-list
        (str "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus "
             "or HTML5 support.")]
       [:a#pick-files {:href "#"} "Select files"]
+      [:span " | "]
       [:a#upload {:href "#"} "Upload"]]]
     [:div#images
      [:form {:method :post :action (caption-save-link (:id application))}
@@ -673,7 +692,9 @@
       (layout
        request
        {:title "Review submission"}
-       [:div
+       [:div.application-submit
+        [:h2 "Application review"]
+        [:p "Review your application before submitting."]
         [:fieldset
          [:legend "Contact info"]
          (let [user (session-get-user request)]
@@ -681,7 +702,7 @@
             [:h2 (:name user)]
             [:p (:email user)]
             [:p (:phone user)]
-            [:div
+            [:p
              (:mailingStreet user) [:br]
              (:mailingCity user) ", " (:mailingState user) " "
              (:mailingPostalCode user) [:br]
@@ -691,30 +712,42 @@
         [:fieldset
          [:legend "Application"]
          [:h2 (:title__c application)]
-         [:div (:statementRich__c application)]
-         [:div (:biography__c application)]
-         [:a {:href (cv-link app-id)} "CV"]
-         [:p (:website__c application "No website")]
+         [:dl
+          [:dt "Project Statement"]
+          [:dd (:statementRich__c application)]
+          [:dt "Short biography"]
+          [:dd (:biography__c application)]
+          [:dt "Website"]
+          [:dd (:website__c application "No website")]
+          [:dt "CV"]
+          [:dd [:a {:href (cv-link app-id)} "Download CV"]]]
          [:a {:href (application-update-link app-id request)} "Update"]]
         [:fieldset
          [:legend "Images"]
          [:ol
           (for [image (query-images app-id)]
             [:li
-             [:img {:src (image-link (:id image) "small")}]
+             [:div.image-container.goog-inline-block
+              [:img {:src (image-link (:id image) "small")}]]
              [:span (:caption__c image)]])]
          [:a {:href (application-upload-link app-id)} "Update"]]
         [:form {:method :post :action (application-submit-link app-id)}
-         [:input {:type "submit" :value "Submit"}]]]))))
+         [:div.submit-button
+          (if (= "Final" (:submission_Status__c application))
+            [:p "Your application has already been submitted. When we are finished reviewing all applications, we will get back to you."]
+            (list
+             [:p "Once you have reviewed your application, please click on the submit button below."]
+             [:input {:type "submit" :value "Submit your application"}]))]]]))))
 
 (defn application-success-view [request application]
   (layout
    request
    {:title "Thank you for your submission"}
    [:div
-    [:h1 "Thank you for your submission"]
+    [:h2 "Thank you for your submission"]
+    [:p "When we have made our selections, we will notify you at the email address you provided: " (:email (session-get-user request))]
     [:p "You can view all your "
-     [:a {:href (my-applications-link request)} "applications"]]]))
+     [:a {:href (my-applications-link request)} "applications"] "."]]))
 
 (defn forbidden [request]
   {:status 403
