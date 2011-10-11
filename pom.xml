@@ -150,11 +150,6 @@
       <version>0.0.1</version>
     </dependency>
     <dependency>
-      <groupId>formidable</groupId>
-      <artifactId>formidable</artifactId>
-      <version>0.1-SNAPSHOT</version>
-    </dependency>
-    <dependency>
       <groupId>flutter</groupId>
       <artifactId>flutter</artifactId>
       <version>0.0.2</version>

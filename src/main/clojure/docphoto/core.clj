@@ -10,13 +10,14 @@
         [flutter.html4 :only (html4-fields)]
         [flutter.shortcuts :only (wrap-shortcuts)]
         [flutter.params :only (wrap-params)]
-        [formidable.core :only (wrap-form-field wrap-errors)]
         [ring.util.response :only (redirect)]
         [decline.core :only
          (validations validation validate-val validate-some)]
         [clojure.contrib.core :only (-?> -?>>)]
         [clojure.contrib.trace :only (deftrace)]
-        [clojure.java.io :only (copy file input-stream output-stream)])
+        [clojure.java.io :only (copy file input-stream output-stream)]
+        [clojure.string :only (capitalize)]
+        [clojure.contrib.string :only (as-str)])
   (:require [compojure.route :as route]
             [docphoto.salesforce :as sf]
             [docphoto.persist :as persist]
@@ -159,6 +160,34 @@
     (theme-js (:include-upload-js options))
     (if-let [js (:js-script options)]
       (javascript-tag js))]))
+
+(defn wrap-errors
+  "add in errors for form fields puts the error in opts if it's a map"
+  [f errors]
+  (fn [type attrs name opts value]
+    (if (nil? opts)
+      (recur type attrs name {} value)
+      (f type attrs name
+         (if (map? opts)
+           (merge {:error (errors name)} opts)
+           opts)
+         value))))
+
+(defn wrap-form-field
+  "wraps a particular field with a label, description, error which is
+  fetched from opts which must be a map. options for the field itself
+  go under the :opts key"
+  [f]
+  (fn [type attrs name opts value]
+    [:div.ctrlHolder
+     (list
+      [:label {:required (:required opts)}
+       (or (:label opts) (capitalize (as-str name)))]
+      (when-let [desc (:description opts)]
+        [:p.formHint desc])
+      (f type attrs name (:opts opts) value)
+      (when-let [error (:error opts)]
+        [:div.error error]))]))
 
 (defn wrap-textinput-classes [f]
   "add a textInput class to text inputs"
