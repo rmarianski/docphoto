@@ -62,9 +62,7 @@
 (defn- query-user [username password]
   (first
    (sf/query conn contact
-             [id username__c firstname lastname name email phone
-              mailingStreet mailingCity mailingState mailingPostalCode
-              mailingCountry]
+             sf/user-fields
              [[username__c = username]
               [password__c = password]])))
 
@@ -207,9 +205,17 @@
 (defn cv-link [application-id]
   (str (application-link application-id) "/cv"))
 
-(defn profile-update-link [request] "/")
+(defn came-from-link-snippet [came-from]
+  (if came-from
+    (str "?came-from=" came-from)))
 
-(defn application-update-link [request] "/")
+(defn profile-update-link [request & [came-from]]
+  (str "/profile"
+       (came-from-link-snippet came-from)))
+
+(defn application-update-link [application-id request & [came-from]]
+  (str (application-link application-id) "/update"
+       (came-from-link-snippet came-from)))
 
 (defn- image-link [image-id scale] (str "/image/" image-id "/" scale))
 
@@ -256,19 +262,23 @@
   (sf/create-image conn image-map))
 
 (defn login [request user]
-  (session-save-user request user))
+ (session-save-user request user))
 
 (defn logout [request]
   (session-delete request))
 
+(defn came-from-field [request params errors]
+  "a hidden input that passes came from information"
+  (let [came-from (or (:came-from params) ((:headers request) "referer"))]
+    (if (not-empty came-from)
+      [:input {:type :hidden
+               :name "came-from"
+               :value came-from}])))
+
 (defformpage login-view
   [{:field [:text {} :userName__c {:label "Username"}] :validator {:fn not-empty :msg :required}}
    {:field [:password {} :password__c {:label "Password"}] :validator {:fn not-empty :msg :required}}
-   {:custom (fn [request params errors]
-              [:input {:type :hidden
-                       :name "came-from"
-                       :value (or (:came-from params)
-                                  ((:headers request) "referer"))}])}]
+   {:custom came-from-field}]
   [{:keys [render-fields request params errors]}]
   (layout
    request
@@ -288,6 +298,32 @@
     (render-form-fn params {:userName__c "Invalid Credentials"})))
 
 (defn logout-view [request] (logout request) (redirect "/login"))
+
+(defformpage profile-view
+  [{:field [:text {} :firstName {:label "First Name"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :lastName {:label "Last Name"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :email {:label "Email"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :phone {:label "Phone"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :mailingStreet {:label "Address"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :mailingCity {:label "City"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :mailingState {:label "State"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :mailingPostalCode {:label "Postal Code"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text {} :mailingCountry {:label "Country"}] :validator {:fn not-empty :msg :required}}
+   {:custom came-from-field}]
+  [{:keys [render-fields request params errors]}]
+  (layout
+   request
+   {}
+   [:form {:method :post :action (profile-update-link request)}
+    [:h2 "Update profile"]
+    (render-fields request (merge (session-get-user request) params) errors)
+    [:input {:type :submit :value "Update"}]])
+  [{render-form-fn :render-form params :params request :request}]
+  (let [user (session-get-user request)
+        user-params (select-keys params sf/contact-fields)]
+    (sf/update-user conn (merge {:id (:id user)} user-params))
+    (session-save-user request (merge user user-params))
+    (redirect (or (:came-from params) "/"))))
 
 (defformpage register-view
   [{:field [:text {} :userName__c {:label "Username"}] :validator {:fn not-empty :msg :required}}
@@ -340,19 +376,14 @@
    (update-in [:exhibit_application__r :exhibit__r] sf/sobject->map)))
 
 (defn- query-application
-  ([app-id]
-     (-?>
-      (sf/query conn exhibit_application__c
-                [id biography__c title__c website__c statementRich__c
-                 exhibit__r.name exhibit__r.slug__c]
-                [[id = app-id]])
-      first
-      tweak-application-result))
-  ([app-id request]
-     (or (session-get-application request app-id)
-         (if-let [application (query-application app-id)]
-           (do (session-save-application request app-id application)
-               application)))))
+  [app-id]
+  (-?>
+   (sf/query conn exhibit_application__c
+             [id biography__c title__c website__c statementRich__c
+              exhibit__r.name exhibit__r.slug__c]
+             [[id = app-id]])
+   first
+   tweak-application-result))
 
 (defn- query-image [image-id]
   (-?>
@@ -433,6 +464,40 @@
           {:contact__c (:id (session-get-user request))
            :exhibit__c (:id exhibit)}))
         "/upload")))
+
+(defformpage application-update-view
+  [{:field [:text {} :title__c {:label "Project Title"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#statement.editor {} :statementRich__c {:label "Project Statement"}] :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"}] :validator {:fn not-empty :msg :required}}
+   {:field [:file {} :cv {:label "Upload CV"}]}
+   {:field [:text {} :website__c {:label "Website"}]}]
+  {:fn-bindings [application]}
+  [{:keys [render-fields request params errors]}]
+  (layout
+   request
+   {:title (str "Update application")
+    :css (editor-css)
+    :js ["http://localhost:9810/compile?id=docphoto"]
+    :js-script
+    ["docphoto.editor.triggerEditors();"]}
+   [:div
+    [:form {:method :post :action (:uri request)
+            :enctype "multipart/form-data"}
+     [:fieldset
+      [:legend "Update application"]
+      (render-fields request (merge application params) errors)]
+     [:input {:type :submit :value "Update"}]]])
+  [{:keys [params request]}]
+  (do
+    (let [app-id (:id application)
+          app-update-map (merge (dissoc params :cv)
+                                {:id app-id})]
+      ;; XXX need to update the cv also if it's there
+      (sf/update-application conn app-update-map)
+      (session-save-application request app-id app-update-map)
+      (redirect
+       (or (:came-from params)
+           (application-submit-link app-id))))))
 
 (defn app-view [request application]
   (layout
@@ -571,7 +636,8 @@
              (:mailingCity user) ", " (:mailingState user) " "
              (:mailingPostalCode user) [:br]
              (:mailingCountry user)]
-            [:a {:href (profile-update-link request)} "Update"]))]
+            [:a {:href (profile-update-link request
+                                            (:uri request))} "Update"]))]
         [:fieldset
          [:legend "Application"]
          [:h2 (:title__c application)]
@@ -579,7 +645,7 @@
          [:div (:biography__c application)]
          [:a {:href (cv-link app-id)} "CV"]
          [:p (:website__c application "No website")]
-         [:a {:href (application-update-link request)} "Update"]]
+         [:a {:href (application-update-link app-id request)} "Update"]]
         [:fieldset
          [:legend "Images"]
          [:ol
@@ -634,7 +700,7 @@
 (defn application-routes [request]
   (if-let [app-id (parse-mounted-route
                    (:uri request) "/application/")]
-    (if-let [application (query-application app-id request)]
+    (if-let [application (query-application app-id)]
       (render
        (condp = (remove-from-beginning (:uri request) "/application/" app-id)
          "/upload" (condp = (:request-method request)
@@ -644,6 +710,7 @@
          "/caption" (application-save-captions-view request application)
          "/submit" (application-submit-view request application)
          "/success" (application-success-view request application)
+         "/update" (application-update-view request application)
          "" (app-view request application)
          nil)
        request))))
@@ -705,7 +772,7 @@
            [:ul
             (for [app (sort-by :lastModifiedDate apps)]
               [:li
-               [:a {:href (application-link (:id app))} (:title__c app)]
+               [:a {:href (application-submit-link (:id app))} (:title__c app)]
                (if (= (:submission_Status__c app) "Final")
                  " - (submitted)")])]]))))))
 
@@ -714,6 +781,7 @@
   (GET "/userinfo" [] userinfo-view)
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
+  (ANY "/profile" [] profile-view)
   (ANY "/register" [] register-view)
 
   exhibit-routes

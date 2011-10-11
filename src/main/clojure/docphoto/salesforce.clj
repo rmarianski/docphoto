@@ -73,7 +73,13 @@
        (str
         ~(str
           "SELECT "
-          (string/join ", " (map string/as-str select-fields))
+          (string/join ", " (map string/as-str
+                                 (if (vector? select-fields)
+                                   select-fields
+                                   ;; select fields must be known at
+                                   ;; compile time and expand to
+                                   ;; something sequential
+                                   (eval select-fields))))
           " FROM " (capitalize (string/as-str table)))
 
         ;; if we wanted to generic dynamic queries from a map at runtime
@@ -131,6 +137,14 @@
      (to-array [v])))
   obj)
 
+(def contact-fields
+  [:firstName :lastName :email :phone
+   :userName__c :password__c
+   :mailingStreet :mailingCity :mailingState :mailingPostalCode
+   :mailingCountry])
+
+(def user-fields (conj contact-fields :id :name))
+
 (defn create-contact [conn contact-data-map]
   (create
    conn
@@ -139,9 +153,8 @@
       (Contact.)
       (select-keys
        contact-data-map
-       [:firstName :lastName :email :phone :userName__c :password__c
-        :mailingStreet :mailingCity :mailingState :mailingPostalCode
-        :mailingCountry]))])))
+       contact-fields
+       ))])))
 
 (defn create-application [conn application-map]
   (-?> (create
@@ -197,3 +210,10 @@
 (defn update-application-status [conn application-id status]
   (update conn Exhibit_Application__c [{:id application-id
                                         :submission_Status__c status}]))
+
+(defn update-user [conn user-map]
+  (update conn Contact
+          [(select-keys user-map (conj contact-fields :id))]))
+
+(defn update-application [conn application-map]
+  (update conn Exhibit_Application__c [application-map]))
