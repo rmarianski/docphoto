@@ -10,8 +10,8 @@
     "plupload-externs.js"
   ],
 
-  "mode": "RAW",
+  //"mode": "RAW",
   //"mode": "SIMPLE",
-  //"mode": "ADVANCED",
+  "mode": "ADVANCED",
   "level": "VERBOSE"
 }
