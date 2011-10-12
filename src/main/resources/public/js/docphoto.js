@@ -204,13 +204,17 @@ docphoto.Uploader.prototype.onImageDelete = function(event) {
       if (goog.dom.classes.has(el, 'image-container')) {
         var image = goog.dom.getFirstElementChild(el);
         if (goog.isDefAndNotNull(image)) {
+          // optimistically assume that the post will work out
+          // to provide a quick user experience
           var imageId = docphoto.parseImageId_(image);
-          var xhr = new goog.net.XhrIo();
-          goog.events.listen(xhr, goog.net.EventType.SUCCESS,
-                             goog.bind(this.handleImageDeleted_, this,
-                                       image, xhr),
-                             false, this);
-          xhr.send('/image/' + imageId + '/delete', "POST");
+          var wrapperDiv = image.parentNode;
+          var li = wrapperDiv.parentNode;
+          var div = li.parentNode;
+          goog.dom.removeNode(div);
+
+          goog.net.XhrIo.send('/image/' + imageId + '/delete',
+                              goog.nullFunction,
+                              'POST');
         }
         break;
       }
@@ -227,16 +231,6 @@ docphoto.parseImageId_ = function(imageEl) {
   var fields = src.split('/');
   var imageId = fields[2];
   return imageId;
-};
-
-/**
- * @param {!Element} imageElement
- * @param {!Object} xhr
- */
-docphoto.Uploader.prototype.handleImageDeleted_ = function(imageElement, xhr) {
-  var li = imageElement.parentNode.parentNode.parentNode;
-  goog.dom.removeNode(li);
-  xhr.dispose();
 };
 
 /**
