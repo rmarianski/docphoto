@@ -18,8 +18,6 @@ goog.require('goog.editor.SeamlessField');
 goog.require('goog.editor.plugins.BasicTextFormatter');
 goog.require('goog.editor.plugins.EnterHandler');
 goog.require('goog.editor.plugins.HeaderFormatter');
-goog.require('goog.editor.plugins.LinkBubble');
-goog.require('goog.editor.plugins.LinkDialogPlugin');
 goog.require('goog.editor.plugins.ListTabHandler');
 goog.require('goog.editor.plugins.LoremIpsum');
 goog.require('goog.editor.plugins.RemoveFormatting');
@@ -272,9 +270,6 @@ docphoto.editor.makeEditor = function(textarea) {
   field.registerPlugin(new goog.editor.plugins.HeaderFormatter());
   field.registerPlugin(
       new goog.editor.plugins.LoremIpsum('Click here to edit'));
-  field.registerPlugin(
-      new goog.editor.plugins.LinkDialogPlugin());
-  field.registerPlugin(new goog.editor.plugins.LinkBubble());
 
   // Specify the buttons to add to the toolbar, using built in default buttons.
   var buttons = [
@@ -283,9 +278,9 @@ docphoto.editor.makeEditor = function(textarea) {
     goog.editor.Command.UNDERLINE,
     goog.editor.Command.FONT_COLOR,
     goog.editor.Command.BACKGROUND_COLOR,
+    goog.editor.Command.REMOVE_FORMAT,
     goog.editor.Command.FONT_FACE,
     goog.editor.Command.FONT_SIZE,
-    goog.editor.Command.LINK,
     goog.editor.Command.UNDO,
     goog.editor.Command.REDO,
     goog.editor.Command.UNORDERED_LIST,
@@ -294,11 +289,7 @@ docphoto.editor.makeEditor = function(textarea) {
     goog.editor.Command.OUTDENT,
     goog.editor.Command.JUSTIFY_LEFT,
     goog.editor.Command.JUSTIFY_CENTER,
-    goog.editor.Command.JUSTIFY_RIGHT,
-    goog.editor.Command.SUBSCRIPT,
-    goog.editor.Command.SUPERSCRIPT,
-    goog.editor.Command.STRIKE_THROUGH,
-    goog.editor.Command.REMOVE_FORMAT
+    goog.editor.Command.JUSTIFY_RIGHT
   ];
 
   var toolbarElement = goog.dom.createDom(goog.dom.TagName.DIV,
