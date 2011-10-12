@@ -158,7 +158,7 @@ docphoto.Uploader.prototype.updateFilePercentage = function(file, string) {
  * @param {{percent: string}} file
  */
 docphoto.Uploader.prototype.onUploadProgress = function(up, file) {
-  this.updateFilePercentage(file, file.percent + '%');
+  this.updateFilePercentage(file, file['percent'] + '%');
 };
 
 /**
