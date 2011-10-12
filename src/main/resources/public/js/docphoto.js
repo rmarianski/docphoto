@@ -235,12 +235,9 @@ docphoto.parseImageId_ = function(imageEl) {
  * @param {!Event} event
  */
 docphoto.Uploader.prototype.onDrag = function(event) {
-  var ids = goog.array.map(goog.dom.getChildren(this.images),
-                           function(li) {
-                             var imageEl = goog.dom.getElementsByTagNameAndClass(
-                               goog.dom.TagName.IMG, undefined, li)[0];
-                             return docphoto.parseImageId_(imageEl);
-                           });
+  var images = goog.dom.getElementsByTagNameAndClass(
+    goog.dom.TagName.IMG, undefined, this.images);
+  var ids = goog.array.map(images, docphoto.parseImageId_);
   var paramString = 'order=' + ids.join(',');
   goog.net.XhrIo.send('/reorder-images',
                       goog.nullFunction,
