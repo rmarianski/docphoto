@@ -43,6 +43,7 @@ h2,h3 {
 a#pick-files:hover {
     cursor: pointer;
 }
+
 #images textarea {
     height: 100px;
     width: 450px;
@@ -66,6 +67,7 @@ a#pick-files:hover {
 #images ul {
     padding: 0;
 }
+
 .application-submit legend {
     margin: 2em 0;
 }
@@ -84,6 +86,7 @@ a#pick-files:hover {
 .application-submit .submit-button {
     margin: 2em 0;
 }
+
 #sidebar .applications {
     margin-top: 1em;
 }
@@ -92,4 +95,8 @@ a#pick-files:hover {
 #sidebar h2 {
     padding: 0;
     margin-left: 0;
+}
+
+#statement, #biography {
+    width: 650px;
 }
