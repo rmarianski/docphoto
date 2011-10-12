@@ -314,6 +314,13 @@ docphoto.editor.makeEditor = function(textarea) {
                                   dataField, field));
 
   field.makeEditable();
+
+  if (goog.isDefAndNotNull(dataField.value)) {
+    field.setHtml(/* addParagras */ false,
+                  /* html */ dataField.value,
+                  /* don't fire a change event */ true,
+                  /* apply lorem ipsum styles */ false);
+  }
 };
 
 /**
