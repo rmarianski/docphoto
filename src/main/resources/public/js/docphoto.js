@@ -195,13 +195,13 @@ docphoto.Uploader.prototype.onImageDelete = function(event) {
       if (goog.dom.classes.has(el, 'image-container')) {
         var image = goog.dom.getFirstElementChild(el);
         if (goog.isDefAndNotNull(image)) {
-          // optimistically assume that the post will work out
-          // to provide a quick user experience
+          // the image itself has the id that we use for the ajax call
           var imageId = docphoto.parseImageId_(image);
-          var wrapperDiv = image.parentNode;
-          var li = wrapperDiv.parentNode;
-          var div = li.parentNode;
-          goog.dom.removeNode(div);
+
+          // optimistically assume that the post will work out
+          // delete the element right away to provide a quick user experience
+          var li = el.parentNode;
+          goog.dom.removeNode(li);
 
           goog.net.XhrIo.send('/image/' + imageId + '/delete',
                               goog.nullFunction,
