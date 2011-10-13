@@ -72,11 +72,6 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
   this.dlg = null;
   this.initializeDragDrop();
 
-  // the dragger fights with clicking on the textarea
-  // rig the fight through event capturing
-  goog.events.listen(this.images, goog.events.EventType.CLICK,
-                     this.focusTextAreaOnClick, true, this);
-
   this.uploader.bind('Init', goog.bind(this.onInit, this));
   this.uploader.init();
   this.uploader.bind('FilesAdded', goog.bind(this.onFilesAdded, this));
@@ -108,17 +103,6 @@ docphoto.Uploader.prototype.findDragElement = function(dragItem) {
   var image = goog.dom.getFirstElementChild(imageContainer);
   return image;
 }
-
-/**
- * @param {!Event} event
- */
-docphoto.Uploader.prototype.focusTextAreaOnClick = function(event) {
-  var target = /** @type {!Element} */ event.target;
-  if (target.nodeName === goog.dom.TagName.TEXTAREA) {
-    event.preventDefault();
-    target.focus();
-  }
-};
 
 /**
  * @param {Object} up
