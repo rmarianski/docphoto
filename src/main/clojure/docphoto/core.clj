@@ -632,13 +632,13 @@
   (str "/image/" image-id "/delete"))
 
 (defn render-image [request image]
-  [:div
+  (list
    [:div.image-container.goog-inline-block
     [:img {:src (image-link (:id image) "small")}]]
    [:textarea {:name (str "caption-" (:id image))}
     (or (:caption__c image) "")]
    [:a {:href (image-delete-link (:id image))
-        :class "image-delete"} "Delete"]])
+        :class "image-delete"} "Delete"]))
 
 (defn render-images [request images]
   [:ul#images-list
