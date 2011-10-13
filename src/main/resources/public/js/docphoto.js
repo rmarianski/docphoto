@@ -95,13 +95,16 @@ docphoto.Uploader.prototype.initializeDragDrop = function() {
 
 /**
  * return the image element associated with the drag list item
- * @param {!Element} dragItem
- * @return {!Element}
+ * @param {Element} dragItem
+ * @return {Element}
  */
 docphoto.Uploader.prototype.findDragElement = function(dragItem) {
-  var imageContainer = goog.dom.getFirstElementChild(dragItem);
-  var image = goog.dom.getFirstElementChild(imageContainer);
-  return image;
+  if (goog.isDefAndNotNull(dragItem)) {
+    var imageContainer = goog.dom.getFirstElementChild(dragItem);
+    var image = goog.dom.getFirstElementChild(imageContainer);
+    return image;
+  }
+  return null;
 }
 
 /**
@@ -216,6 +219,7 @@ docphoto.Uploader.prototype.onImageDelete = function(event) {
 
 /**
  * @param {!Element} imageEl
+ * @return {!string}
  */
 docphoto.parseImageId_ = function(imageEl) {
   var src = imageEl.getAttribute('src');
