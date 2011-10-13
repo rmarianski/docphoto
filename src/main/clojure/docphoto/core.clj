@@ -211,6 +211,7 @@
   (xhtml
    [:head
     [:meta {:http-equiv "content-type" :content "text/html; charset=utf-8"}]
+    [:meta {:charset "utf-8"}]
     [:title (:title options "Docphoto")]
     (apply include-css (theme-css (:include-editor-css options)))]
    [:body
@@ -640,7 +641,7 @@
         :class "image-delete"} "Delete"]])
 
 (defn render-images [request images]
-  [:ul
+  [:ul#images-list
    (for [image images]
      [:li (render-image request image)])])
 
@@ -650,7 +651,8 @@
    {:title "Upload images"
     :include-upload-js true
     :js-script (format (str "new docphoto.Uploader('plupload', 'pick-files', "
-                            "'upload', 'files-list', 'images', {url: \"%s\"});")
+                            "'upload', 'files-list', 'images-list', "
+                            "{url: \"%s\"});")
                        (:uri request))}
    (list
     [:h2 "Upload images"]
