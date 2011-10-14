@@ -87,7 +87,7 @@ docphoto.Uploader.prototype.initializeDragDrop = function() {
   this.dlg = new goog.fx.DragListGroup();
   this.dlg.addDragList(this.images, goog.fx.DragListDirection.DOWN);
   this.dlg.setHysteresis(30);
-  this.dlg.setFunctionToGetHandleForDragItem(this.findDragElement);
+  this.dlg.setFunctionToGetHandleForDragItem(docphoto.findDragElement);
   goog.events.listen(this.dlg, goog.fx.DragListGroup.EventType.DRAGEND,
                      this.onDrag, false, this);
   this.dlg.init();
@@ -98,7 +98,7 @@ docphoto.Uploader.prototype.initializeDragDrop = function() {
  * @param {Element} dragItem
  * @return {Element}
  */
-docphoto.Uploader.prototype.findDragElement = function(dragItem) {
+docphoto.findDragElement = function(dragItem) {
   if (goog.isDefAndNotNull(dragItem)) {
     var imageContainer = goog.dom.getFirstElementChild(dragItem);
     var image = goog.dom.getFirstElementChild(imageContainer);
@@ -335,6 +335,21 @@ docphoto.removeAnchorTargets = function() {
                        }
                      });
 };
+
+/**
+ * Note: Overriding to render just the image when dragging
+ *
+ * @param {Element} sourceEl Element to copy.
+ * @return {Element} The clone of {@code sourceEl}.
+ * @private
+ * @notypecheck
+ */
+// this may help alleviate the ie problems
+// goog.fx.DragListGroup.prototype.cloneNode_ = function(sourceEl) {
+//   var el = /** @type {Element} */ docphoto.findDragElement(sourceEl);
+//   return el.cloneNode(false);
+// };
+
 
 goog.exportSymbol('docphoto.Uploader', docphoto.Uploader);
 goog.exportSymbol('docphoto.editor.triggerEditors',
