@@ -346,6 +346,9 @@
 (defn- exhibit-link [request exhibit]
   (str (exhibits-link request) (:slug__c exhibit)))
 
+(defn- exhibit-apply-link [request exhibit]
+  (str (exhibit-link request exhibit) "/apply"))
+
 (defn- exhibits-html [request]
   (let [exhibits (query-exhibits)]
     (if (not-empty exhibits)
@@ -506,7 +509,7 @@
   [app-id]
   (-?>
    (sf/query conn exhibit_application__c
-             [id biography__c title__c website__c statementRich__c
+             [id biography__c title__c website__c statementRich__c contact__c
               submission_Status__c exhibit__r.name exhibit__r.slug__c]
              [[id = app-id]])
    first
@@ -517,7 +520,8 @@
    (sf/query conn image__c
              [id caption__c filename__c mime_type__c order__c
               exhibit_application__r.id
-              exhibit_application__r.exhibit__r.slug__c]
+              exhibit_application__r.exhibit__r.slug__c
+              exhibit_application__r.contact__c]
              [[id = image-id]])
    first
    tweak-image-result))
@@ -803,8 +807,13 @@
 
 (defn forbidden [request]
   {:status 403
-   :headers {}
-   :body "Forbidden"})
+   :headers {"Content-Type" "text/html; charset=utf-8"}
+   :body (layout
+          request
+          {:title "Forbidden"}
+          (list
+           [:h2 "Forbidden"]
+           [:p "You don't have access to view this page"]))})
 
 (defn- parse-mounted-route [uri uri-start]
   "returns 2nd element of route assuming mount on a prefix"
@@ -827,27 +836,67 @@
         (render
          (condp = (remove-from-beginning (:uri request)
                                          "/exhibit/" exhibit-slug)
-           "/apply" (exhibit-apply-view request exhibit)
+           "/apply" (if-let [user (session-get-user request)]
+                      (exhibit-apply-view request exhibit)
+                      (redirect (str "/login?came-from="
+                                     (exhibit-apply-link request exhibit))))
            "" (exhibit-view request exhibit)
            nil)
          request)))))
+
+(defn- wrap-secure-clauses [request conditional & clauses]
+  (if-not (even? (count clauses))
+    (throw (IllegalArgumentException. "Odd number of clauses"))
+    (if (seq clauses)
+      (let [[pred body & remaining-clauses] clauses]
+        (concat
+         [pred `(if-not (session-get-user ~request)
+                  (redirect (str "/login?came-from=" (:uri ~request)))
+                  (if ~conditional
+                    ~body
+                    (forbidden ~request)))]
+         (apply wrap-secure-clauses request conditional remaining-clauses))))))
+
+(defmacro secure-condp
+  "wrap the actions in a condp with security checks"
+  [f f-param request conditional & clauses]
+  `(condp ~f ~f-param
+     ~@(if (even? (count clauses))
+         (apply wrap-secure-clauses request conditional clauses)
+         (concat
+          (apply wrap-secure-clauses request conditional (butlast clauses))
+          [(last clauses)]))))
+
+;; need to figure out where to store this
+;; maybe just in memory for now
+(defn admin? [user] false)
+
+(defn application-owner? [user application]
+  (= (:id user) (:contact__c application)))
+
+(defn can-view-application? [user application]
+  (or (admin? user) (application-owner? user application)))
 
 (defn application-routes [request]
   (if-let [app-id (parse-mounted-route
                    (:uri request) "/application/")]
     (if-let [application (query-application app-id)]
       (render
-       (condp = (remove-from-beginning (:uri request) "/application/" app-id)
-         "/upload" (condp = (:request-method request)
-                     :post (app-upload-image request application)
-                     :get (app-upload request application)
-                     nil)
-         "/caption" (application-save-captions-view request application)
-         "/submit" (application-submit-view request application)
-         "/success" (application-success-view request application)
-         "/update" (application-update-view request application)
-         "" (app-view request application)
-         nil)
+       (let [user (session-get-user request)]
+         (secure-condp
+          = (remove-from-beginning (:uri request) "/application/" app-id)
+          request
+          (can-view-application? user application)
+          "/upload" (condp = (:request-method request)
+                      :post (app-upload-image request application)
+                      :get (app-upload request application)
+                      nil)
+          "/caption" (application-save-captions-view request application)
+          "/submit" (application-submit-view request application)
+          "/success" (application-success-view request application)
+          "/update" (application-update-view request application)
+          "" (app-view request application)
+          nil))
        request))))
 
 (defn image-details [image]
@@ -866,11 +915,16 @@
                      (:uri request) "/image/")]
     (if-let [image (query-image image-id)]
       (render
-       (let [rest-of-uri (remove-from-beginning
+       (let [user (session-get-user request)
+             application (:exhibit_application__r image)
+             rest-of-uri (remove-from-beginning
                           (:uri request) "/image/" image-id)]
          (if (#{"" "/" "/original"} rest-of-uri)
            (image-view request image "original")
-           (condp = rest-of-uri
+           (secure-condp
+            = rest-of-uri
+            request
+            (can-view-application? user application)
              "/small" (image-view request image "small")
              "/large" (image-view request image "large")
              "/delete" (image-delete-view request image)
@@ -891,25 +945,27 @@
      "")))
 
 (defn my-applications-view [request]
-  (layout
-   request
-   {:title "My applications"}
-   (let [userid (:id (session-get-user request))
-         apps (query-applications userid)
-         apps-by-exhibit (group-by (comp :name :exhibit__r) apps)]
-     (if (empty? apps)
-       [:p "You have no applications. Perhaps you would like to "
-        [:a {:href (exhibits-link request)} "apply"]]
-       (list
-        (for [[exhibit-name apps] apps-by-exhibit]
-          [:div
-           [:h2 exhibit-name]
-           [:ul
-            (for [app (sort-by :lastModifiedDate apps)]
-              [:li
-               [:a {:href (application-submit-link (:id app))} (:title__c app)]
-               (if (= (:submission_Status__c app) "Final")
-                 " - (submitted)")])]]))))))
+  (if-let [user (session-get-user request)]
+    (layout
+     request
+     {:title "My applications"}
+     (let [userid (:id (session-get-user request))
+           apps (query-applications userid)
+           apps-by-exhibit (group-by (comp :name :exhibit__r) apps)]
+       (if (empty? apps)
+         [:p "You have no applications. Perhaps you would like to "
+          [:a {:href (exhibits-link request)} "apply"]]
+         (list
+          (for [[exhibit-name apps] apps-by-exhibit]
+            [:div
+             [:h2 exhibit-name]
+             [:ul
+              (for [app (sort-by :lastModifiedDate apps)]
+                [:li
+                 [:a {:href (application-submit-link (:id app))} (:title__c app)]
+                 (if (= (:submission_Status__c app) "Final")
+                   " - (submitted)")])]])))))
+    (redirect (str "/login?came-from=" (:uri request)))))
 
 (defn about-view [request]
   (layout
