@@ -170,7 +170,7 @@
   "/my-applications")
 
 (defn cv-link [application-id]
-  (str (application-link application-id) "/cv"))
+  (str "/cv/" application-id))
 
 (defn came-from-link-snippet [came-from]
   (if came-from
@@ -586,7 +586,7 @@
   [{:field [:text {} :title__c {:label "Project Title"}] :validator {:fn not-empty :msg :required}}
    {:field [:text-area#statement.editor {} :statementRich__c {:label "Project Statement"}] :validator {:fn not-empty :msg :required}}
    {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"}] :validator {:fn not-empty :msg :required}}
-   {:field [:file {} :cv {:label "Upload CV"}]}
+   {:field [:file {} :cv {:label "Update CV"}]}
    {:field [:text {} :website__c {:label "Website"}]}]
   {:fn-bindings [application]}
   [{:keys [render-fields request params errors]}]
@@ -603,16 +603,22 @@
       (render-fields request (merge application params) errors)]
      [:input {:type :submit :value "Update"}]]])
   [{:keys [params request]}]
-  (do
-    (let [app-id (:id application)
-          app-update-map (merge (dissoc params :cv)
-                                {:id app-id})]
-      ;; XXX need to update the cv also if it's there
-      (sf/update-application conn app-update-map)
-      (session-save-application request app-id app-update-map)
-      (redirect
-       (or (:came-from params)
-           (application-submit-link app-id))))))
+  (let [app-id (:id application)
+        app-update-map (merge (dissoc params :cv)
+                              {:id app-id})]
+    (sf/update-application conn app-update-map)
+    (let [cv (:cv params)
+          tempfile (:tempfile cv)
+          filename (persist/safe-filename (:filename cv))
+          size (:size cv)
+          exhibit-slug (:slug__c (:exhibit__r application))]
+      (if (and :cv (not-empty filename) (pos? size))
+        (do
+          (persist/remove-existing-cvs exhibit-slug app-id)
+          (persist/persist-cv tempfile exhibit-slug app-id filename))))
+    (redirect
+     (or (:came-from params)
+         (application-submit-link app-id)))))
 
 (defn app-view [request application]
   (layout
@@ -924,6 +930,17 @@
            [:h2 "Page not found"]
            [:p "We could not find the page you are looking for."]])})
 
+(defn cv-view [request app-id]
+  (if-let [application (query-application app-id)]
+    (let [exhibit-slug (:slug__c (:exhibit__r application))]
+      (if-let [cv (persist/cv-file-path exhibit-slug app-id)]
+        (if (.exists cv)
+          {:status 200
+           :headers {"Content-Disposition" (str "attachment; filename=\""
+                                                (.getName cv)
+                                                "\"")}
+           :body cv})))))
+
 (defroutes main-routes
   (GET "/" request home-view)
   (GET "/about" [] about-view)
@@ -936,6 +953,7 @@
   exhibit-routes
   application-routes
   image-routes
+  (GET "/cv/:app-id" [app-id :as request] (cv-view request app-id))
 
   (POST "/reorder-images" [order] (reorder-images-view order))
 

@@ -1,7 +1,8 @@
 ;;;; handle files that we want to persist separately from salesforce
 
 (ns docphoto.persist
-  (:use [clojure.java.io :only (file input-stream output-stream copy)])
+  (:use [clojure.java.io :only (file input-stream output-stream copy)]
+        [clojure.contrib.core :only (-?>)])
   (:import [java.io File]
            [org.apache.commons.io FileUtils]))
 
@@ -11,15 +12,21 @@
 
 (defn safe-filename [filename]
   "make the filename trustable for filesystem use"
-  (.getName (file filename)))
+  (if filename
+    (.getName (file filename))))
 
 (defn image-file-path [exhibit-slug app-id image-id & [scale-type]]
   (apply
    file *base-storage-path* exhibit-slug app-id "images" image-id
    (if scale-type [scale-type] [])))
 
-(defn cv-file-path [exhibit-slug app-id filename]
-  (file *base-storage-path* exhibit-slug app-id "cv" filename))
+(defn cv-file-path
+  ([exhibit-slug app-id]
+     (if-let [cv-name (-?> (file *base-storage-path* exhibit-slug app-id "cv")
+                           (.list) first)]
+       (file *base-storage-path* exhibit-slug app-id "cv" cv-name)))
+  ([exhibit-slug app-id filename]
+     (file *base-storage-path* exhibit-slug app-id "cv" filename)))
 
 (defn- ensure-dir-exists [& paths] (.mkdirs (apply file paths)))
 
@@ -28,6 +35,10 @@
 
 (defn- ensure-cv-path [exhibit-slug app-id]
   (ensure-dir-exists *base-storage-path* exhibit-slug app-id "cv"))
+
+(defn remove-existing-cvs [exhibit-slug app-id]
+  (FileUtils/deleteDirectory
+   (file *base-storage-path* exhibit-slug app-id "cv")))
 
 (defn persist-image-chunk
   [^File chunk exhibit-slug application-id image-id scale-type]
