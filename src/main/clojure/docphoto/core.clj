@@ -16,7 +16,6 @@
         [clojure.contrib.core :only (-?> -?>>)]
         [clojure.contrib.trace :only (deftrace)]
         [clojure.java.io :only (copy file input-stream output-stream)]
-        [clojure.string :only (capitalize)]
         [clojure.contrib.string :only (as-str)])
   (:require [compojure.route :as route]
             [docphoto.salesforce :as sf]
@@ -254,7 +253,7 @@
     [:div.ctrlHolder
      (list
       [:label {:required (:required opts)}
-       (or (:label opts) (capitalize (as-str name)))]
+       (or (:label opts) (string/capitalize (as-str name)))]
       (when-let [desc (:description opts)]
         [:p.formHint desc])
       (f type attrs name (:opts opts) value)
@@ -931,18 +930,39 @@
              nil)))
        request))))
 
-(defn reorder-images-view [order-string]
-  (and
-   order-string
-   (let [image-ids (.split order-string ",")]
-     (sf/update-image-order
-      conn
-      (map-indexed
-       (fn [n image-id]
-         {:id image-id
-          :order__c (double (inc n))})
-       image-ids))
-     "")))
+(defn query-allowed-images
+  "filter passed in images to those that current user can view"
+  [user image-ids]
+  (map
+   :id
+   (filter
+    #(or (admin? user)
+         ( = (:id user)
+             (:contact__c (:exhibit_application__r
+                           (tweak-image-result %)))))
+    (sf/query conn image__c [id exhibit_application__r.contact__c]
+              [[id IN (str "("
+                           (string/join ", "
+                                        (map #(str "'" % "'") image-ids))
+                           ")") noquote]]))))
+
+(defn reorder-images-view [request order-string]
+  (if-let [user (session-get-user request)]
+    (if order-string
+      (let [image-ids (.split order-string ",")
+            allowed-image-ids (query-allowed-images user image-ids)
+            image-ids-to-update (filter (set allowed-image-ids)
+                                        image-ids)]
+        (if (not-empty image-ids-to-update)
+          (do
+            (sf/update-image-order
+             conn
+             (map-indexed
+              (fn [n image-id]
+                {:id image-id
+                 :order__c (double (inc n))})
+              image-ids-to-update))
+            ""))))))
 
 (defn my-applications-view [request]
   (if-let [user (session-get-user request)]
@@ -1016,7 +1036,8 @@
 
   (GET "/cv/:app-id" [app-id :as request] (cv-view request app-id))
 
-  (POST "/reorder-images" [order] (reorder-images-view order))
+  (POST "/reorder-images" [order :as request]
+        (reorder-images-view request order))
 
   (GET "/my-applications" [] my-applications-view)
 
