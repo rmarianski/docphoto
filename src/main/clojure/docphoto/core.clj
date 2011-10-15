@@ -988,14 +988,18 @@
 
 (defn cv-view [request app-id]
   (if-let [application (query-application app-id)]
-    (let [exhibit-slug (:slug__c (:exhibit__r application))]
-      (if-let [cv (persist/cv-file-path exhibit-slug app-id)]
-        (if (.exists cv)
-          {:status 200
-           :headers {"Content-Disposition" (str "attachment; filename=\""
-                                                (.getName cv)
-                                                "\"")}
-           :body cv})))))
+    (if-let [user (session-get-user request)]
+      (if (can-view-application? user application)
+        (let [exhibit-slug (:slug__c (:exhibit__r application))]
+          (if-let [cv (persist/cv-file-path exhibit-slug app-id)]
+            (if (.exists cv)
+              {:status 200
+               :headers {"Content-Disposition" (str "attachment; filename=\""
+                                                    (.getName cv)
+                                                    "\"")}
+               :body cv})))
+        (forbidden request))
+      (redirect (str "/login?came-from=" (:uri request))))))
 
 (defroutes main-routes
   (GET "/" request home-view)
@@ -1009,6 +1013,7 @@
   exhibit-routes
   application-routes
   image-routes
+
   (GET "/cv/:app-id" [app-id :as request] (cv-view request app-id))
 
   (POST "/reorder-images" [order] (reorder-images-view order))
