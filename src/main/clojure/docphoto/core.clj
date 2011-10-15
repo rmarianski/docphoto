@@ -1027,7 +1027,10 @@
   (GET "/userinfo" [] userinfo-view)
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
-  (ANY "/profile" [] profile-view)
+  (ANY "/profile" request (if-let [user (session-get-user request)]
+                            (profile-view request)
+                            (redirect (str "/login?came-from="
+                                           (:uri request)))))
   (ANY "/register" [] register-view)
 
   exhibit-routes
