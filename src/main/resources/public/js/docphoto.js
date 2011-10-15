@@ -80,11 +80,23 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
   this.uploader.bind('FileUploaded', goog.bind(this.onUploadDone, this));
 };
 
+/**
+ * custom class exists just to override cloneNode_
+ * @extends {goog.fx.DragListGroup}
+ * @constructor
+ */
+docphoto.DragListGroup = function() {
+  goog.base(this);
+};
+goog.inherits(docphoto.DragListGroup, goog.fx.DragListGroup);
+
+
 docphoto.Uploader.prototype.initializeDragDrop = function() {
   if (goog.isDefAndNotNull(this.dlg)) {
     goog.dispose(this.dlg);
   }
-  this.dlg = new goog.fx.DragListGroup();
+  //this.dlg = new goog.fx.DragListGroup();
+  this.dlg = new docphoto.DragListGroup();
   this.dlg.addDragList(this.images, goog.fx.DragListDirection.DOWN);
   this.dlg.setHysteresis(30);
   this.dlg.setFunctionToGetHandleForDragItem(docphoto.findDragElement);
@@ -344,11 +356,12 @@ docphoto.removeAnchorTargets = function() {
  * @private
  * @notypecheck
  */
+
 // this may help alleviate the ie problems
-// goog.fx.DragListGroup.prototype.cloneNode_ = function(sourceEl) {
-//   var el = /** @type {Element} */ docphoto.findDragElement(sourceEl);
-//   return el.cloneNode(false);
-// };
+docphoto.DragListGroup.prototype.cloneNode_ = function(sourceEl) {
+  var el = /** @type {Element} */ docphoto.findDragElement(sourceEl);
+  return el.cloneNode(false);
+};
 
 
 goog.exportSymbol('docphoto.Uploader', docphoto.Uploader);
