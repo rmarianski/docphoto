@@ -916,6 +916,7 @@
 
 (defn not-found-view [request]
   {:status 404
+   :headers {"Content-Type" "text/html; charset=utf-8"}
    :body (layout
           request
           {:title "404 Page not found"}
