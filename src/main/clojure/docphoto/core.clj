@@ -16,7 +16,8 @@
         [clojure.contrib.core :only (-?> -?>>)]
         [clojure.contrib.trace :only (deftrace)]
         [clojure.java.io :only (copy file input-stream output-stream)]
-        [clojure.contrib.string :only (as-str)])
+        [clojure.contrib.string :only (as-str)]
+        [clojure.contrib.def :only (defn-memo)])
   (:require [compojure.route :as route]
             [docphoto.salesforce :as sf]
             [docphoto.persist :as persist]
@@ -40,6 +41,13 @@
        (assoc request :session (.getSession servlet-request true))
        request))))
 
+(defmacro defn-debug-memo
+  "when in debug mode, memoize function"
+  [& args]
+  (if cfg/*debug*
+    `(defn-memo ~@args)
+    `(defn ~@args)))
+
 (defn session-get-user [request]
   (.getAttribute (:session request) "user"))
 
@@ -60,19 +68,19 @@
                      application-id application))
     application-id))
 
-(defn- query-user [username password]
+(defn-debug-memo query-user [username password]
   (first
    (sf/query conn contact
              sf/user-fields
              [[username__c = username]
               [password__c = password]])))
 
-(defn- query-exhibits []
+(defn-debug-memo query-exhibits []
   (sf/query conn exhibit__c
             [id name slug__c application_start_date__c description__c]
             [[closed__c = false noquote]]))
 
-(defn- query-latest-exhibit []
+(defn-debug-memo query-latest-exhibit []
   (first
    (sf/query conn exhibit__c
              [id name slug__c application_start_date__c description__c]
@@ -144,7 +152,7 @@
    (update-in image [:exhibit_application__r] sf/sobject->map)
    (update-in [:exhibit_application__r :exhibit__r] sf/sobject->map)))
 
-(defn- query-applications [userid]
+(defn-debug-memo query-applications [userid]
   (map tweak-application-result
        (sf/query
         conn
@@ -521,13 +529,13 @@
           (login request (query-user username (md5 password1)))
           (redirect "/exhibit"))))))
 
-(defn- query-exhibit [exhibit-slug]
+(defn-debug-memo query-exhibit [exhibit-slug]
   (first
    (sf/query conn exhibit__c
              [id name description__c slug__c]
              [[slug__c = exhibit-slug]])))
 
-(defn- query-application
+(defn-debug-memo query-application
   [app-id]
   (-?>
    (sf/query conn exhibit_application__c
@@ -537,7 +545,7 @@
    first
    tweak-application-result))
 
-(defn- query-image [image-id]
+(defn-debug-memo query-image [image-id]
   (-?>
    (sf/query conn image__c
              [id caption__c filename__c mime_type__c order__c
@@ -548,7 +556,7 @@
    first
    tweak-image-result))
 
-(defn query-images [application-id]
+(defn-debug-memo query-images [application-id]
   (sf/query conn image__c
             [id caption__c]
             [[exhibit_application__c = application-id]]
@@ -957,7 +965,7 @@
              nil)))
        request))))
 
-(defn query-allowed-images
+(defn-debug-memo query-allowed-images
   "filter passed in images to those that current user can view"
   [user image-ids]
   (map
