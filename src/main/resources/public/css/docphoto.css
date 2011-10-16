@@ -15,6 +15,10 @@
 }
 #header {
     background: none;
+    height: 90px;
+}
+#osf-logo {
+    clear: both;
 }
 #content {
     margin-bottom: 2em;

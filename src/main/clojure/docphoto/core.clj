@@ -24,6 +24,7 @@
             [docphoto.config :as cfg]
             [clojure.contrib.string :as string]
             [clojure.walk]
+            [hiccup.page-helpers :as ph]
             [ring.middleware.multipart-params :as multipart])
   (:import [org.apache.commons.codec.digest DigestUtils]))
 
@@ -220,7 +221,9 @@
        [:div#logo
         [:h1
          [:a {:href "/"} [:span "Documentary"] " Photography"]]]
-       (theme-menu (:uri request))]]
+       (theme-menu (:uri request))
+       [:div#osf-logo (ph/image "/public/osf-logo.png"
+                                "Open Society Foundations")]]]
      [:div#page
       [:div#content body]]
      [:div#sidebar
@@ -643,7 +646,7 @@
 (defn render-image [request image]
   (list
    [:div.image-container.goog-inline-block
-    [:img {:src (image-link (:id image) "small")}]]
+    (ph/image (image-link (:id image) "small"))]
    [:textarea {:name (str "caption-" (:id image))}
     (or (:caption__c image) "")]
    [:a {:href (image-delete-link (:id image))
@@ -783,7 +786,7 @@
           (for [image (query-images app-id)]
             [:li
              [:div.image-container.goog-inline-block
-              [:img {:src (image-link (:id image) "small")}]]
+              (ph/image (image-link (:id image) "small"))]
              [:span (:caption__c image)]])]
          [:a {:href (application-upload-link app-id)} "Update"]]
         [:form {:method :post :action (application-submit-link app-id)}
