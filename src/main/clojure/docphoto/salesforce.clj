@@ -141,7 +141,7 @@
   [:firstName :lastName :email :phone
    :userName__c :password__c
    :mailingStreet :mailingCity :mailingState :mailingPostalCode
-   :mailingCountry])
+   :mailingCountry :docPhoto_Mail_List__c])
 
 (def user-fields (conj contact-fields :id :name))
 

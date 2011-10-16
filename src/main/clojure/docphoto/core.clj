@@ -186,6 +186,11 @@
 
 (defn- image-link [image-id scale] (str "/image/" image-id "/" scale))
 
+(defn- user-update-mailinglist-value
+  "ensure a :docPhoto_Mail_List__c key exists and is set to a boolean value"
+  [m]
+  (update-in m [:docPhoto_Mail_List__c] boolean))
+
 (defn login-logout-snippet [request]
   (let [user (session-get-user request)]
     (list
@@ -263,14 +268,23 @@
       (when-let [error (:error opts)]
         [:div.error error]))]))
 
-(defn wrap-textinput-classes [f]
+(defn wrap-textinput-classes
   "add a textInput class to text inputs"
+  [f]
   (fn [type attrs name opts value]
     (if (#{:text :password} type)
       (f type (if (:class attrs)
                 (str (:class attrs) " textInput")
                 (assoc attrs :class "textInput"))
          name opts value)
+      (f type attrs name opts value))))
+
+(defn wrap-checkbox-opts-normalize
+  "normalize the options to have the checked behavior work properly"
+  [f]
+  (fn [type attrs name opts value]
+    (if (= type :checkbox)
+      (f type attrs name "on" (if value "on"))
       (f type attrs name opts value))))
 
 (defn- make-fields-render-fn [fields options]
@@ -280,6 +294,7 @@
         errors (gensym "errors__")]
     `(fn [~request ~params ~errors]
        (let [~field (-> html4-fields
+                        wrap-checkbox-opts-normalize
                         wrap-form-field
                         wrap-textinput-classes
                         wrap-shortcuts
@@ -449,6 +464,7 @@
    {:field [:text {} :mailingState {:label "State"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :mailingPostalCode {:label "Postal Code"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :mailingCountry {:label "Country"}] :validator {:fn not-empty :msg :required}}
+   {:field [:checkbox {} :docPhoto_Mail_List__c {:label "Subscribe to mailing list?"}]}
    {:custom came-from-field}]
   [{:keys [render-fields request params errors]}]
   (layout
@@ -456,11 +472,13 @@
    {}
    [:form.uniForm {:method :post :action (profile-update-link request)}
     [:h2 "Update profile"]
-    (render-fields request (merge (session-get-user request) params) errors)
+    (render-fields request (user-update-mailinglist-value
+                            (merge (session-get-user request) params)) errors)
     [:input {:type :submit :value "Update"}]])
   [{render-form-fn :render-form params :params request :request}]
   (let [user (session-get-user request)
-        user-params (select-keys params sf/contact-fields)]
+        user-params (user-update-mailinglist-value
+                     (select-keys params sf/contact-fields))]
     (sf/update-user conn (merge {:id (:id user)} user-params))
     (session-save-user request (merge user user-params))
     (redirect (or (:came-from params) "/"))))
@@ -477,7 +495,8 @@
    {:field [:text {} :mailingCity {:label "City"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :mailingState {:label "State"}] :validator {:fn not-empty :msg :required}}
    {:field [:text {} :mailingPostalCode {:label "Postal Code"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :mailingCountry {:label "Country"}] :validator {:fn not-empty :msg :required}}]
+   {:field [:text {} :mailingCountry {:label "Country"}] :validator {:fn not-empty :msg :required}}
+   {:field [:checkbox {} :docPhoto_Mail_List__c {:label "Subscribe to mailing list?"}]}]
   [{:keys [render-fields request params errors]}]
   (layout
    request
@@ -496,8 +515,9 @@
                                [id] [[userName__c = username]]))]
         (render-form-fn params {:userName__c "User already exists"})
         (do
-          (register (update-in (dissoc params :password2)
-                               [:password__c] md5))
+          (register (-> (dissoc params :password2)
+                        (update-in [:password__c] md5)
+                        user-update-mailinglist-value))
           (login request (query-user username (md5 password1)))
           (redirect "/exhibit"))))))
 
@@ -765,6 +785,10 @@
              (:mailingCity user) ", " (:mailingState user) " "
              (:mailingPostalCode user) [:br]
              (:mailingCountry user)]
+            [:p (str (if-not (:docPhoto_Mail_List__c user)
+                       "Not subscribed "
+                       "Subscribed ")
+                     "to mailing list")]
             [:a {:href (profile-update-link request
                                             (:uri request))} "Update"]))]
         [:fieldset
