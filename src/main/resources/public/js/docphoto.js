@@ -69,6 +69,8 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
   goog.events.listen(this.images, goog.events.EventType.CLICK,
                      this.onImageDelete, false, this);
 
+  this.filesToUpload = 0;
+
   this.dlg = null;
   this.initializeDragDrop();
 
@@ -143,12 +145,15 @@ docphoto.Uploader.prototype.onUpload = function(event) {
  */
 docphoto.Uploader.prototype.onFilesAdded = function(up, files) {
   var filesList = this.filesList;
+  var n = 0;
   goog.array.forEach(files, function(file) {
     var name = goog.dom.createDom('span', undefined, file.name);
     var percent = goog.dom.createDom('span', {'class': 'percent'}, '0%');
     var node = goog.dom.createDom('p', {'id': file.id}, name, ' - ', percent);
     goog.dom.appendChild(filesList, node);
+    n += 1;
   });
+  this.filesToUpload += n;
 };
 
 /**
@@ -169,6 +174,13 @@ docphoto.Uploader.prototype.onUploadProgress = function(up, file) {
   this.updateFilePercentage(file, file['percent'] + '%');
 };
 
+docphoto.Uploader.prototype.fileUploaded_ = function() {
+  this.filesToUpload -= 1;
+  if (this.filesToUpload === 0) {
+    this.initializeDragDrop();
+  }
+};
+
 /**
  * @param {Object} up
  * @param {Object} file
@@ -182,7 +194,7 @@ docphoto.Uploader.prototype.onUploadDone = function(up, file, responseObject) {
 
   this.updateFilePercentage(file, 'Success');
 
-  this.initializeDragDrop();
+  this.fileUploaded_();
 };
 
 /**
@@ -198,6 +210,7 @@ docphoto.Uploader.prototype.onUploadError = function(up, error) {
     var node = goog.dom.createDom('p', undefined, msg);
     goog.dom.appendChild(this.filesList, node);
   }
+  this.fileUploaded_();
 };
 
 /**
