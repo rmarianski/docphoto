@@ -71,6 +71,11 @@ a#pick-files:hover {
 #images ul {
     padding: 0;
 }
+#images p {
+    text-align: center;
+    font-weight: bold;
+    margin: 1em 0;
+}
 .draggable {
     cursor: move;
     -moz-user-select: none;

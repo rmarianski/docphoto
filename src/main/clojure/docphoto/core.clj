@@ -692,7 +692,7 @@
     :include-upload-js true
     :js-script (format (str "new docphoto.Uploader('plupload', 'pick-files', "
                             "'upload', 'files-list', 'images-list', "
-                            "{url: \"%s\"});")
+                            "'images-description', {url: \"%s\"});")
                        (:uri request))}
    (list
     [:h2 "Upload images"]
@@ -705,6 +705,9 @@
       [:span " | "]
       [:a#upload {:href "#"} "Upload"]]]
     [:div#images
+     [:p#images-description {:style "display: none"}
+      (str "The order of your images is an important consideration. "
+           "Drag them to re-order.")]
      [:form {:method :post :action (caption-save-link (:id application))}
       (render-images request (query-images (:id application)))
       [:input {:type "submit" :value "Save"}]]])))
