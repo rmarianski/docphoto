@@ -71,6 +71,15 @@ a#pick-files:hover {
 #images ul {
     padding: 0;
 }
+.draggable {
+    cursor: move;
+    -moz-user-select: none;
+}
+.dragging {
+    opacity: 0.4;
+    -moz-opacity: 0.4;
+    filter: alpha(opacity=40);
+}
 
 .application-submit legend {
     margin: 2em 0;

@@ -99,6 +99,8 @@ docphoto.Uploader.prototype.initializeDragDrop = function() {
   this.dlg = new docphoto.DragListGroup();
   this.dlg.addDragList(this.images, goog.fx.DragListDirection.DOWN);
   this.dlg.setHysteresis(5);
+  this.dlg.setDragItemHandleHoverClass('draggable');
+  this.dlg.setDraggerElClass('dragging');
   this.dlg.setFunctionToGetHandleForDragItem(docphoto.findDragElement);
   goog.events.listen(this.dlg, goog.fx.DragListGroup.EventType.DRAGEND,
                      this.onDrag, false, this);
