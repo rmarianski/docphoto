@@ -348,7 +348,8 @@
            form-render-fn (gensym "form-render-fn__")
            validator-fn (gensym "validator-fn__")
            params (gensym "params__")
-           request (gensym "request__")]
+           request (gensym "request__")
+           fields (map macroexpand fields)]
        `(let [~fields-render-fn ~(make-fields-render-fn fields options)
               ~validator-fn ~(make-form-validator-fn fields)]
           (defn ~fn-name [~request ~@(:fn-bindings options)]
@@ -365,6 +366,13 @@
                                             :request ~request}]
                     ~success-body))
                 (~form-render-fn ~params {}))))))))
+
+(defmacro textfield [fieldname label]
+  {:field [:text {} fieldname {:label label}]})
+
+(defmacro req-textfield [fieldname label]
+  (assoc (textfield fieldname label)
+    :validator {:fn not-empty :msg :required}))
 
 (defn- exhibits-link [request] (str "/exhibit/"))
 
@@ -435,8 +443,9 @@
                :value came-from}])))
 
 (defformpage login-view
-  [{:field [:text {} :userName__c {:label "Username"}] :validator {:fn not-empty :msg :required}}
-   {:field [:password {} :password__c {:label "Password"}] :validator {:fn not-empty :msg :required}}
+  [(req-textfield :userName__c "Username")
+   {:field [:password {} :password__c {:label "Password"}]
+    :validator {:fn not-empty :msg :required}}
    {:custom came-from-field}]
   [{:keys [render-fields request params errors]}]
   (layout
@@ -461,16 +470,17 @@
 (defn logout-view [request] (logout request) (redirect "/login"))
 
 (defformpage profile-view
-  [{:field [:text {} :firstName {:label "First Name"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :lastName {:label "Last Name"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :email {:label "Email"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :phone {:label "Phone"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :mailingStreet {:label "Address"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :mailingCity {:label "City"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :mailingState {:label "State"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :mailingPostalCode {:label "Postal Code"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :mailingCountry {:label "Country"}] :validator {:fn not-empty :msg :required}}
-   {:field [:checkbox {} :docPhoto_Mail_List__c {:label "Subscribe to mailing list?"}]}
+  [(req-textfield :firstName "First Name")
+   (req-textfield :lastName "Last Name")
+   (req-textfield :email "Email")
+   (req-textfield :phone "Phone")
+   (req-textfield :mailingStreet "Address")
+   (req-textfield :mailingCity "City")
+   (req-textfield :mailingState "State")
+   (req-textfield :mailingPostalCode "Postal Code")
+   (req-textfield :mailingCountry "Country")
+   {:field [:checkbox {} :docPhoto_Mail_List__c
+            {:label "Subscribe to mailing list?"}]}
    {:custom came-from-field}]
   [{:keys [render-fields request params errors]}]
   (layout
@@ -490,19 +500,22 @@
     (redirect (or (:came-from params) "/"))))
 
 (defformpage register-view
-  [{:field [:text {} :userName__c {:label "Username"}] :validator {:fn not-empty :msg :required}}
-   {:field [:password {} :password__c {:label "Password"}] :validator {:fn not-empty :msg :required}}
-   {:field [:password {} :password2 {:label "Password"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :firstName {:label "First Name"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :lastName {:label "Last Name"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :email {:label "Email"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :phone {:label "Phone"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :mailingStreet {:label "Address"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :mailingCity {:label "City"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :mailingState {:label "State"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :mailingPostalCode {:label "Postal Code"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text {} :mailingCountry {:label "Country"}] :validator {:fn not-empty :msg :required}}
-   {:field [:checkbox {} :docPhoto_Mail_List__c {:label "Subscribe to mailing list?"}]}]
+  [(req-textfield :userName__c "Username")
+   {:field [:password {} :password__c {:label "Password"}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:password {} :password2 {:label "Password"}]
+    :validator {:fn not-empty :msg :required}}
+   (req-textfield :firstName "First Name")
+   (req-textfield :lastName "Last Name")
+   (req-textfield :email "Email")
+   (req-textfield :phone "Phone")
+   (req-textfield :mailingStreet "Address")
+   (req-textfield :mailingCity "City")
+   (req-textfield :mailingState "State")
+   (req-textfield :mailingPostalCode "Postal Code")
+   (req-textfield :mailingCountry "Country")
+   {:field [:checkbox {} :docPhoto_Mail_List__c
+            {:label "Subscribe to mailing list?"}]}]
   [{:keys [render-fields request params errors]}]
   (layout
    request
@@ -582,11 +595,14 @@
   (pos? (:size fileobject 0)))
 
 (defformpage exhibit-apply-view
-  [{:field [:text {} :title__c {:label "Project Title"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#statement.editor {} :statementRich__c {:label "Project Statement"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"}] :validator {:fn not-empty :msg :required}}
-   {:field [:file {} :cv {:label "Upload CV"}] :validator {:fn filesize-not-empty :msg :required}}
-   {:field [:text {} :website__c {:label "Website"}]}]
+  [(req-textfield :title__c "Project Title")
+   {:field [:text-area#statement.editor {} :statementRich__c {:label "Project Statement"}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:file {} :cv {:label "Upload CV"}] :validator
+    {:fn filesize-not-empty :msg :required}}
+   (textfield :website__c "Website")]
   {:fn-bindings [exhibit]}
   [{:keys [render-fields request params errors]}]
   (if exhibit
@@ -615,11 +631,13 @@
         "/upload")))
 
 (defformpage application-update-view
-  [{:field [:text {} :title__c {:label "Project Title"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#statement.editor {} :statementRich__c {:label "Project Statement"}] :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"}] :validator {:fn not-empty :msg :required}}
+  [(req-textfield :title__c "Project Title")
+   {:field [:text-area#statement.editor {} :statementRich__c {:label "Project Statement"}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"}]
+    :validator {:fn not-empty :msg :required}}
    {:field [:file {} :cv {:label "Update CV"}]}
-   {:field [:text {} :website__c {:label "Website"}]}]
+   (textfield :website__c "Website")]
   {:fn-bindings [application]}
   [{:keys [render-fields request params errors]}]
   (layout
