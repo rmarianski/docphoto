@@ -387,9 +387,7 @@
    request
    {:title "Documentary Photography Project"}
    [:div
-    [:h2 "Welcome"]
-    [:p "Here is some introductory text, briefly describing docphoto"]
-    [:h3 {:style "margin-top: 2em"} "Competitions open for application"]
+    [:h2 "Open competitions"]
     (exhibits-html request)]))
 
 (defmacro validate-vals [& val-data]
