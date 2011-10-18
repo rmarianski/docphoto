@@ -1049,7 +1049,11 @@
      " and projects that: have a broad impact in the photographic community; support photographers from regions that lack advanced-level training or professional opportunities; and respond to changes in the media environment by proposing new models for producing work."]
     [:p "In addition to organizing Moving Walls, the project's recent activities and grantmaking have included an "
      [:a {:href "http://www.soros.org/initiatives/photography/movingwalls/international"} "international tour"]
-     " of past Moving Walls photographers in the Middle East and North Africa that included exhibits and trainings for local photographers and young people."]]))
+     " of past Moving Walls photographers in the Middle East and North Africa that included exhibits and trainings for local photographers and young people."]
+    [:p.note
+     "Note: The Documentary Photography Project does not support film. For information on grants for documentary filmmaking, please contact the "
+     [:a {:href "http://www.sundance.org/"} "Sundance Institute"]
+     ", an OSI grantee in Los Angeles, California."]]))
 
 (defn not-found-view [request]
   {:status 404

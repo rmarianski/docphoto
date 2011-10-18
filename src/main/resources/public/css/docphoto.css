@@ -118,3 +118,10 @@ a#pick-files:hover {
 #statement, #biography {
     width: 650px;
 }
+
+.note {
+    color: grey;
+    font-style: italic;
+    font-size: 0.9em;
+    line-height: 1.5em;
+}
