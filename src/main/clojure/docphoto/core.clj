@@ -158,7 +158,7 @@
         conn
         exhibit_application__c
         [id title__c exhibit__r.name exhibit__r.slug__c
-         lastModifiedDate submission_Status__c]
+         lastModifiedDate submission_Status__c referredby__c]
         [[exhibit_application__c.exhibit__r.closed__c = false noquote]
          [exhibit_application__c.contact__r.id = userid]])))
 
@@ -551,7 +551,8 @@
   (-?>
    (sf/query conn exhibit_application__c
              [id biography__c title__c website__c statementRich__c contact__c
-              submission_Status__c exhibit__r.name exhibit__r.slug__c]
+              submission_Status__c exhibit__r.name exhibit__r.slug__c
+              referredby__c]
              [[id = app-id]])
    first
    tweak-application-result))
@@ -594,6 +595,15 @@
 (defn filesize-not-empty [fileobject]
   (pos? (:size fileobject 0)))
 
+(defmacro findout-field []
+  {:field [:select {} :referredby__c
+           {:label "How did you find out about Moving Walls 20?"
+            :opts [[:option ""]
+                   [:option "Friend" "Friend"]
+                   [:option "Website" "Website"]
+                   [:option "Other" "Other"]]}]
+   :validator {:fn not-empty :msg :required}})
+
 (defformpage exhibit-apply-view
   [(req-textfield :title__c "Project Title")
    {:field [:text-area#statement.editor {} :statementRich__c {:label "Project Statement"}]
@@ -602,7 +612,8 @@
     :validator {:fn not-empty :msg :required}}
    {:field [:file {} :cv {:label "Upload CV"}] :validator
     {:fn filesize-not-empty :msg :required}}
-   (textfield :website__c "Website")]
+   (textfield :website__c "Website")
+   (findout-field)]
   {:fn-bindings [exhibit]}
   [{:keys [render-fields request params errors]}]
   (if exhibit
@@ -637,7 +648,8 @@
    {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"}]
     :validator {:fn not-empty :msg :required}}
    {:field [:file {} :cv {:label "Update CV"}]}
-   (textfield :website__c "Website")]
+   (textfield :website__c "Website")
+   (findout-field)]
   {:fn-bindings [application]}
   [{:keys [render-fields request params errors]}]
   (layout
@@ -829,7 +841,9 @@
           [:dt "Website"]
           [:dd (:website__c application "No website")]
           [:dt "CV"]
-          [:dd [:a {:href (cv-link app-id)} "Download CV"]]]
+          [:dd [:a {:href (cv-link app-id)} "Download CV"]]
+          [:dt "Found out from"]
+          [:dd (:referredby__c application)]]
          [:a {:href (application-update-link app-id request)} "Update"]]
         [:fieldset
          [:legend "Images"]
