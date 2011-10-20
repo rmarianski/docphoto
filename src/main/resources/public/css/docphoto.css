@@ -47,6 +47,9 @@ h2,h3 {
 a#pick-files:hover {
     cursor: pointer;
 }
+a#upload {
+    display: none;
+}
 
 #images textarea {
     height: 100px;

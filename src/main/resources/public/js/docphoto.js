@@ -64,8 +64,8 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
   this.images = goog.dom.getElement(imagesId);
   this.imagesDescription = goog.dom.getElement(imagesDescription);
 
-  var uploadLink = goog.dom.getElement(uploadId);
-  goog.events.listen(uploadLink, goog.events.EventType.CLICK,
+  this.uploadLink = goog.dom.getElement(uploadId);
+  goog.events.listen(this.uploadLink, goog.events.EventType.CLICK,
                      this.onUpload, false, this);
 
   goog.events.listen(this.images, goog.events.EventType.CLICK,
@@ -160,6 +160,7 @@ docphoto.Uploader.prototype.onFilesAdded = function(up, files) {
     n += 1;
   });
   this.filesToUpload += n;
+  this.uploadLink.style.display = 'inline';
 };
 
 /**
@@ -187,6 +188,7 @@ docphoto.Uploader.prototype.fileUploaded_ = function() {
     if (this.haveImages_()) {
       this.imagesDescription.style.display = 'block';
     }
+    this.uploadLink.style.display = 'none';
   }
 };
 
