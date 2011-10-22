@@ -57,6 +57,23 @@
 (defn session-delete [request]
   (.invalidate (:session request)))
 
+(defn session-get-token [request]
+  (.getAttribute (:session request) "reset-token"))
+
+(defn session-save-token [request reset-token userid]
+  (.setAttribute (:session request) "reset-token" {:userid userid
+                                                   :token reset-token}))
+
+(defn session-allow-password-reset [request userid]
+  (.removeAttribute (:session request) "reset-token")
+  (.setAttribute (:session request) "allow-password-reset" userid))
+
+(defn session-password-reset-userid [request]
+  (.getAttribute (:session request) "allow-password-reset"))
+
+(defn session-remove-allow-password-reset [request]
+  (.removeAttribute (:session request) "allow-password-reset"))
+
 (defn session-get-application [request application-id]
   (get (.getAttribute (:session request) "applications") application-id))
 
@@ -74,6 +91,9 @@
              sf/user-fields
              [[username__c = username]
               [password__c = password]])))
+
+(defn-debug-memo query-user-by-email [email]
+  (first (sf/query conn contact [id] [[email = email]])))
 
 (defn-debug-memo query-exhibits []
   (sf/query conn exhibit__c
@@ -382,6 +402,11 @@
 (defn- exhibit-apply-link [request exhibit]
   (str (exhibit-link request exhibit) "/apply"))
 
+(defn forgot-link [request] "/forgot-password")
+
+(defn reset-request-link [request] "/reset-request")
+(defn reset-password-link [request] "/reset-password")
+
 (defn- exhibits-html [request]
   (let [exhibits (query-exhibits)]
     (if (not-empty exhibits)
@@ -458,7 +483,11 @@
       (if-let [user (session-get-user request)]
         [:p (str "Already logged in as: " (:name user))])
       (render-fields request params errors)
-      [:input {:type :submit :value "Login"}]]]))
+      [:input {:type :submit :value "Login"}]]]
+    [:div
+     [:p#forgot-password.note
+      "Forgot your password? "
+      (ph/link-to (forgot-link request) "Reset") " it."]]))
   [{render-form-fn :render-form params :params request :request}]
   (if-let [user (query-user (:userName__c params) (md5 (:password__c params)))]
     (do (login request user)
@@ -539,6 +568,82 @@
                         user-update-mailinglist-value))
           (login request (query-user username (md5 password1)))
           (redirect "/exhibit"))))))
+
+(defn send-email-reset [request email token]
+  (let [reset-link (str (reset-request-link request) "?token=" token)]
+    (println "Reset password:" reset-link)))
+
+(let [generator (java.util.Random.)]
+  (defn generate-reset-token [email]
+    (str (.nextInt generator))))
+
+(defformpage forgot-password-view
+  [(req-textfield :email "Email address")]
+  [{:keys [render-fields request params errors]}]
+  (layout
+   request
+   {:title "Reset password"}
+   [:form.uniForm {:method :post :action (:uri request)}
+    [:h2 "Password Reset"]
+    [:p
+     "You will receive a link that will allow you to reset your password. You must use the same browser session in order to reset your password."]
+    (render-fields request params errors)
+    [:input {:type :submit :value "Reset"}]])
+  [{render-form-fn :render-form params :params request :request}]
+  (let [email (:email params)]
+    (if-let [user (query-user-by-email email)]
+      (let [reset-token (generate-reset-token email)]
+        (session-save-token request reset-token (:id user))
+        (send-email-reset request email reset-token)
+        (layout request {:title "Email sent"}
+                [:div
+                 [:p "An email has been sent to: " (:email params)]]))
+      (render-form-fn params {:email "Email not found"}))))
+
+(defn reset-request-view [request token]
+  (letfn [(reset-failure-page [msg]
+            (layout request {:title "Reset failure"}
+                    [:div
+                     [:h2 "Password reset failed"]
+                     [:p msg]]))]
+    (if-not token
+      (reset-failure-page "No token found. Please double check the link in your email.")
+      (if-let [session-token (session-get-token request)]
+        (if (= (:token session-token) token)
+          (do
+            (session-allow-password-reset request (:userid session-token))
+            (redirect (reset-password-link request)))
+          (do (println "session" (:token session-token) "passed" token)
+            (reset-failure-page "Invalid token. Please double check the link in your email.")))
+        (reset-failure-page [:span "Token expired. Please "
+                             (ph/link-to (forgot-link request) "resend")
+                             " a password reset email."])))))
+
+(defformpage reset-password-view
+  [{:field [:password {} :password1 {:label "Password"}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:password {} :password2 {:label "Password again"}]
+    :validator {:fn not-empty :msg :required}}]
+  [{:keys [render-fields request params errors]}]
+  (if-let [userid (session-password-reset-userid request)]
+    (layout
+     request
+     {:title "Reset password"}
+     [:form.uniForm {:method :post :action (:uri request)}
+      [:h2 "Password Reset"]
+      (render-fields request params errors)
+      [:input {:type :submit :value "Reset"}]])
+    (redirect (reset-request-link request)))
+  [{render-form-fn :render-form params :params request :request}]
+  (if-let [userid (session-password-reset-userid request)]
+    (if (= (:password1 params) (:password2 params))
+      (do
+        (sf/update-user conn {:id userid
+                              :password__c (md5 (:password1 params))})
+        (session-remove-allow-password-reset request)
+        (redirect "/login?came-from=/"))
+      (render-form-fn params {:password1 "Passwords don't match"}))))
+
 
 (defn-debug-memo query-exhibit [exhibit-slug]
   (first
@@ -1121,6 +1226,9 @@
                             (redirect (str "/login?came-from="
                                            (:uri request)))))
   (ANY "/register" [] register-view)
+  (ANY "/forgot-password" [] forgot-password-view)
+  (ANY "/reset-request" [token :as request] (reset-request-view request token))
+  (ANY "/reset-password" [] reset-password-view)
 
   exhibit-routes
   application-routes
@@ -1154,11 +1262,12 @@
                request))))
 
 (def app
-     (-> main-routes
-         wrap-servlet-session
-         wrap-multipart-convert-params
-         wrap-multipart-params
-         api))
+  (->
+   main-routes
+   wrap-servlet-session
+   wrap-multipart-convert-params
+   wrap-multipart-params
+   api))
 
 (defn run-server []
   (run-jetty #'app {:port 8080 :join? false}))

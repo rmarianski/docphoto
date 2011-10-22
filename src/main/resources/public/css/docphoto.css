@@ -128,3 +128,7 @@ a#upload {
     font-size: 0.9em;
     line-height: 1.5em;
 }
+
+#forgot-password {
+    margin: 1em 0;
+}
