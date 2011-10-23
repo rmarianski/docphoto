@@ -95,6 +95,9 @@
 (defn-debug-memo query-user-by-email [email]
   (first (sf/query conn contact [id] [[email = email]])))
 
+(defn-debug-memo query-user-by-id [id]
+  (first (sf/query conn contact sf/user-fields [[id = id]])))
+
 (defn-debug-memo query-exhibits []
   (sf/query conn exhibit__c
             [id name slug__c application_start_date__c description__c]
@@ -402,10 +405,9 @@
 (defn- exhibit-apply-link [request exhibit]
   (str (exhibit-link request exhibit) "/apply"))
 
-(defn forgot-link [request] "/forgot-password")
-
-(defn reset-request-link [request] "/reset-request")
-(defn reset-password-link [request] "/reset-password")
+(defn forgot-link [request] "/password/forgot")
+(defn reset-request-link [request] "/password/request-reset")
+(defn reset-password-link [request] "/password/reset")
 
 (defn- exhibits-html [request]
   (let [exhibits (query-exhibits)]
@@ -625,15 +627,17 @@
    {:field [:password {} :password2 {:label "Password again"}]
     :validator {:fn not-empty :msg :required}}]
   [{:keys [render-fields request params errors]}]
-  (if-let [userid (session-password-reset-userid request)]
+  (if-let [user (-?> (session-password-reset-userid request)
+                     query-user-by-id)]
     (layout
      request
      {:title "Reset password"}
      [:form.uniForm {:method :post :action (:uri request)}
       [:h2 "Password Reset"]
+      [:p "Resetting password for user " (:userName__c user)]
       (render-fields request params errors)
       [:input {:type :submit :value "Reset"}]])
-    (redirect (reset-request-link request)))
+    (redirect (forgot-link request)))
   [{render-form-fn :render-form params :params request :request}]
   (if-let [userid (session-password-reset-userid request)]
     (if (= (:password1 params) (:password2 params))
@@ -1226,9 +1230,10 @@
                             (redirect (str "/login?came-from="
                                            (:uri request)))))
   (ANY "/register" [] register-view)
-  (ANY "/forgot-password" [] forgot-password-view)
-  (ANY "/reset-request" [token :as request] (reset-request-view request token))
-  (ANY "/reset-password" [] reset-password-view)
+  (ANY "/password/forgot" [] forgot-password-view)
+  (ANY "/password/request-reset" [token :as request]
+       (reset-request-view request token))
+  (ANY "/password/reset" [] reset-password-view)
 
   exhibit-routes
   application-routes
