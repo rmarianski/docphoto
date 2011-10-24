@@ -10,3 +10,6 @@
 (defn dev-hardcoded-connector []
   (connector "username"
              (str "password" "api-key")))
+
+(def mail-config
+  {:from "defaultuser@example.com"})

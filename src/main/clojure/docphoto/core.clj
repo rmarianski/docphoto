@@ -26,7 +26,8 @@
             [clojure.contrib.string :as string]
             [clojure.walk]
             [hiccup.page-helpers :as ph]
-            [ring.middleware.multipart-params :as multipart])
+            [ring.middleware.multipart-params :as multipart]
+            [com.draines.postal.core :as postal])
   (:import [org.apache.commons.codec.digest DigestUtils]))
 
 ;; global salesforce connection
@@ -184,6 +185,12 @@
          lastModifiedDate submission_Status__c referredby__c]
         [[exhibit_application__c.exhibit__r.closed__c = false noquote]
          [exhibit_application__c.contact__r.id = userid]])))
+
+(defn absolute-link [request url]
+  (str (subs (str (:scheme request)) 1) "://" (:server-name request)
+       (if-not (= 80 (:server-port request))
+         (str ":" (:server-port request)))
+       url))
 
 (defn- application-link [application-id]
   (str "/application/" application-id))
@@ -571,9 +578,26 @@
           (login request (query-user username (md5 password1)))
           (redirect "/exhibit"))))))
 
-(defn send-email-reset [request email token]
-  (let [reset-link (str (reset-request-link request) "?token=" token)]
-    (println "Reset password:" reset-link)))
+(defn reset-password-message [reset-link]
+  (str "Hi,
+
+If you did not initiate a docphoto password reset, then please ignore this message.
+
+To reset your password, please click on the following link:
+" reset-link))
+
+(defmacro send-email-reset [request email token]
+  (let [reset-link-sym (gensym "resetlink__")]
+    `(let [~reset-link-sym (absolute-link ~request
+                                          (str (reset-request-link ~request)
+                                               "?token=" ~token))]
+       ~(if cfg/*debug*
+          `(println "Password sent to:" ~email "with link:" ~reset-link-sym)
+          `(postal/send-message
+            (assoc cfg/mail-config
+              :to ~email
+              :subject "Password reset"
+              :body (reset-password-message ~reset-link-sym)))))))
 
 (let [generator (java.util.Random.)]
   (defn generate-reset-token [email]
@@ -616,8 +640,8 @@
             (session-allow-password-reset request (:userid session-token))
             (redirect (reset-password-link request)))
           (do (println "session" (:token session-token) "passed" token)
-            (reset-failure-page "Invalid token. Please double check the link in your email.")))
-        (reset-failure-page [:span "Token expired. Please "
+              (reset-failure-page "Invalid token. Please double check the link in your email.")))
+        (reset-failure-page [:span "Token expired. Are you using the same browser session as when you requested a password reset? If so, you can "
                              (ph/link-to (forgot-link request) "resend")
                              " a password reset email."])))))
 

@@ -164,5 +164,10 @@
       <artifactId>imgscalr-lib</artifactId>
       <version>3.2</version>
     </dependency>
+    <dependency>
+      <groupId>postal</groupId>
+      <artifactId>postal</artifactId>
+      <version>1.2.0</version>
+    </dependency>
   </dependencies>
 </project>
