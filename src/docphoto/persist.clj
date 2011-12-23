@@ -2,7 +2,7 @@
 
 (ns docphoto.persist
   (:use [clojure.java.io :only (file input-stream output-stream copy)]
-        [clojure.contrib.core :only (-?>)])
+        [clojure.core.incubator :only (-?>)])
   (:import [java.io File]
            [org.apache.commons.io FileUtils]))
 

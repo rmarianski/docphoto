@@ -1,14 +1,20 @@
 (ns docphoto.salesforce
-  (:use [clojure.string :only (capitalize)]
-        [clojure.contrib.core :only (-?>)]
-        [clojure.contrib.seq :only (find-first)])
-  (:require [clojure.contrib.string :as string])
+  (:use [clojure.core.incubator :only (-?>)])
+  (:require [clojure.string :as string])
   (:import [com.sforce.ws ConnectorConfig]
            [com.sforce.soap.enterprise Connector]
            [com.sforce.soap.enterprise.sobject
             Contact SObject Exhibit_Application__c Image__c]
            [com.sforce.soap.enterprise.fault UnexpectedErrorFault]
            [org.apache.commons.codec.digest DigestUtils]))
+
+;; no longer in contrib
+(defn find-first
+  "Returns the first item of coll for which (pred item) returns logical true.
+  Consumes sequences up to the first match, will consume the entire sequence
+  and return nil if no match is found."
+  [pred coll]
+  (first (filter pred coll)))
 
 (defn connector-config [username password]
   (doto (ConnectorConfig.)
@@ -73,14 +79,14 @@
        (str
         ~(str
           "SELECT "
-          (string/join ", " (map string/as-str
+          (string/join ", " (map name
                                  (if (vector? select-fields)
                                    select-fields
                                    ;; select fields must be known at
                                    ;; compile time and expand to
                                    ;; something sequential
                                    (eval select-fields))))
-          " FROM " (capitalize (string/as-str table)))
+          " FROM " (string/capitalize (name table)))
 
         ;; if we wanted to generic dynamic queries from a map at runtime
         ;; we can check if we have a symbol here,
@@ -89,11 +95,11 @@
            `(str
              " WHERE "
              (string/join
-              ~(str " " (string/as-str (:compounder options "AND")) " ")
+              ~(str " " (name (:compounder options "AND")) " ")
               [~@(let [column (gensym) operator (gensym) criteria (gensym)]
                    (for [[column operator criteria noquote] select-filters]
-                     `(str ~(string/as-str column)
-                           " " ~(string/as-str operator) " "
+                     `(str ~(name column)
+                           " " ~(name operator) " "
                            ~(if noquote
                               criteria
                               `(str "'" ~criteria "'")))))])))
@@ -132,7 +138,7 @@
     (clojure.lang.Reflector/invokeInstanceMethod
      obj
      (apply str "set"
-            (capitalize (first (name k)))
+            (string/capitalize (first (name k)))
             (rest (name k)))
      (to-array [v])))
   obj)

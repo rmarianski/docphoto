@@ -13,22 +13,30 @@
         [ring.util.response :only (redirect)]
         [decline.core :only
          (validations validation validate-val validate-some)]
-        [clojure.contrib.core :only (-?> -?>>)]
-        [clojure.contrib.trace :only (deftrace)]
-        [clojure.java.io :only (copy file input-stream output-stream)]
-        [clojure.contrib.string :only (as-str)]
-        [clojure.contrib.def :only (defn-memo)])
+        [clojure.core.incubator :only (-?> -?>>)]
+        [clojure.java.io :only (copy file input-stream output-stream)])
   (:require [compojure.route :as route]
             [docphoto.salesforce :as sf]
             [docphoto.persist :as persist]
             [docphoto.image :as image]
             [docphoto.config :as cfg]
-            [clojure.contrib.string :as string]
+            [clojure.string :as string]
             [clojure.walk]
             [hiccup.page-helpers :as ph]
             [ring.middleware.multipart-params :as multipart]
-            [com.draines.postal.core :as postal])
-  (:import [org.apache.commons.codec.digest DigestUtils]))
+            [postal.core :as postal])
+  (:import [org.apache.commons.codec.digest DigestUtils]
+           [java.io File]))
+
+;; copied from old clojure.contrib
+;; defn-memo by Chouser:
+(defmacro defn-memo
+  "Just like defn, but memoizes the function using clojure.core/memoize"
+  [fn-name & defn-stuff]
+  `(do
+     (defn ~fn-name ~@defn-stuff)
+     (alter-var-root (var ~fn-name) memoize)
+     (var ~fn-name)))
 
 ;; global salesforce connection
 (defonce conn nil)
@@ -295,14 +303,14 @@
   fetched from opts which must be a map. options for the field itself
   go under the :opts key"
   [f]
-  (fn [type attrs name opts value]
+  (fn [type attrs field-name opts value]
     [:div.ctrlHolder
      (list
       [:label {:required (:required opts)}
-       (or (:label opts) (string/capitalize (as-str name)))]
+       (or (:label opts) (string/capitalize (name field-name)))]
       (when-let [desc (:description opts)]
         [:p.formHint desc])
-      (f type attrs name (:opts opts) value)
+      (f type attrs field-name (:opts opts) value)
       (when-let [error (:error opts)]
         [:div.error error]))]))
 
@@ -1018,7 +1026,7 @@ To reset your password, please click on the following link:
 (defn- parse-mounted-route [uri uri-start]
   "returns 2nd element of route assuming mount on a prefix"
   (and (.startsWith uri uri-start)
-       (nth (string/split #"/" uri) 2 nil)))
+       (nth (string/split uri #"/") 2 nil)))
 
 (defn remove-from-beginning [uri & parts]
   (subs uri
@@ -1270,7 +1278,7 @@ To reset your password, please click on the following link:
 
   (GET "/my-applications" [] my-applications-view)
 
-  (route/files "/public" {:root "src/main/resources/public"})
+  (route/files "/public" {:root "resources/public"})
 
   not-found-view)
 

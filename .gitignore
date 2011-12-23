@@ -1,3 +1,4 @@
 target
 config.clj
 store
+.lein-deps-sum
