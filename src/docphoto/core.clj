@@ -53,7 +53,7 @@
 (defmacro defn-debug-memo
   "when in debug mode, memoize function"
   [& args]
-  (if cfg/*debug*
+  (if cfg/debug
     `(defn-memo ~@args)
     `(defn ~@args)))
 
@@ -132,7 +132,7 @@
             ["/public/css/docphoto.css"])))
 
 (defmacro editor-css []
-  (if cfg/*debug*
+  (if cfg/debug
     (vec (list-all-editor-css-files))
     ["/public/css/docphoto-min.css"]))
 
@@ -140,7 +140,7 @@
   "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
 
 (defmacro theme-css [editor-css?]
-  (if cfg/*debug*
+  (if cfg/debug
     (let [debug-css-files ["/public/css/theme/style.css"
                            "/public/css/uni-form.css"
                            "/public/css/docphoto.css"]]
@@ -152,7 +152,7 @@
     ["/public/css/docphoto-min.css"]))
 
 (defmacro theme-js [include-upload-js?]
-  (if cfg/*debug*
+  (if cfg/debug
     (let [debug-js-file "http://localhost:9810/compile?id=docphoto"]
       `(apply
         include-js
@@ -599,7 +599,7 @@ To reset your password, please click on the following link:
     `(let [~reset-link-sym (absolute-link ~request
                                           (str (reset-request-link ~request)
                                                "?token=" ~token))]
-       ~(if cfg/*debug*
+       ~(if cfg/debug
           `(println "Password sent to:" ~email "with link:" ~reset-link-sym)
           `(postal/send-message
             (assoc cfg/mail-config
