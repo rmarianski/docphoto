@@ -168,9 +168,11 @@ docphoto.Uploader.prototype.onFilesAdded = function(up, files) {
  * @param {string} string
  */
 docphoto.Uploader.prototype.updateFilePercentage = function(file, string) {
-  var node = goog.dom.getElement(file.id);
-  var percent = goog.dom.getElementByClass('percent', node);
-  percent.innerHTML = string;
+  if (file.loaded) {
+    var node = goog.dom.getElement(file.id);
+    var percent = goog.dom.getElementByClass('percent', node);
+    percent.innerHTML = string;
+  }
 };
 
 /**
