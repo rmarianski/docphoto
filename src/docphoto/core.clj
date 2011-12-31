@@ -899,16 +899,12 @@ To reset your password, please click on the following link:
        :status 200
        :body f})))
 
-(let [n (count "caption-")]
-  (defn parse-caption-maps [params]
-    (keep
-     identity
-     (map (fn [[k v]]
-            (let [caption (name k)]
-              (if (.startsWith caption "caption-")
-                {:id (subs caption n)
-                 :caption__c (or v "")})))
-          params))))
+(defn parse-caption-maps [params]
+  (keep
+   (fn [[k v]]
+     (if-let [m (re-find #"^caption-(.*)"(name k))]
+       {:id (second m) :caption__c (or v "")}))
+   params))
 
 (defn application-save-captions-view [request application]
   (if (= :post (:request-method request))
