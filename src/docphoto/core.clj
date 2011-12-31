@@ -7,16 +7,13 @@
         [hiccup.page-helpers :only (xhtml include-css
                                           include-js javascript-tag)]
         [ring.adapter.jetty-servlet :only (run-jetty)]
-        [flutter.html4 :only (html4-fields)]
-        [flutter.shortcuts :only (wrap-shortcuts)]
-        [flutter.params :only (wrap-params)]
         [ring.util.response :only (redirect)]
-        [decline.core :only
-         (validations validation validate-val validate-some)]
         [clojure.core.incubator :only (-?> -?>>)]
         [clojure.java.io :only (copy file input-stream output-stream)]
         [docphoto.utils :only (defn-debug-memo md5 multipart-form?
-                                send-message)])
+                                send-message)]
+        [docphoto.form :only (defformpage came-from-field
+                               req-textfield textfield)])
   (:require [compojure.route :as route]
             [docphoto.salesforce :as sf]
             [docphoto.persist :as persist]
@@ -220,132 +217,6 @@
     (if-let [js (:js-script options)]
       (javascript-tag js))]))
 
-(defn wrap-errors
-  "add in errors for form fields puts the error in opts if it's a map"
-  [f errors]
-  (fn [type attrs name opts value]
-    (if (nil? opts)
-      (recur type attrs name {} value)
-      (f type attrs name
-         (if (map? opts)
-           (merge {:error (errors name)} opts)
-           opts)
-         value))))
-
-(defn wrap-form-field
-  "wraps a particular field with a label, description, error which is
-  fetched from opts which must be a map. options for the field itself
-  go under the :opts key"
-  [f]
-  (fn [type attrs field-name opts value]
-    [:div.ctrlHolder
-     (list
-      [:label {:required (:required opts)}
-       (or (:label opts) (string/capitalize (name field-name)))]
-      (when-let [desc (:description opts)]
-        [:p.formHint desc])
-      (f type attrs field-name (:opts opts) value)
-      (when-let [error (:error opts)]
-        [:div.error error]))]))
-
-(defn wrap-textinput-classes
-  "add a textInput class to text inputs"
-  [f]
-  (fn [type attrs name opts value]
-    (if (#{:text :password} type)
-      (f type (if (:class attrs)
-                (str (:class attrs) " textInput")
-                (assoc attrs :class "textInput"))
-         name opts value)
-      (f type attrs name opts value))))
-
-(defn wrap-checkbox-opts-normalize
-  "normalize the options to have the checked behavior work properly"
-  [f]
-  (fn [type attrs name opts value]
-    (if (= type :checkbox)
-      (f type attrs name "on" (if value "on"))
-      (f type attrs name opts value))))
-
-(defn- make-fields-render-fn [fields options]
-  (let [field (gensym "field__")
-        params (gensym "params__")
-        request (gensym "request__")
-        errors (gensym "errors__")]
-    `(fn [~request ~params ~errors]
-       (let [~field (-> html4-fields
-                        wrap-checkbox-opts-normalize
-                        wrap-form-field
-                        wrap-textinput-classes
-                        wrap-shortcuts
-                        (wrap-errors ~errors)
-                        (wrap-params ~params))]
-         (list
-          ~@(map (fn [fieldinfo]
-                   (if-let [customfn (:custom fieldinfo)]
-                     `(~customfn ~request ~params ~errors)
-                     (if-let [fieldspec (:field fieldinfo)]
-                       `(~field ~@fieldspec))))
-                 fields))))))
-
-(defn- make-validator-stanza [fieldinfo]
-  (let [{:keys [field validator]} fieldinfo
-        {:keys [fn msg]} validator
-        [_ _ name] field]
-    (if (some nil? [fn msg name])
-      `nil
-      `(validate-val ~name ~fn {~name ~msg}))))
-
-(defn make-form-validator-fn [fields]
-  `(validations
-    ~@(keep make-validator-stanza fields)))
-
-(defn make-form-render-fn [request binding fields-render-fn form-body options]
-  `(fn [params# errors#]
-     (let [~@binding {:render-fields ~fields-render-fn
-                      :params params#
-                      :request ~request
-                      :errors errors#}]
-       ~form-body)))
-
-(defmacro defformpage
-  ([fn-name fields field-render-bindings form-render-body
-    success-bindings success-body]
-     `(defformpage ~fn-name ~fields {}
-        ~field-render-bindings ~form-render-body
-        ~success-bindings ~success-body))
-  ([fn-name fields options field-render-bindings form-render-body
-    success-bindings success-body]
-     (let [fields-render-fn (gensym "fields-render-fn__")
-           form-render-fn (gensym "form-render-fn__")
-           validator-fn (gensym "validator-fn__")
-           params (gensym "params__")
-           request (gensym "request__")
-           fields (map macroexpand fields)]
-       `(let [~fields-render-fn ~(make-fields-render-fn fields options)
-              ~validator-fn ~(make-form-validator-fn fields)]
-          (defn ~fn-name [~request ~@(:fn-bindings options)]
-            (let [~params (:params ~request)
-                  ~form-render-fn ~(make-form-render-fn
-                                    request
-                                    field-render-bindings fields-render-fn
-                                    form-render-body options)]
-              (if (= (:request-method ~request) :post)
-                (if-let [errors# (~validator-fn ~params)]
-                  (~form-render-fn ~params errors#)
-                  (let [~@success-bindings {:render-form ~form-render-fn
-                                            :params ~params
-                                            :request ~request}]
-                    ~success-body))
-                (~form-render-fn ~params {}))))))))
-
-(defmacro textfield [fieldname label]
-  {:field [:text {} fieldname {:label label}]})
-
-(defmacro req-textfield [fieldname label]
-  (assoc (textfield fieldname label)
-    :validator {:fn not-empty :msg :required}))
-
 (defn- exhibits-link [request] (str "/exhibit/"))
 
 (defn- exhibit-link [request exhibit]
@@ -373,11 +244,6 @@
    [:div
     [:h2 "Open competitions"]
     (exhibits-html request)]))
-
-(defmacro validate-vals [& val-data]
-  `(validations
-    ~@(for [[k f error] (partition 3 val-data)]
-       `(validate-val ~k ~f {~k ~error}))))
 
 (defn userinfo-view [request]
   (layout
@@ -410,20 +276,11 @@
 (defn logout [request]
   (session/delete request))
 
-(defn came-from-field [request params errors]
-  "a hidden input that passes came from information"
-  (let [came-from (or (:came-from params) ((:headers request) "referer"))]
-    (if (not-empty came-from)
-      [:input {:type :hidden
-               :name "came-from"
-               :value came-from}])))
-
-(defformpage login-view
+(defformpage login-view []
   [(req-textfield :userName__c "Username")
    {:field [:password {} :password__c {:label "Password"}]
     :validator {:fn not-empty :msg :required}}
    {:custom came-from-field}]
-  [{:keys [render-fields request params errors]}]
   (layout
    request
    {}
@@ -439,17 +296,16 @@
      [:p#forgot-password.note
       "Forgot your password? "
       (ph/link-to (forgot-link request) "Reset") " it."]]))
-  [{render-form-fn :render-form params :params request :request}]
   (if-let [user (query-user (:userName__c params) (md5 (:password__c params)))]
     (do (login request user)
         (redirect (if-let [came-from (:came-from params)]
                     (if (.endsWith came-from "/login") "/" came-from)
                     "/")))
-    (render-form-fn params {:userName__c "Invalid Credentials"})))
+    (render-form params {:userName__c "Invalid Credentials"})))
 
 (defn logout-view [request] (logout request) (redirect "/login"))
 
-(defformpage profile-view
+(defformpage profile-view []
   [(req-textfield :firstName "First Name")
    (req-textfield :lastName "Last Name")
    (req-textfield :email "Email")
@@ -462,7 +318,6 @@
    {:field [:checkbox {} :docPhoto_Mail_List__c
             {:label "Subscribe to mailing list?"}]}
    {:custom came-from-field}]
-  [{:keys [render-fields request params errors]}]
   (layout
    request
    {}
@@ -471,7 +326,6 @@
     (render-fields request (user-update-mailinglist-value
                             (merge (session/get-user request) params)) errors)
     [:input {:type :submit :value "Update"}]])
-  [{render-form-fn :render-form params :params request :request}]
   (let [user (session/get-user request)
         user-params (user-update-mailinglist-value
                      (select-keys params sf/contact-fields))]
@@ -479,7 +333,7 @@
     (session/save-user request (merge user user-params))
     (redirect (or (:came-from params) "/"))))
 
-(defformpage register-view
+(defformpage register-view []
   [(req-textfield :userName__c "Username")
    {:field [:password {} :password__c {:label "Password"}]
     :validator {:fn not-empty :msg :required}}
@@ -496,7 +350,6 @@
    (req-textfield :mailingCountry "Country")
    {:field [:checkbox {} :docPhoto_Mail_List__c
             {:label "Subscribe to mailing list?"}]}]
-  [{:keys [render-fields request params errors]}]
   (layout
    request
    {}
@@ -504,15 +357,14 @@
     [:h2 "Register"]
     (render-fields request params errors)
     [:input {:type :submit :value "Register"}]])
-  [{render-form-fn :render-form params :params request :request}]
   (let [{password1 :password__c password2 :password2
          username :userName__c} params]
     (if (not (= password1 password2))
-      (render-form-fn params {:password__c "Passwords don't match"})
+      (render-form params {:password__c "Passwords don't match"})
       (if-let [user (first
                      (sf/query conn contact
                                [id] [[userName__c = username]]))]
-        (render-form-fn params {:userName__c "User already exists"})
+        (render-form params {:userName__c "User already exists"})
         (do
           (register (-> (dissoc params :password2)
                         (update-in [:password__c] md5)
@@ -544,9 +396,8 @@ To reset your password, please click on the following link:
   (defn generate-reset-token [email]
     (str (.nextInt generator))))
 
-(defformpage forgot-password-view
+(defformpage forgot-password-view []
   [(req-textfield :email "Email address")]
-  [{:keys [render-fields request params errors]}]
   (layout
    request
    {:title "Reset password"}
@@ -556,7 +407,6 @@ To reset your password, please click on the following link:
      "You will receive a link that will allow you to reset your password. You must use the same browser session in order to reset your password."]
     (render-fields request params errors)
     [:input {:type :submit :value "Reset"}]])
-  [{render-form-fn :render-form params :params request :request}]
   (let [email (:email params)]
     (if-let [user (query-user-by-email email)]
       (let [reset-token (generate-reset-token email)]
@@ -565,7 +415,7 @@ To reset your password, please click on the following link:
         (layout request {:title "Email sent"}
                 [:div
                  [:p "An email has been sent to: " (:email params)]]))
-      (render-form-fn params {:email "Email not found"}))))
+      (render-form params {:email "Email not found"}))))
 
 (defn reset-request-view [request token]
   (letfn [(reset-failure-page [msg]
@@ -586,12 +436,11 @@ To reset your password, please click on the following link:
                              (ph/link-to (forgot-link request) "resend")
                              " a password reset email."])))))
 
-(defformpage reset-password-view
+(defformpage reset-password-view []
   [{:field [:password {} :password1 {:label "Password"}]
     :validator {:fn not-empty :msg :required}}
    {:field [:password {} :password2 {:label "Password again"}]
     :validator {:fn not-empty :msg :required}}]
-  [{:keys [render-fields request params errors]}]
   (if-let [user (-?> (session/password-reset-userid request)
                      query-user-by-id)]
     (layout
@@ -603,7 +452,6 @@ To reset your password, please click on the following link:
       (render-fields request params errors)
       [:input {:type :submit :value "Reset"}]])
     (redirect (forgot-link request)))
-  [{render-form-fn :render-form params :params request :request}]
   (if-let [userid (session/password-reset-userid request)]
     (if (= (:password1 params) (:password2 params))
       (do
@@ -611,7 +459,7 @@ To reset your password, please click on the following link:
                               :password__c (md5 (:password1 params))})
         (session/remove-allow-password-reset request)
         (redirect "/login?came-from=/"))
-      (render-form-fn params {:password1 "Passwords don't match"}))))
+      (render-form params {:password1 "Passwords don't match"}))))
 
 
 (defn-debug-memo query-exhibit [exhibit-slug]
@@ -678,7 +526,7 @@ To reset your password, please click on the following link:
                    [:option "Other" "Other"]]}]
    :validator {:fn not-empty :msg :required}})
 
-(defformpage exhibit-apply-view
+(defformpage exhibit-apply-view [exhibit]
   [(req-textfield :title__c "Project Title")
    {:field [:text-area#statement.editor {} :statementRich__c {:label "Project Statement"}]
     :validator {:fn not-empty :msg :required}}
@@ -688,8 +536,6 @@ To reset your password, please click on the following link:
     {:fn filesize-not-empty :msg :required}}
    (textfield :website__c "Website")
    (findout-field)]
-  {:fn-bindings [exhibit]}
-  [{:keys [render-fields request params errors]}]
   (if exhibit
     (layout
      request
@@ -704,7 +550,6 @@ To reset your password, please click on the following link:
         [:legend "Apply"]
         (render-fields request params errors)]
        [:input {:type :submit :value "Apply"}]]]))
-  [{:keys [params request]}]
   (redirect
    (str "/application/"
         (create-application
@@ -715,7 +560,7 @@ To reset your password, please click on the following link:
            :exhibit__c (:id exhibit)}))
         "/upload")))
 
-(defformpage application-update-view
+(defformpage application-update-view [application]
   [(req-textfield :title__c "Project Title")
    {:field [:text-area#statement.editor {} :statementRich__c {:label "Project Statement"}]
     :validator {:fn not-empty :msg :required}}
@@ -724,8 +569,6 @@ To reset your password, please click on the following link:
    {:field [:file {} :cv {:label "Update CV"}]}
    (textfield :website__c "Website")
    (findout-field)]
-  {:fn-bindings [application]}
-  [{:keys [render-fields request params errors]}]
   (layout
    request
    {:title (str "Update application")
@@ -738,7 +581,6 @@ To reset your password, please click on the following link:
       [:legend "Update application"]
       (render-fields request (merge application params) errors)]
      [:input {:type :submit :value "Update"}]]])
-  [{:keys [params request]}]
   (let [app-id (:id application)
         app-update-map (merge (dissoc params :cv)
                               {:id app-id})]

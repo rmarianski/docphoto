@@ -36,3 +36,19 @@
   (postal/send-message
    (merge cfg/mail-config
           mail-options)))
+
+(defmacro with-gensyms [symbols & body]
+  `(let
+       ~(vec
+         (apply
+          concat
+          (for [s symbols]
+            [s `(gensym ~(str (name s) "__"))])))
+     ~@body))
+
+(defmacro onpost
+  "Anaphoric macro to handle two actions based on post or not. Assumes the symbol 'request' is bound to a ring request map. posthandler and gethandler must be single forms."
+  [posthandler gethandler]
+  `(if (= (:request-method ~'request) :post)
+     ~posthandler
+     ~gethandler))
