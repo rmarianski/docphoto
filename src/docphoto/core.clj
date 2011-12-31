@@ -60,7 +60,7 @@
             (filter css?
              (map #(str "/public/css/" path "/" (.getName %))
                   (.listFiles
-                   (file "./src/main/resources/public/css/" path)))))]
+                   (file "./resources/public/css/" path)))))]
     (concat (files-in "google")
             (files-in "google/editor")
             ["/public/css/docphoto.css"])))
