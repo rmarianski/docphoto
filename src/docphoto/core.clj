@@ -14,7 +14,9 @@
         [decline.core :only
          (validations validation validate-val validate-some)]
         [clojure.core.incubator :only (-?> -?>>)]
-        [clojure.java.io :only (copy file input-stream output-stream)])
+        [clojure.java.io :only (copy file input-stream output-stream)]
+        [docphoto.utils :only (defn-debug-memo md5 multipart-form?
+                                send-message)])
   (:require [compojure.route :as route]
             [docphoto.salesforce :as sf]
             [docphoto.persist :as persist]
@@ -22,26 +24,11 @@
             [docphoto.config :as cfg]
             [clojure.string :as string]
             [clojure.walk]
-            [hiccup.page-helpers :as ph]
-            [ring.middleware.multipart-params :as multipart]
-            [postal.core :as postal])
-  (:import [org.apache.commons.codec.digest DigestUtils]
-           [java.io File]))
-
-;; copied from old clojure.contrib
-;; defn-memo by Chouser:
-(defmacro defn-memo
-  "Just like defn, but memoizes the function using clojure.core/memoize"
-  [fn-name & defn-stuff]
-  `(do
-     (defn ~fn-name ~@defn-stuff)
-     (alter-var-root (var ~fn-name) memoize)
-     (var ~fn-name)))
+            [hiccup.page-helpers :as ph])
+  (:import [java.io File]))
 
 ;; global salesforce connection
 (defonce conn nil)
-
-(defn md5 [s] (DigestUtils/md5Hex s))
 
 (defn wrap-servlet-session [handler]
   (fn [request]
@@ -49,13 +36,6 @@
      (if-let [servlet-request (:servlet-request request)]
        (assoc request :session (.getSession servlet-request true))
        request))))
-
-(defmacro defn-debug-memo
-  "when in debug mode, memoize function"
-  [& args]
-  (if cfg/debug
-    `(defn-memo ~@args)
-    `(defn ~@args)))
 
 (defn session-get-user [request]
   (.getAttribute (:session request) "user"))
@@ -135,9 +115,6 @@
   (if cfg/debug
     (vec (list-all-editor-css-files))
     ["/public/css/docphoto-min.css"]))
-
-(defn lorem-ipsum []
-  "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
 
 (defmacro theme-css [editor-css?]
   (if cfg/debug
@@ -601,11 +578,10 @@ To reset your password, please click on the following link:
                                                "?token=" ~token))]
        ~(if cfg/debug
           `(println "Password sent to:" ~email "with link:" ~reset-link-sym)
-          `(postal/send-message
-            (assoc cfg/mail-config
-              :to ~email
-              :subject "Password reset"
-              :body (reset-password-message ~reset-link-sym)))))))
+          `(send-message
+            {:to ~email
+             :subject "Password reset"
+             :body (reset-password-message ~reset-link-sym)})))))
 
 (let [generator (java.util.Random.)]
   (defn generate-reset-token [email]
@@ -1281,9 +1257,6 @@ To reset your password, please click on the following link:
   (route/files "/public" {:root "resources/public"})
 
   not-found-view)
-
-(defn multipart-form? [request]
-  (@#'multipart/multipart-form? request))
 
 (defn convert-params-to-keywords [params]
   (into {}
