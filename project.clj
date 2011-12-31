@@ -1,7 +1,7 @@
 (defproject foo "1.0.0-SNAPSHOT"
   :description "FIXME: write description"
   :dependencies [[org.clojure/clojure "1.3.0"]
-                 [compojure "1.0.0-RC2"]
+                 [compojure "1.0.0"]
                  [hiccup "0.3.7"]
                  [ring/ring-servlet "1.0.1"]
                  [rmarianski/ring-jetty-servlet-adapter "0.0.2"]
