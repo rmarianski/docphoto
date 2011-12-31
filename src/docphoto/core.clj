@@ -22,6 +22,7 @@
             [docphoto.persist :as persist]
             [docphoto.image :as image]
             [docphoto.config :as cfg]
+            [docphoto.session :as session]
             [clojure.string :as string]
             [clojure.walk]
             [hiccup.page-helpers :as ph])
@@ -29,50 +30,6 @@
 
 ;; global salesforce connection
 (defonce conn nil)
-
-(defn wrap-servlet-session [handler]
-  (fn [request]
-    (handler
-     (if-let [servlet-request (:servlet-request request)]
-       (assoc request :session (.getSession servlet-request true))
-       request))))
-
-(defn session-get-user [request]
-  (.getAttribute (:session request) "user"))
-
-(defn session-save-user [request user]
-  (.setAttribute (:session request) "user" user))
-
-(defn session-delete [request]
-  (.invalidate (:session request)))
-
-(defn session-get-token [request]
-  (.getAttribute (:session request) "reset-token"))
-
-(defn session-save-token [request reset-token userid]
-  (.setAttribute (:session request) "reset-token" {:userid userid
-                                                   :token reset-token}))
-
-(defn session-allow-password-reset [request userid]
-  (.removeAttribute (:session request) "reset-token")
-  (.setAttribute (:session request) "allow-password-reset" userid))
-
-(defn session-password-reset-userid [request]
-  (.getAttribute (:session request) "allow-password-reset"))
-
-(defn session-remove-allow-password-reset [request]
-  (.removeAttribute (:session request) "allow-password-reset"))
-
-(defn session-get-application [request application-id]
-  (get (.getAttribute (:session request) "applications") application-id))
-
-(defn session-save-application [request application-id application]
-  (let [session (:session request)]
-    (.setAttribute session
-                   "applications"
-                   (assoc (or (.getAttribute session "applications") {})
-                     application-id application))
-    application-id))
 
 (defn-debug-memo query-user [username password]
   (first
@@ -215,7 +172,7 @@
   (update-in m [:docPhoto_Mail_List__c] boolean))
 
 (defn login-logout-snippet [request]
-  (let [user (session-get-user request)]
+  (let [user (session/get-user request)]
     (list
      [:div.login-logout
       (if user
@@ -448,10 +405,10 @@
   (sf/create-image conn image-map))
 
 (defn login [request user]
- (session-save-user request user))
+ (session/save-user request user))
 
 (defn logout [request]
-  (session-delete request))
+  (session/delete request))
 
 (defn came-from-field [request params errors]
   "a hidden input that passes came from information"
@@ -474,7 +431,7 @@
     [:h2 "Login"]
     [:form.uniForm {:method :post :action "/login"}
      [:fieldset
-      (if-let [user (session-get-user request)]
+      (if-let [user (session/get-user request)]
         [:p (str "Already logged in as: " (:name user))])
       (render-fields request params errors)
       [:input {:type :submit :value "Login"}]]]
@@ -512,14 +469,14 @@
    [:form.uniForm {:method :post :action (profile-update-link request)}
     [:h2 "Update profile"]
     (render-fields request (user-update-mailinglist-value
-                            (merge (session-get-user request) params)) errors)
+                            (merge (session/get-user request) params)) errors)
     [:input {:type :submit :value "Update"}]])
   [{render-form-fn :render-form params :params request :request}]
-  (let [user (session-get-user request)
+  (let [user (session/get-user request)
         user-params (user-update-mailinglist-value
                      (select-keys params sf/contact-fields))]
     (sf/update-user conn (merge {:id (:id user)} user-params))
-    (session-save-user request (merge user user-params))
+    (session/save-user request (merge user user-params))
     (redirect (or (:came-from params) "/"))))
 
 (defformpage register-view
@@ -603,7 +560,7 @@ To reset your password, please click on the following link:
   (let [email (:email params)]
     (if-let [user (query-user-by-email email)]
       (let [reset-token (generate-reset-token email)]
-        (session-save-token request reset-token (:id user))
+        (session/save-token request reset-token (:id user))
         (send-email-reset request email reset-token)
         (layout request {:title "Email sent"}
                 [:div
@@ -618,10 +575,10 @@ To reset your password, please click on the following link:
                      [:p msg]]))]
     (if-not token
       (reset-failure-page "No token found. Please double check the link in your email.")
-      (if-let [session-token (session-get-token request)]
+      (if-let [session-token (session/get-token request)]
         (if (= (:token session-token) token)
           (do
-            (session-allow-password-reset request (:userid session-token))
+            (session/allow-password-reset request (:userid session-token))
             (redirect (reset-password-link request)))
           (do (println "session" (:token session-token) "passed" token)
               (reset-failure-page "Invalid token. Please double check the link in your email.")))
@@ -635,7 +592,7 @@ To reset your password, please click on the following link:
    {:field [:password {} :password2 {:label "Password again"}]
     :validator {:fn not-empty :msg :required}}]
   [{:keys [render-fields request params errors]}]
-  (if-let [user (-?> (session-password-reset-userid request)
+  (if-let [user (-?> (session/password-reset-userid request)
                      query-user-by-id)]
     (layout
      request
@@ -647,12 +604,12 @@ To reset your password, please click on the following link:
       [:input {:type :submit :value "Reset"}]])
     (redirect (forgot-link request)))
   [{render-form-fn :render-form params :params request :request}]
-  (if-let [userid (session-password-reset-userid request)]
+  (if-let [userid (session/password-reset-userid request)]
     (if (= (:password1 params) (:password2 params))
       (do
         (sf/update-user conn {:id userid
                               :password__c (md5 (:password1 params))})
-        (session-remove-allow-password-reset request)
+        (session/remove-allow-password-reset request)
         (redirect "/login?came-from=/"))
       (render-form-fn params {:password1 "Passwords don't match"}))))
 
@@ -754,7 +711,7 @@ To reset your password, please click on the following link:
          (:slug__c exhibit)
          (merge
           params
-          {:contact__c (:id (session-get-user request))
+          {:contact__c (:id (session/get-user request))
            :exhibit__c (:id exhibit)}))
         "/upload")))
 
@@ -927,7 +884,7 @@ To reset your password, please click on the following link:
         [:p "Review your application before submitting."]
         [:fieldset
          [:legend "Contact info"]
-         (let [user (session-get-user request)]
+         (let [user (session/get-user request)]
            (list
             [:h2 (:name user)]
             [:p (:email user)]
@@ -981,7 +938,7 @@ To reset your password, please click on the following link:
    {:title "Thank you for your submission"}
    [:div
     [:h2 "Thank you for your submission"]
-    [:p "When we have made our selections, we will notify you at the email address you provided: " (:email (session-get-user request))]
+    [:p "When we have made our selections, we will notify you at the email address you provided: " (:email (session/get-user request))]
     [:p "You can view all your "
      [:a {:href (my-applications-link request)} "applications"] "."]]))
 
@@ -1016,7 +973,7 @@ To reset your password, please click on the following link:
         (render
          (condp = (remove-from-beginning (:uri request)
                                          "/exhibit/" exhibit-slug)
-           "/apply" (if-let [user (session-get-user request)]
+           "/apply" (if-let [user (session/get-user request)]
                       (exhibit-apply-view request exhibit)
                       (redirect (str "/login?came-from="
                                      (exhibit-apply-link request exhibit))))
@@ -1030,7 +987,7 @@ To reset your password, please click on the following link:
     (if (seq clauses)
       (let [[pred body & remaining-clauses] clauses]
         (concat
-         [pred `(if-not (session-get-user ~request)
+         [pred `(if-not (session/get-user ~request)
                   (redirect (str "/login?came-from=" (:uri ~request)))
                   (if ~conditional
                     ~body
@@ -1062,7 +1019,7 @@ To reset your password, please click on the following link:
                    (:uri request) "/application/")]
     (if-let [application (query-application app-id)]
       (render
-       (let [user (session-get-user request)]
+       (let [user (session/get-user request)]
          (secure-condp
           = (remove-from-beginning (:uri request) "/application/" app-id)
           request
@@ -1095,7 +1052,7 @@ To reset your password, please click on the following link:
                      (:uri request) "/image/")]
     (if-let [image (query-image image-id)]
       (render
-       (let [user (session-get-user request)
+       (let [user (session/get-user request)
              application (:exhibit_application__r image)
              rest-of-uri (remove-from-beginning
                           (:uri request) "/image/" image-id)]
@@ -1128,7 +1085,7 @@ To reset your password, please click on the following link:
                            ")") noquote]]))))
 
 (defn reorder-images-view [request order-string]
-  (if-let [user (session-get-user request)]
+  (if-let [user (session/get-user request)]
     (if order-string
       (let [image-ids (.split order-string ",")
             allowed-image-ids (query-allowed-images user image-ids)
@@ -1146,11 +1103,11 @@ To reset your password, please click on the following link:
             ""))))))
 
 (defn my-applications-view [request]
-  (if-let [user (session-get-user request)]
+  (if-let [user (session/get-user request)]
     (layout
      request
      {:title "My applications"}
-     (let [userid (:id (session-get-user request))
+     (let [userid (:id (session/get-user request))
            apps (query-applications userid)
            apps-by-exhibit (group-by (comp :name :exhibit__r) apps)]
        (if (empty? apps)
@@ -1210,7 +1167,7 @@ To reset your password, please click on the following link:
 
 (defn cv-view [request app-id]
   (if-let [application (query-application app-id)]
-    (if-let [user (session-get-user request)]
+    (if-let [user (session/get-user request)]
       (if (can-view-application? user application)
         (let [exhibit-slug (:slug__c (:exhibit__r application))]
           (if-let [cv (persist/cv-file-path exhibit-slug app-id)]
@@ -1229,7 +1186,7 @@ To reset your password, please click on the following link:
   (GET "/userinfo" [] userinfo-view)
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
-  (ANY "/profile" request (if-let [user (session-get-user request)]
+  (ANY "/profile" request (if-let [user (session/get-user request)]
                             (profile-view request)
                             (redirect (str "/login?came-from="
                                            (:uri request)))))
@@ -1270,7 +1227,7 @@ To reset your password, please click on the following link:
 (def app
   (->
    main-routes
-   wrap-servlet-session
+   session/wrap-servlet-session
    wrap-multipart-convert-params
    wrap-multipart-params
    api))
