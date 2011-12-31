@@ -878,15 +878,13 @@ To reset your password, please click on the following link:
           nil))
        request))))
 
-(defn image-details [image]
-  (let [app (:exhibit_application__r image)]
-    (conj ((juxt (comp :slug__c :exhibit__r) :id) app) (:id image))))
-
 (defn image-delete-view [request image]
   (if (= (:request-method request) :post)
-    (let [[exhibit-slug application-id image-id]
-          (image-details image)]
-      (delete-image exhibit-slug application-id image-id)
+    (let [app (:exhibit_application__r image)
+          exhibit-slug (:slug__c (:exhibit__r app))]
+      (delete-image exhibit-slug
+                    (:id app)
+                    (:id image))
       "")))
 
 (defn image-routes [request]
