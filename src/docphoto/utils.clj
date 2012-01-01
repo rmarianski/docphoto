@@ -1,4 +1,5 @@
 (ns docphoto.utils
+  (:use [ring.util.response :only (redirect)])
   (:require [docphoto.config :as cfg]
             [ring.middleware.multipart-params :as multipart]
             [postal.core :as postal])
@@ -58,3 +59,9 @@
      (println '~x "->" result#)
      result#))
 
+(defmacro when-logged-in
+  "Checks if user exists in session (from request through anaphora). If not, redirect to login page with came-from to current uri. Injects 'user' into scope."
+  [body]
+  `(if-let [~'user (session/get-user ~'request)]
+     ~body
+     (redirect (str "/login?came-from=" (:uri ~'request)))))
