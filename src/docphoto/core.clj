@@ -1,5 +1,5 @@
 (ns docphoto.core
-  (:use [compojure.core :only (defroutes GET POST ANY routes routing)]
+  (:use [compojure.core :only (defroutes GET POST ANY routes routing context)]
         [compojure.handler :only (api)]
         [compojure.response :only (render)]
         [ring.middleware.multipart-params :only (wrap-multipart-params)]
@@ -856,27 +856,17 @@ To reset your password, please click on the following link:
 (defn can-view-application? [user application]
   (or (admin? user) (application-owner? user application)))
 
-(defn application-routes [request]
-  (if-let [app-id (parse-mounted-route
-                   (:uri request) "/application/")]
-    (if-let [application (query-application app-id)]
-      (render
-       (let [user (session/get-user request)]
-         (secure-condp
-          = (remove-from-beginning (:uri request) "/application/" app-id)
-          request
-          (can-view-application? user application)
-          "/upload" (condp = (:request-method request)
-                      :post (app-upload-image request application)
-                      :get (app-upload request application)
-                      nil)
-          "/caption" (application-save-captions-view request application)
-          "/submit" (application-submit-view request application)
-          "/success" (application-success-view request application)
-          "/update" (application-update-view request application)
-          "" (app-view request application)
-          nil))
-       request))))
+(defmacro prepare-application-routes
+  "Take care of fetching the application, and checking security. Anaphora: depends on having 'app-id' in context matching and injects 'application' into scope."
+  [& app-routes]
+  `(fn [~'request]
+     (if-let [~'application (query-application ~'app-id)]
+       (if-let [user# (session/get-user ~'request)]
+         (if (can-view-application? user# ~'application)
+           (routing ~'request ~@app-routes)
+           (forbidden ~'request))
+         ;; XXX might want to make macro for below redirect
+         (redirect (str "/login?came-from=" (:uri ~'request)))))))
 
 (defn image-delete-view [request image]
   (if (= (:request-method request) :post)
@@ -1036,8 +1026,17 @@ To reset your password, please click on the following link:
        (reset-request-view request token))
   (ANY "/password/reset" [] reset-password-view)
 
+  (context "/application/:app-id" [app-id]
+    (prepare-application-routes
+     (ANY "/upload" [] ((onpost app-upload-image app-upload)
+                        request application))
+     (POST "/caption" [] (application-save-captions-view request application))
+     (ANY "/submit" [] (application-submit-view request application))
+     (GET "/success" [] (application-success-view request application))
+     (ANY "/update" [] (application-update-view request application))
+     (GET "/" [] (app-view request application))))
+
   exhibit-routes
-  application-routes
   image-routes
 
   (GET "/cv/:app-id" [app-id :as request] (cv-view request app-id))
