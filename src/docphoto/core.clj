@@ -28,6 +28,20 @@
 ;; global salesforce connection
 (defonce conn nil)
 
+(declare admin?)
+
+(defn- tweak-application-result
+  "convert application query responses to have the exhibit value be a map"
+  [application]
+  (update-in application [:exhibit__r] sf/sobject->map))
+
+(defn- tweak-image-result
+  "convert image query responses to have application/exhibit values to be maps"
+  [image]
+  (->
+   (update-in image [:exhibit_application__r] sf/sobject->map)
+   (update-in [:exhibit_application__r :exhibit__r] sf/sobject->map)))
+
 (defn-debug-memo query-user [username password]
   (first
    (sf/query conn contact
@@ -41,6 +55,11 @@
 (defn-debug-memo query-user-by-id [id]
   (first (sf/query conn contact sf/user-fields [[id = id]])))
 
+(defn-debug-memo query-user-by-username [username]
+  (first
+   (sf/query conn contact
+             [id] [[userName__c = username]])))
+
 (defn-debug-memo query-exhibits []
   (sf/query conn exhibit__c
             [id name slug__c application_start_date__c description__c]
@@ -52,6 +71,66 @@
              [id name slug__c application_start_date__c description__c]
              [[closed__c = false noquote]]
              :append "order by application_start_date__c desc limit 1")))
+
+(defn-debug-memo query-applications [userid]
+  (map tweak-application-result
+       (sf/query
+        conn
+        exhibit_application__c
+        [id title__c exhibit__r.name exhibit__r.slug__c
+         lastModifiedDate submission_Status__c referredby__c]
+        [[exhibit_application__c.exhibit__r.closed__c = false noquote]
+         [exhibit_application__c.contact__r.id = userid]])))
+
+(defn-debug-memo query-exhibit [exhibit-slug]
+  (first
+   (sf/query conn exhibit__c
+             [id name description__c slug__c]
+             [[slug__c = exhibit-slug]])))
+
+(defn-debug-memo query-application
+  [app-id]
+  (-?>
+   (sf/query conn exhibit_application__c
+             [id biography__c title__c website__c statementRich__c contact__c
+              submission_Status__c exhibit__r.name exhibit__r.slug__c
+              referredby__c]
+             [[id = app-id]])
+   first
+   tweak-application-result))
+
+(defn-debug-memo query-image [image-id]
+  (-?>
+   (sf/query conn image__c
+             [id caption__c filename__c mime_type__c order__c
+              exhibit_application__r.id
+              exhibit_application__r.exhibit__r.slug__c
+              exhibit_application__r.contact__c]
+             [[id = image-id]])
+   first
+   tweak-image-result))
+
+(defn-debug-memo query-images [application-id]
+  (sf/query conn image__c
+            [id caption__c]
+            [[exhibit_application__c = application-id]]
+            :append "order by order__c"))
+
+(defn-debug-memo query-allowed-images
+  "filter passed in images to those that current user can view"
+  [user image-ids]
+  (map
+   :id
+   (filter
+    #(or (admin? user)
+         ( = (:id user)
+             (:contact__c (:exhibit_application__r
+                           (tweak-image-result %)))))
+    (sf/query conn image__c [id exhibit_application__r.contact__c]
+              [[id IN (str "("
+                           (string/join ", "
+                                        (map #(str "'" % "'") image-ids))
+                           ")") noquote]]))))
 
 (defn- list-all-editor-css-files []
   "convenience function to list all google editor css files to include"
@@ -106,24 +185,6 @@
                           `(= ~uri-sym ~link))
                      {:class "current_page_item"})
                [:a {:href ~link} ~text]])])]))
-
-(defn- tweak-application-result [application]
-  (update-in application [:exhibit__r] sf/sobject->map))
-
-(defn- tweak-image-result [image]
-  (->
-   (update-in image [:exhibit_application__r] sf/sobject->map)
-   (update-in [:exhibit_application__r :exhibit__r] sf/sobject->map)))
-
-(defn-debug-memo query-applications [userid]
-  (map tweak-application-result
-       (sf/query
-        conn
-        exhibit_application__c
-        [id title__c exhibit__r.name exhibit__r.slug__c
-         lastModifiedDate submission_Status__c referredby__c]
-        [[exhibit_application__c.exhibit__r.closed__c = false noquote]
-         [exhibit_application__c.contact__r.id = userid]])))
 
 (defn absolute-link [request url]
   (str (subs (str (:scheme request)) 1) "://" (:server-name request)
@@ -371,9 +432,7 @@
          username :userName__c} params]
     (if (not (= password1 password2))
       (render-form params {:password__c "Passwords don't match"})
-      (if-let [user (first
-                     (sf/query conn contact
-                               [id] [[userName__c = username]]))]
+      (if-let [user (query-user-by-username username)]
         (render-form params {:userName__c "User already exists"})
         (do
           (register (-> (dissoc params :password2)
@@ -471,40 +530,6 @@ To reset your password, please click on the following link:
         (redirect "/login?came-from=/"))
       (render-form params {:password1 "Passwords don't match"}))))
 
-
-(defn-debug-memo query-exhibit [exhibit-slug]
-  (first
-   (sf/query conn exhibit__c
-             [id name description__c slug__c]
-             [[slug__c = exhibit-slug]])))
-
-(defn-debug-memo query-application
-  [app-id]
-  (-?>
-   (sf/query conn exhibit_application__c
-             [id biography__c title__c website__c statementRich__c contact__c
-              submission_Status__c exhibit__r.name exhibit__r.slug__c
-              referredby__c]
-             [[id = app-id]])
-   first
-   tweak-application-result))
-
-(defn-debug-memo query-image [image-id]
-  (-?>
-   (sf/query conn image__c
-             [id caption__c filename__c mime_type__c order__c
-              exhibit_application__r.id
-              exhibit_application__r.exhibit__r.slug__c
-              exhibit_application__r.contact__c]
-             [[id = image-id]])
-   first
-   tweak-image-result))
-
-(defn-debug-memo query-images [application-id]
-  (sf/query conn image__c
-            [id caption__c]
-            [[exhibit_application__c = application-id]]
-            :append "order by order__c"))
 
 (defn delete-images [exhibit-slug application-id]
   (sf/delete-images-for-application conn application-id)
@@ -845,22 +870,6 @@ To reset your password, please click on the following link:
                     (:id app)
                     (:id image))
       "")))
-
-(defn-debug-memo query-allowed-images
-  "filter passed in images to those that current user can view"
-  [user image-ids]
-  (map
-   :id
-   (filter
-    #(or (admin? user)
-         ( = (:id user)
-             (:contact__c (:exhibit_application__r
-                           (tweak-image-result %)))))
-    (sf/query conn image__c [id exhibit_application__r.contact__c]
-              [[id IN (str "("
-                           (string/join ", "
-                                        (map #(str "'" % "'") image-ids))
-                           ")") noquote]]))))
 
 (defn reorder-images-view [request order-string]
   (when-logged-in
