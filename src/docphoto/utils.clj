@@ -52,3 +52,9 @@
   `(if (= (:request-method ~'request) :post)
      ~posthandler
      ~gethandler))
+
+(defmacro dbg [x]
+  `(let [result# ~x]
+     (println '~x "->" result#)
+     result#))
+
