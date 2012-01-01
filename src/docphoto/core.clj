@@ -852,6 +852,16 @@ To reset your password, please click on the following link:
      (if-let [~'exhibit (query-exhibit ~'exhibit-id)]
        (routing ~'request ~@exhibit-routes))))
 
+(defmacro prepare-image-routes
+  "Fetch image, user, verify user can view application associated with image. Expects 'image-id' to be in scope. Injects 'user' and 'image'."
+  [& image-routes]
+  `(fn [~'request]
+     (if-let [~'image (query-image ~'image-id)]
+       (when-logged-in
+        (let [~'application (:exhibit_application__r ~'image)]
+          (if (can-view-application? ~'user ~'application)
+            (routing ~'request ~@image-routes)))))))
+
 (defn image-delete-view [request image]
   (if (= (:request-method request) :post)
     (let [app (:exhibit_application__r image)
@@ -860,27 +870,6 @@ To reset your password, please click on the following link:
                     (:id app)
                     (:id image))
       "")))
-
-(defn image-routes [request]
-  (if-let [image-id (parse-mounted-route
-                     (:uri request) "/image/")]
-    (if-let [image (query-image image-id)]
-      (render
-       (let [user (session/get-user request)
-             application (:exhibit_application__r image)
-             rest-of-uri (remove-from-beginning
-                          (:uri request) "/image/" image-id)]
-         (if (#{"" "/" "/original"} rest-of-uri)
-           (image-view request image "original")
-           (secure-condp
-            = rest-of-uri
-            request
-            (can-view-application? user application)
-             "/small" (image-view request image "small")
-             "/large" (image-view request image "large")
-             "/delete" (image-delete-view request image)
-             nil)))
-       request))))
 
 (defn-debug-memo query-allowed-images
   "filter passed in images to those that current user can view"
@@ -1021,16 +1010,20 @@ To reset your password, please click on the following link:
      (GET "/" [] (app-view request application))))
 
   (GET "/exhibit" []
-       (redirect (or (-?>> (query-latest-exhibit)
-                           :slug__c
-                           (str "/exhibit/"))
+       (redirect (or (-?>> (query-latest-exhibit) :slug__c (str "/exhibit/"))
                      "/")))
   (context "/exhibit/:exhibit-id" [exhibit-id]
     (prepare-exhibit-routes
      (ANY "/apply" [] (when-logged-in (exhibit-apply-view request exhibit)))
      (GET "/" [] (exhibit-view request exhibit))))
   
-  image-routes
+  (context "/image/:image-id" [image-id]
+    (prepare-image-routes
+     (GET "/small" [] (image-view request image "small"))
+     (GET "/large" [] (image-view request image "large"))
+     (GET "/original" [] (image-view request image "original"))
+     (GET "/" [] (image-view request image "original"))
+     (POST "/delete" [] (image-delete-view request image))))
 
   (GET "/cv/:app-id" [app-id :as request] (cv-view request app-id))
 
