@@ -224,10 +224,23 @@
 
 (defn- image-link [image-id scale] (str "/image/" image-id "/" scale))
 
-(defn- user-update-mailinglist-value
-  "ensure a :docPhoto_Mail_List__c key exists and is set to a boolean value"
-  [m]
-  (update-in m [:docPhoto_Mail_List__c] boolean))
+(defn- exhibits-link [request] (str "/exhibit/"))
+
+(defn- exhibit-link [request exhibit]
+  (str (exhibits-link request) (:slug__c exhibit)))
+
+(defn- exhibit-apply-link [request exhibit]
+  (str (exhibit-link request exhibit) "/apply"))
+
+(defn forgot-link [request] "/password/forgot")
+(defn reset-request-link [request] "/password/request-reset")
+(defn reset-password-link [request] "/password/reset")
+
+(defn caption-save-link [application-id]
+  (str "/application/" application-id "/caption"))
+
+(defn image-delete-link [image-id]
+  (str "/image/" image-id "/delete"))
 
 (defn login-logout-snippet [request]
   (let [user (session/get-user request)]
@@ -292,18 +305,6 @@
                 :else (throw (IllegalArgumentException.
                               (str "Unknown layout options: " options))))
          (xhtml ~body)))))
-
-(defn- exhibits-link [request] (str "/exhibit/"))
-
-(defn- exhibit-link [request exhibit]
-  (str (exhibits-link request) (:slug__c exhibit)))
-
-(defn- exhibit-apply-link [request exhibit]
-  (str (exhibit-link request exhibit) "/apply"))
-
-(defn forgot-link [request] "/password/forgot")
-(defn reset-request-link [request] "/password/request-reset")
-(defn reset-password-link [request] "/password/reset")
 
 (defn- exhibits-html [request]
   (let [exhibits (query-exhibits)]
@@ -374,6 +375,11 @@
     (render-form params {:userName__c "Invalid Credentials"})))
 
 (defn logout-view [request] (logout request) (redirect "/login"))
+
+(defn- user-update-mailinglist-value
+  "ensure a :docPhoto_Mail_List__c key exists and is set to a boolean value"
+  [m]
+  (update-in m [:docPhoto_Mail_List__c] boolean))
 
 (defformpage profile-view []
   [(req-textfield :firstName "First Name")
@@ -643,12 +649,6 @@ To reset your password, please click on the following link:
            (list
             [:dt k]
             [:dd v]))]))
-
-(defn caption-save-link [application-id]
-  (str "/application/" application-id "/caption"))
-
-(defn image-delete-link [image-id]
-  (str "/image/" image-id "/delete"))
 
 (defn render-image [request image]
   (list
