@@ -505,15 +505,18 @@ To reset your password, please click on the following link:
   (sf/delete-image conn image-id)
   (persist/delete-image exhibit-slug application-id image-id))
 
+(defn exhibit-latest-view [request]
+  (redirect (or (-?>> (query-latest-exhibit) :slug__c (str "/exhibit/"))
+                "/")))
+
 (defn exhibit-view [request exhibit]
-  (if exhibit
-    (layout
-     request
-     {:title (:name exhibit)
-      :js-script "docphoto.removeAnchorTargets();"}
-     [:div
-      [:h2 (:name exhibit)]
-      [:p (:description__c exhibit)]])))
+  (layout
+   request
+   {:title (:name exhibit)
+    :js-script "docphoto.removeAnchorTargets();"}
+   [:div
+    [:h2 (:name exhibit)]
+    [:p (:description__c exhibit)]]))
 
 (defn filesize-not-empty [fileobject]
   (pos? (:size fileobject 0)))
@@ -537,28 +540,30 @@ To reset your password, please click on the following link:
     {:fn filesize-not-empty :msg :required}}
    (textfield :website__c "Website")
    (findout-field)]
-  (layout
-   request
-   {:title (str "Apply to " (:name exhibit))
-    :include-editor-css true
-    :js-script "docphoto.editor.triggerEditors();"}
-   [:div
-    [:h2 (str "Apply to " (:name exhibit))]
-    [:form.uniForm {:method :post :action (:uri request)
-                    :enctype "multipart/form-data"}
-     [:fieldset
-      [:legend "Apply"]
-      (render-fields request params errors)]
-     [:input {:type :submit :value "Apply"}]]])
-  (redirect
-   (str "/application/"
-        (create-application
-         (:slug__c exhibit)
-         (merge
-          params
-          {:contact__c (:id (session/get-user request))
-           :exhibit__c (:id exhibit)}))
-        "/upload")))
+  (when-logged-in
+   (layout
+    request
+    {:title (str "Apply to " (:name exhibit))
+     :include-editor-css true
+     :js-script "docphoto.editor.triggerEditors();"}
+    [:div
+     [:h2 (str "Apply to " (:name exhibit))]
+     [:form.uniForm {:method :post :action (:uri request)
+                     :enctype "multipart/form-data"}
+      [:fieldset
+       [:legend "Apply"]
+       (render-fields request params errors)]
+      [:input {:type :submit :value "Apply"}]]]))
+  (when-logged-in
+   (redirect
+    (str "/application/"
+         (create-application
+          (:slug__c exhibit)
+          (merge
+           params
+           {:contact__c (:id (session/get-user request))
+            :exhibit__c (:id exhibit)}))
+         "/upload"))))
 
 (defformpage application-update-view [application]
   [(req-textfield :title__c "Project Title")
@@ -952,7 +957,7 @@ To reset your password, please click on the following link:
   (GET "/userinfo" [] userinfo-view)
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
-  (ANY "/profile" request (profile-view request))
+  (ANY "/profile" [] profile-view)
   (ANY "/register" [] register-view)
   (ANY "/password/forgot" [] forgot-password-view)
   (ANY "/password/request-reset" [token :as request]
@@ -961,20 +966,18 @@ To reset your password, please click on the following link:
 
   (context "/application/:app-id" [app-id]
     (prepare-application-routes
-     (ANY "/upload" [] ((onpost app-upload-image app-upload)
-                        request application))
+     (POST "/upload" [] (app-upload-image request application))
+     (GET "/upload" [] (app-upload request application))
      (POST "/caption" [] (application-save-captions-view request application))
      (ANY "/submit" [] (application-submit-view request application))
      (GET "/success" [] (application-success-view request application))
      (ANY "/update" [] (application-update-view request application))
      (GET "/" [] (app-view request application))))
 
-  (GET "/exhibit" []
-       (redirect (or (-?>> (query-latest-exhibit) :slug__c (str "/exhibit/"))
-                     "/")))
+  (GET "/exhibit" [] exhibit-latest-view)
   (context "/exhibit/:exhibit-id" [exhibit-id]
     (prepare-exhibit-routes
-     (ANY "/apply" [] (when-logged-in (exhibit-apply-view request exhibit)))
+     (ANY "/apply" [] (exhibit-apply-view request exhibit))
      (GET "/" [] (exhibit-view request exhibit))))
   
   (context "/image/:image-id" [image-id]
@@ -986,9 +989,9 @@ To reset your password, please click on the following link:
      (POST "/delete" [] (image-delete-view request image))))
 
   (GET "/cv/:app-id" [app-id :as request]
-       ;; re-using macro for setup logic
-       (prepare-application-routes
-        (ANY "*" [] (cv-view request application))))
+    ;; re-using application macro for setup logic
+    (prepare-application-routes
+     (ANY "*" [] (cv-view request application))))
 
   (POST "/reorder-images" [order :as request]
         (reorder-images-view request order))
