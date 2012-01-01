@@ -217,6 +217,21 @@
     (if-let [js (:js-script options)]
       (javascript-tag js))]))
 
+;; if this gets moved to utils, will need to separate layout stuff too
+;; due to cyclical imports
+(defmacro defview
+  "Convenience macro to generate a GET view that is laid out normally. Injects 'request' anaphora."
+  ([fn-name options body] `(defview ~fn-name [] ~options ~body))
+  ([fn-name args options body]
+     `(defn ~fn-name [~'request ~@args]
+        (layout
+         ~'request
+         ~(cond (string? options) {:title options}
+                (map? options) options
+                :else (throw (IllegalArgumentException.
+                              (str "Unknown layout options: " options))))
+         (xhtml ~body)))))
+
 (defn- exhibits-link [request] (str "/exhibit/"))
 
 (defn- exhibit-link [request exhibit]
@@ -237,21 +252,15 @@
                           (:name %)])
             exhibits)])))
 
-(defn home-view [request]
-  (layout
-   request
-   {:title "Documentary Photography Project"}
-   [:div
-    [:h2 "Open competitions"]
-    (exhibits-html request)]))
+(defview home-view "Documentary Photography Project"
+  [:div
+   [:h2 "Open competitions"]
+   (exhibits-html request)])
 
-(defn userinfo-view [request]
-  (layout
-   request
-   {}
-   [:dl
-    (for [[k v] (.getAttribute (:session request) "user")]
-      (list [:dt k] [:dd v]))]))
+(defview userinfo-view "User Info View"
+  [:dl
+   (for [[k v] (.getAttribute (:session request) "user")]
+     (list [:dt k] [:dd v]))])
 
 (defn register [register-map]
   (sf/create-contact conn register-map))
@@ -509,14 +518,12 @@ To reset your password, please click on the following link:
   (redirect (or (-?>> (query-latest-exhibit) :slug__c (str "/exhibit/"))
                 "/")))
 
-(defn exhibit-view [request exhibit]
-  (layout
-   request
-   {:title (:name exhibit)
+(defview exhibit-view [exhibit]
+  {:title (:name exhibit)
     :js-script "docphoto.removeAnchorTargets();"}
-   [:div
-    [:h2 (:name exhibit)]
-    [:p (:description__c exhibit)]]))
+  [:div
+   [:h2 (:name exhibit)]
+   [:p (:description__c exhibit)]])
 
 (defn filesize-not-empty [fileobject]
   (pos? (:size fileobject 0)))
@@ -603,16 +610,14 @@ To reset your password, please click on the following link:
      (or (:came-from params)
          (application-submit-link app-id)))))
 
-(defn app-view [request application]
-  (layout
-   request
-   {:title (:title__c application)}
-   (list [:h2 (:title__c application)]
-         [:dl
-          (for [[k v] application]
-            (list
-             [:dt k]
-             [:dd v]))])))
+(defview app-view [application]
+  {:title (:title__c application)}
+  (list [:h2 (:title__c application)]
+        [:dl
+         (for [[k v] application]
+           (list
+            [:dt k]
+            [:dd v]))]))
 
 (defn caption-save-link [application-id]
   (str "/application/" application-id "/caption"))
@@ -634,32 +639,30 @@ To reset your password, please click on the following link:
    (for [image images]
      [:li (render-image request image)])])
 
-(defn app-upload [request application]
-  (layout
-   request
-   {:title "Upload images"
-    :include-upload-js true
-    :js-script (format (str "new docphoto.Uploader('plupload', 'pick-files', "
-                            "'upload', 'files-list', 'images-list', "
-                            "'images-description', {url: \"%s\"});")
-                       (:uri request))}
-   (list
-    [:h2 "Upload images"]
-    [:form.uniForm {:method :post :action (:uri request)}
-     [:div#plupload
-      [:div#files-list
-       (str "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus "
-            "or HTML5 support.")]
-      [:a#pick-files {:href "#"} "Select files"]
-      [:span " | "]
-      [:a#upload {:href "#"} "Upload"]]]
-    [:div#images
-     [:p#images-description {:style "display: none"}
-      (str "The order of your images is an important consideration. "
-           "Drag them to re-order.")]
-     [:form {:method :post :action (caption-save-link (:id application))}
-      (render-images request (query-images (:id application)))
-      [:input {:type "submit" :value "Save"}]]])))
+(defview app-upload [application]
+  {:title "Upload images"
+   :include-upload-js true
+   :js-script (format (str "new docphoto.Uploader('plupload', 'pick-files', "
+                           "'upload', 'files-list', 'images-list', "
+                           "'images-description', {url: \"%s\"});")
+                      (:uri request))}
+  (list
+   [:h2 "Upload images"]
+   [:form.uniForm {:method :post :action (:uri request)}
+    [:div#plupload
+     [:div#files-list
+      (str "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus "
+           "or HTML5 support.")]
+     [:a#pick-files {:href "#"} "Select files"]
+     [:span " | "]
+     [:a#upload {:href "#"} "Upload"]]]
+   [:div#images
+    [:p#images-description {:style "display: none"}
+     (str "The order of your images is an important consideration. "
+          "Drag them to re-order.")]
+    [:form {:method :post :action (caption-save-link (:id application))}
+     (render-images request (query-images (:id application)))
+     [:input {:type "submit" :value "Save"}]]]))
 
 (defn persist-all-image-scales [^File chunk exhibit-slug application-id image-id]
   "save all necessary image scales for a particular image"
@@ -720,7 +723,7 @@ To reset your password, please click on the following link:
 
 (defn application-submit-view [request application]
   (let [app-id (:id application)]
-    (if (= :post (:request-method request))
+    (onpost
       (and (sf/update-application-status conn app-id "Final")
            (redirect (application-success-link app-id)))
       (layout
@@ -779,15 +782,13 @@ To reset your password, please click on the following link:
              [:p "Once you have reviewed your application, please click on the submit button below."]
              [:input {:type "submit" :value "Submit your application"}]))]]]))))
 
-(defn application-success-view [request application]
-  (layout
-   request
-   {:title "Thank you for your submission"}
-   [:div
-    [:h2 "Thank you for your submission"]
-    [:p "When we have made our selections, we will notify you at the email address you provided: " (:email (session/get-user request))]
-    [:p "You can view all your "
-     [:a {:href (my-applications-link request)} "applications"] "."]]))
+(defview application-success-view [application]
+  {:title "Thank you for your submission"}
+  [:div
+   [:h2 "Thank you for your submission"]
+   [:p "When we have made our selections, we will notify you at the email address you provided: " (:email (session/get-user request))]
+   [:p "You can view all your "
+    [:a {:href (my-applications-link request)} "applications"] "."]])
 
 (defn forbidden [request]
   {:status 403
@@ -901,35 +902,32 @@ To reset your password, please click on the following link:
                 (if (= (:submission_Status__c app) "Final")
                   " - (submitted)")])]])))))))
 
-(defn about-view [request]
-  (layout
-   request
-   {:title "About the Documentary Photography Project"}
-   [:div
-    [:h2 "About Documentary Photography"]
-    [:p "The Documentary Photography Project uses exhibits, workshops, grantmaking, and public programs to explore how photography can shape public perception and effect social change. The project supports photographers whose work addresses social justice and human rights issues that coincide with OSI's mission of promoting and expanding open society."]
-    [:p
-     "The project's longest-running activity is "
-     [:a {:href "http://www.soros.org/initiatives/photography/focus_areas/mw"} "Moving Walls"]
-     ", a group photography exhibition series that features in-depth and nuanced explorations of human rights and social issues.  Moving Walls is shown at OSI offices in New York City and Washington, D.C."]
-    [:p
-     "The project also sponsors individual photographers through the annual "
-     [:a {:href "http://www.soros.org/initiatives/photography/focus_areas/engagement"} "Audience Engagement Grant"]
-     " (formerly called the Distribution Grant) and "
-     [:a {:href "http://www.soros.org/initiatives/photography/focus_areas/production-individual"} "Production Grants"]
-     ". Audience Engagement Grants support photographers who work with an NGO or advocacy organization to use photography as a tool for advocacy, education, or civic engagement. Recent distribution grants supported a traveling exhibit and digital archive addressing statelessness of Nubians in Kenya; a public billboard campaign and website on energy production and consumption in America; an educational campaign on HIV-positive senior citizens; and a publication and series of workshops addressing the socioeconomic realities of young women in Troy, NY."]
-    [:p "Production grants help photographers from Central Asia, the Caucasus, Afghanistan, Mongolia, and Pakistan produce work on a social justice or human rights issue in their home country. Production grants are combined with mentorship and training by internationally recognized photographers."]
-    [:p
-     "The project also provides "
-     [:a {:href "http://www.soros.org/initiatives/photography/focus_areas/production"} "grants to organizations"]
-     " and projects that: have a broad impact in the photographic community; support photographers from regions that lack advanced-level training or professional opportunities; and respond to changes in the media environment by proposing new models for producing work."]
-    [:p "In addition to organizing Moving Walls, the project's recent activities and grantmaking have included an "
-     [:a {:href "http://www.soros.org/initiatives/photography/movingwalls/international"} "international tour"]
-     " of past Moving Walls photographers in the Middle East and North Africa that included exhibits and trainings for local photographers and young people."]
-    [:p.note
-     "Note: The Documentary Photography Project does not support film. For information on grants for documentary filmmaking, please contact the "
-     [:a {:href "http://www.sundance.org/"} "Sundance Institute"]
-     ", an OSI grantee in Los Angeles, California."]]))
+(defview about-view "About the Documentary Photography Project"
+  [:div
+   [:h2 "About Documentary Photography"]
+   [:p "The Documentary Photography Project uses exhibits, workshops, grantmaking, and public programs to explore how photography can shape public perception and effect social change. The project supports photographers whose work addresses social justice and human rights issues that coincide with OSI's mission of promoting and expanding open society."]
+   [:p
+    "The project's longest-running activity is "
+    [:a {:href "http://www.soros.org/initiatives/photography/focus_areas/mw"} "Moving Walls"]
+    ", a group photography exhibition series that features in-depth and nuanced explorations of human rights and social issues.  Moving Walls is shown at OSI offices in New York City and Washington, D.C."]
+   [:p
+    "The project also sponsors individual photographers through the annual "
+    [:a {:href "http://www.soros.org/initiatives/photography/focus_areas/engagement"} "Audience Engagement Grant"]
+    " (formerly called the Distribution Grant) and "
+    [:a {:href "http://www.soros.org/initiatives/photography/focus_areas/production-individual"} "Production Grants"]
+    ". Audience Engagement Grants support photographers who work with an NGO or advocacy organization to use photography as a tool for advocacy, education, or civic engagement. Recent distribution grants supported a traveling exhibit and digital archive addressing statelessness of Nubians in Kenya; a public billboard campaign and website on energy production and consumption in America; an educational campaign on HIV-positive senior citizens; and a publication and series of workshops addressing the socioeconomic realities of young women in Troy, NY."]
+   [:p "Production grants help photographers from Central Asia, the Caucasus, Afghanistan, Mongolia, and Pakistan produce work on a social justice or human rights issue in their home country. Production grants are combined with mentorship and training by internationally recognized photographers."]
+   [:p
+    "The project also provides "
+    [:a {:href "http://www.soros.org/initiatives/photography/focus_areas/production"} "grants to organizations"]
+    " and projects that: have a broad impact in the photographic community; support photographers from regions that lack advanced-level training or professional opportunities; and respond to changes in the media environment by proposing new models for producing work."]
+   [:p "In addition to organizing Moving Walls, the project's recent activities and grantmaking have included an "
+    [:a {:href "http://www.soros.org/initiatives/photography/movingwalls/international"} "international tour"]
+    " of past Moving Walls photographers in the Middle East and North Africa that included exhibits and trainings for local photographers and young people."]
+   [:p.note
+    "Note: The Documentary Photography Project does not support film. For information on grants for documentary filmmaking, please contact the "
+    [:a {:href "http://www.sundance.org/"} "Sundance Institute"]
+    ", an OSI grantee in Los Angeles, California."]])
 
 (defn not-found-view [request]
   {:status 404
