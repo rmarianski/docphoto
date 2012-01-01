@@ -11,7 +11,7 @@
         [clojure.core.incubator :only (-?> -?>>)]
         [clojure.java.io :only (copy file input-stream output-stream)]
         [docphoto.utils :only (defn-debug-memo md5 multipart-form?
-                                send-message)]
+                                send-message onpost when-logged-in)]
         [docphoto.form :only (defformpage came-from-field
                                req-textfield textfield)])
   (:require [compojure.route :as route]
@@ -536,20 +536,19 @@ To reset your password, please click on the following link:
     {:fn filesize-not-empty :msg :required}}
    (textfield :website__c "Website")
    (findout-field)]
-  (if exhibit
-    (layout
-     request
-     {:title (str "Apply to " (:name exhibit))
-      :include-editor-css true
-      :js-script "docphoto.editor.triggerEditors();"}
-     [:div
-      [:h2 (str "Apply to " (:name exhibit))]
-      [:form.uniForm {:method :post :action (:uri request)
-              :enctype "multipart/form-data"}
-       [:fieldset
-        [:legend "Apply"]
-        (render-fields request params errors)]
-       [:input {:type :submit :value "Apply"}]]]))
+  (layout
+   request
+   {:title (str "Apply to " (:name exhibit))
+    :include-editor-css true
+    :js-script "docphoto.editor.triggerEditors();"}
+   [:div
+    [:h2 (str "Apply to " (:name exhibit))]
+    [:form.uniForm {:method :post :action (:uri request)
+                    :enctype "multipart/form-data"}
+     [:fieldset
+      [:legend "Apply"]
+      (render-fields request params errors)]
+     [:input {:type :submit :value "Apply"}]]])
   (redirect
    (str "/application/"
         (create-application
@@ -803,26 +802,6 @@ To reset your password, please click on the following link:
   (subs uri
         (reduce + (map count parts))))
 
-(defn exhibit-routes [request]
-  (if (#{"/exhibit" "/exhibit/"} (:uri request))
-    (redirect (or (-?>> (query-latest-exhibit)
-                        :slug__c
-                        (str "/exhibit/"))
-                  "/"))
-    (if-let [exhibit-slug (parse-mounted-route
-                           (:uri request) "/exhibit/")]
-      (if-let [exhibit (query-exhibit exhibit-slug)]
-        (render
-         (condp = (remove-from-beginning (:uri request)
-                                         "/exhibit/" exhibit-slug)
-           "/apply" (if-let [user (session/get-user request)]
-                      (exhibit-apply-view request exhibit)
-                      (redirect (str "/login?came-from="
-                                     (exhibit-apply-link request exhibit))))
-           "" (exhibit-view request exhibit)
-           nil)
-         request)))))
-
 (defn- wrap-secure-clauses [request conditional & clauses]
   (if-not (even? (count clauses))
     (throw (IllegalArgumentException. "Odd number of clauses"))
@@ -861,12 +840,17 @@ To reset your password, please click on the following link:
   [& app-routes]
   `(fn [~'request]
      (if-let [~'application (query-application ~'app-id)]
-       (if-let [user# (session/get-user ~'request)]
-         (if (can-view-application? user# ~'application)
+       (when-logged-in
+         (if (can-view-application? ~'user ~'application)
            (routing ~'request ~@app-routes)
-           (forbidden ~'request))
-         ;; XXX might want to make macro for below redirect
-         (redirect (str "/login?came-from=" (:uri ~'request)))))))
+           (forbidden ~'request))))))
+
+(defmacro prepare-exhibit-routes
+  "Fetch exhibit, and inject 'exhibit' through anaphora. Expects 'exhibit-id' to exist in scope."
+  [& exhibit-routes]
+  `(fn [~'request]
+     (if-let [~'exhibit (query-exhibit ~'exhibit-id)]
+       (routing ~'request ~@exhibit-routes))))
 
 (defn image-delete-view [request image]
   (if (= (:request-method request) :post)
@@ -1036,7 +1020,16 @@ To reset your password, please click on the following link:
      (ANY "/update" [] (application-update-view request application))
      (GET "/" [] (app-view request application))))
 
-  exhibit-routes
+  (GET "/exhibit" []
+       (redirect (or (-?>> (query-latest-exhibit)
+                           :slug__c
+                           (str "/exhibit/"))
+                     "/")))
+  (context "/exhibit/:exhibit-id" [exhibit-id]
+    (prepare-exhibit-routes
+     (ANY "/apply" [] (when-logged-in (exhibit-apply-view request exhibit)))
+     (GET "/" [] (exhibit-view request exhibit))))
+  
   image-routes
 
   (GET "/cv/:app-id" [app-id :as request] (cv-view request app-id))
