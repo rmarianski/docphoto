@@ -793,38 +793,6 @@ To reset your password, please click on the following link:
            [:h2 "Forbidden"]
            [:p "You don't have access to view this page"]))})
 
-(defn- parse-mounted-route [uri uri-start]
-  "returns 2nd element of route assuming mount on a prefix"
-  (and (.startsWith uri uri-start)
-       (nth (string/split uri #"/") 2 nil)))
-
-(defn remove-from-beginning [uri & parts]
-  (subs uri
-        (reduce + (map count parts))))
-
-(defn- wrap-secure-clauses [request conditional & clauses]
-  (if-not (even? (count clauses))
-    (throw (IllegalArgumentException. "Odd number of clauses"))
-    (if (seq clauses)
-      (let [[pred body & remaining-clauses] clauses]
-        (concat
-         [pred `(if-not (session/get-user ~request)
-                  (redirect (str "/login?came-from=" (:uri ~request)))
-                  (if ~conditional
-                    ~body
-                    (forbidden ~request)))]
-         (apply wrap-secure-clauses request conditional remaining-clauses))))))
-
-(defmacro secure-condp
-  "wrap the actions in a condp with security checks"
-  [f f-param request conditional & clauses]
-  `(condp ~f ~f-param
-     ~@(if (even? (count clauses))
-         (apply wrap-secure-clauses request conditional clauses)
-         (concat
-          (apply wrap-secure-clauses request conditional (butlast clauses))
-          [(last clauses)]))))
-
 ;; need to figure out where to store this
 ;; maybe just in memory for now
 (defn admin? [user] false)
