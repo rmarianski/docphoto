@@ -318,20 +318,21 @@
    {:field [:checkbox {} :docPhoto_Mail_List__c
             {:label "Subscribe to mailing list?"}]}
    {:custom came-from-field}]
-  (layout
-   request
-   {}
-   [:form.uniForm {:method :post :action (profile-update-link request)}
-    [:h2 "Update profile"]
-    (render-fields request (user-update-mailinglist-value
-                            (merge (session/get-user request) params)) errors)
-    [:input {:type :submit :value "Update"}]])
-  (let [user (session/get-user request)
-        user-params (user-update-mailinglist-value
-                     (select-keys params sf/contact-fields))]
-    (sf/update-user conn (merge {:id (:id user)} user-params))
-    (session/save-user request (merge user user-params))
-    (redirect (or (:came-from params) "/"))))
+  (when-logged-in
+   (layout
+    request
+    {}
+    [:form.uniForm {:method :post :action (profile-update-link request)}
+     [:h2 "Update profile"]
+     (render-fields request (user-update-mailinglist-value
+                             (merge user params)) errors)
+     [:input {:type :submit :value "Update"}]]))
+  (when-logged-in
+   (let [user-params (user-update-mailinglist-value
+                      (select-keys params sf/contact-fields))]
+     (sf/update-user conn (merge {:id (:id user)} user-params))
+     (session/save-user request (merge user user-params))
+     (redirect (or (:came-from params) "/")))))
 
 (defformpage register-view []
   [(req-textfield :userName__c "Username")
@@ -856,45 +857,44 @@ To reset your password, please click on the following link:
                            ")") noquote]]))))
 
 (defn reorder-images-view [request order-string]
-  (if-let [user (session/get-user request)]
-    (if order-string
-      (let [image-ids (.split order-string ",")
-            allowed-image-ids (query-allowed-images user image-ids)
-            image-ids-to-update (filter (set allowed-image-ids)
-                                        image-ids)]
-        (if (not-empty image-ids-to-update)
-          (do
-            (sf/update-image-order
-             conn
-             (map-indexed
-              (fn [n image-id]
-                {:id image-id
-                 :order__c (double (inc n))})
-              image-ids-to-update))
-            ""))))))
+  (when-logged-in
+   (if order-string
+     (let [image-ids (.split order-string ",")
+           allowed-image-ids (query-allowed-images user image-ids)
+           image-ids-to-update (filter (set allowed-image-ids)
+                                       image-ids)]
+       (if (not-empty image-ids-to-update)
+         (do
+           (sf/update-image-order
+            conn
+            (map-indexed
+             (fn [n image-id]
+               {:id image-id
+                :order__c (double (inc n))})
+             image-ids-to-update))
+           ""))))))
 
 (defn my-applications-view [request]
-  (if-let [user (session/get-user request)]
-    (layout
-     request
-     {:title "My applications"}
-     (let [userid (:id (session/get-user request))
-           apps (query-applications userid)
-           apps-by-exhibit (group-by (comp :name :exhibit__r) apps)]
-       (if (empty? apps)
-         [:p "You have no applications. Perhaps you would like to "
-          [:a {:href (exhibits-link request)} "apply"]]
-         (list
-          (for [[exhibit-name apps] apps-by-exhibit]
-            [:div
-             [:h2 exhibit-name]
-             [:ul
-              (for [app (sort-by :lastModifiedDate apps)]
-                [:li
-                 [:a {:href (application-submit-link (:id app))} (:title__c app)]
-                 (if (= (:submission_Status__c app) "Final")
-                   " - (submitted)")])]])))))
-    (redirect (str "/login?came-from=" (:uri request)))))
+  (when-logged-in
+   (layout
+    request
+    {:title "My applications"}
+    (let [userid (:id user)
+          apps (query-applications userid)
+          apps-by-exhibit (group-by (comp :name :exhibit__r) apps)]
+      (if (empty? apps)
+        [:p "You have no applications. Perhaps you would like to "
+         [:a {:href (exhibits-link request)} "apply"]]
+        (list
+         (for [[exhibit-name apps] apps-by-exhibit]
+           [:div
+            [:h2 exhibit-name]
+            [:ul
+             (for [app (sort-by :lastModifiedDate apps)]
+               [:li
+                [:a {:href (application-submit-link (:id app))} (:title__c app)]
+                (if (= (:submission_Status__c app) "Final")
+                  " - (submitted)")])]])))))))
 
 (defn about-view [request]
   (layout
@@ -936,20 +936,15 @@ To reset your password, please click on the following link:
            [:h2 "Page not found"]
            [:p "We could not find the page you are looking for."]])})
 
-(defn cv-view [request app-id]
-  (if-let [application (query-application app-id)]
-    (if-let [user (session/get-user request)]
-      (if (can-view-application? user application)
-        (let [exhibit-slug (:slug__c (:exhibit__r application))]
-          (if-let [cv (persist/cv-file-path exhibit-slug app-id)]
-            (if (.exists cv)
-              {:status 200
-               :headers {"Content-Disposition" (str "attachment; filename=\""
-                                                    (.getName cv)
-                                                    "\"")}
-               :body cv})))
-        (forbidden request))
-      (redirect (str "/login?came-from=" (:uri request))))))
+(defn cv-view [request application]
+  (let [exhibit-slug (:slug__c (:exhibit__r application))]
+    (if-let [cv (persist/cv-file-path exhibit-slug (:id application))]
+      (if (.exists cv)
+        {:status 200
+         :headers {"Content-Disposition" (str "attachment; filename=\""
+                                              (.getName cv)
+                                              "\"")}
+         :body cv}))))
 
 (defroutes main-routes
   (GET "/" request home-view)
@@ -957,10 +952,7 @@ To reset your password, please click on the following link:
   (GET "/userinfo" [] userinfo-view)
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
-  (ANY "/profile" request (if-let [user (session/get-user request)]
-                            (profile-view request)
-                            (redirect (str "/login?came-from="
-                                           (:uri request)))))
+  (ANY "/profile" request (profile-view request))
   (ANY "/register" [] register-view)
   (ANY "/password/forgot" [] forgot-password-view)
   (ANY "/password/request-reset" [token :as request]
@@ -993,7 +985,10 @@ To reset your password, please click on the following link:
      (GET "/" [] (image-view request image "original"))
      (POST "/delete" [] (image-delete-view request image))))
 
-  (GET "/cv/:app-id" [app-id :as request] (cv-view request app-id))
+  (GET "/cv/:app-id" [app-id :as request]
+       ;; re-using macro for setup logic
+       (prepare-application-routes
+        (ANY "*" [] (cv-view request application))))
 
   (POST "/reorder-images" [order :as request]
         (reorder-images-view request order))
