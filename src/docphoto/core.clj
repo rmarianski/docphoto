@@ -685,7 +685,7 @@ To reset your password, please click on the following link:
                                  image-id "original")
     (dorun
      (for [[scale-type [width height]] [["small" [100 100]]
-                                      ["large" [600 600]]]]
+                                        ["large" [600 600]]]]
        (image/scale
         orig-file
         (file base-image-path scale-type)
