@@ -991,7 +991,7 @@ To reset your password, please click on the following link:
 
   (GET "/my-applications" [] my-applications-view)
 
-  (route/files "/public" {:root "resources/public"})
+  (route/resources "/" {:root nil})
 
   not-found-view)
 
