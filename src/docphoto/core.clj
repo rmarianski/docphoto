@@ -55,7 +55,8 @@
   `(defquery ~fn-name ~args ~query-params
      ~(fn [form] `(first ~form))))
 
-(defquery-single query-user [username password]
+;; the password passed in should be the hash
+(defquery-single query-user-by-credentials [username password]
   (contact sf/user-fields [[username__c = username]
                            [password__c = password]]))
 
@@ -353,7 +354,7 @@
      [:p#forgot-password.note
       "Forgot your password? "
       (ph/link-to (forgot-link) "Reset") " it."]]))
-  (if-let [user (query-user (:userName__c params) (md5 (:password__c params)))]
+  (if-let [user (query-user-by-credentials (:userName__c params) (md5 (:password__c params)))]
     (do (login request user)
         (redirect (if-let [came-from (:came-from params)]
                     (if (.endsWith came-from "/login") "/" came-from)
@@ -430,7 +431,7 @@
           (register (-> (dissoc params :password2)
                         (update-in [:password__c] md5)
                         user-update-mailinglist-value))
-          (login request (query-user username (md5 password1)))
+          (login request (query-user-by-credentials username (md5 password1)))
           (redirect "/exhibit"))))))
 
 (defn reset-password-message [reset-link]
