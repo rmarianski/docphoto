@@ -42,95 +42,91 @@
    (update-in image [:exhibit_application__r] sf/sobject->map)
    (update-in [:exhibit_application__r :exhibit__r] sf/sobject->map)))
 
-(defn-debug-memo query-user [username password]
-  (first
-   (sf/query conn contact
-             sf/user-fields
-             [[username__c = username]
-              [password__c = password]])))
+(defmacro defquery
+  "Generate a call to sf/query returning multiple results."
+  [fn-name args query-params & [alter-query-fn]]
+  (let [alter-query-fn (or (eval alter-query-fn) identity)]
+   `(defn-debug-memo ~fn-name ~args
+      ~(alter-query-fn `(sf/query ~'conn ~@query-params)))))
 
-(defn-debug-memo query-user-by-email [email]
-  (first (sf/query conn contact [id] [[email = email]])))
+(defmacro defquery-single
+  "Generate a call to sf/query returning a single element."
+  [fn-name args query-params]
+  `(defquery ~fn-name ~args ~query-params
+     ~(fn [form] `(first ~form))))
 
-(defn-debug-memo query-user-by-id [id]
-  (first (sf/query conn contact sf/user-fields [[id = id]])))
+(defquery-single query-user [username password]
+  (contact sf/user-fields [[username__c = username]
+                           [password__c = password]]))
 
-(defn-debug-memo query-user-by-username [username]
-  (first
-   (sf/query conn contact
-             [id] [[userName__c = username]])))
+(defquery-single query-user-by-email [email]
+  (contact [id] [[email = email]]))
 
-(defn-debug-memo query-exhibits []
-  (sf/query conn exhibit__c
-            [id name slug__c application_start_date__c description__c]
-            [[closed__c = false noquote]]))
+(defquery-single query-user-by-id [id]
+  (contact sf/user-fields [[id = id]]))
 
-(defn-debug-memo query-latest-exhibit []
-  (first
-   (sf/query conn exhibit__c
-             [id name slug__c application_start_date__c description__c]
-             [[closed__c = false noquote]]
-             :append "order by application_start_date__c desc limit 1")))
+(defquery-single query-user-by-username [username]
+  (contact [id] [[userName__c = username]]))
 
-(defn-debug-memo query-applications [userid]
-  (map tweak-application-result
-       (sf/query
-        conn
-        exhibit_application__c
-        [id title__c exhibit__r.name exhibit__r.slug__c
-         lastModifiedDate submission_Status__c referredby__c]
-        [[exhibit_application__c.exhibit__r.closed__c = false noquote]
-         [exhibit_application__c.contact__r.id = userid]])))
+(defquery query-exhibits []
+  (exhibit__c [id name slug__c application_start_date__c description__c]
+              [[closed__c = false noquote]]))
 
-(defn-debug-memo query-exhibit [exhibit-slug]
-  (first
-   (sf/query conn exhibit__c
-             [id name description__c slug__c]
-             [[slug__c = exhibit-slug]])))
+(defquery-single query-latest-exhibit []
+  (exhibit__c [id name slug__c application_start_date__c description__c]
+              [[closed__c = false noquote]]
+              :append "order by application_start_date__c desc limit 1"))
 
-(defn-debug-memo query-application
+(defquery query-applications [userid]
+  (exhibit_application__c
+   [id title__c exhibit__r.name exhibit__r.slug__c
+    lastModifiedDate submission_Status__c referredby__c]
+   [[exhibit_application__c.exhibit__r.closed__c = false noquote]
+    [exhibit_application__c.contact__r.id = userid]])
+  (fn [form] `(map tweak-application-result ~form)))
+
+(defquery-single query-exhibit [exhibit-slug]
+  (exhibit__c [id name description__c slug__c]
+              [[slug__c = exhibit-slug]]))
+
+(defquery query-application
   [app-id]
-  (-?>
-   (sf/query conn exhibit_application__c
-             [id biography__c title__c website__c statementRich__c contact__c
-              submission_Status__c exhibit__r.name exhibit__r.slug__c
-              referredby__c]
-             [[id = app-id]])
-   first
-   tweak-application-result))
+  (exhibit_application__c
+   [id biography__c title__c website__c statementRich__c contact__c
+    submission_Status__c exhibit__r.name exhibit__r.slug__c
+    referredby__c]
+   [[id = app-id]])
+  (fn [form] `(-?> ~form first tweak-application-result)))
 
-(defn-debug-memo query-image [image-id]
-  (-?>
-   (sf/query conn image__c
-             [id caption__c filename__c mime_type__c order__c
-              exhibit_application__r.id
-              exhibit_application__r.exhibit__r.slug__c
-              exhibit_application__r.contact__c]
-             [[id = image-id]])
-   first
-   tweak-image-result))
+(defquery query-image [image-id]
+  (image__c
+   [id caption__c filename__c mime_type__c order__c
+    exhibit_application__r.id
+    exhibit_application__r.exhibit__r.slug__c
+    exhibit_application__r.contact__c]
+   [[id = image-id]])
+  (fn [form] `(-?> ~form first tweak-image-result)))
 
-(defn-debug-memo query-images [application-id]
-  (sf/query conn image__c
-            [id caption__c]
+(defquery query-images [application-id]
+  (image__c [id caption__c]
             [[exhibit_application__c = application-id]]
             :append "order by order__c"))
 
-(defn-debug-memo query-allowed-images
-  "filter passed in images to those that current user can view"
-  [user image-ids]
-  (map
-   :id
-   (filter
-    #(or (admin? user)
-         ( = (:id user)
-             (:contact__c (:exhibit_application__r
-                           (tweak-image-result %)))))
-    (sf/query conn image__c [id exhibit_application__r.contact__c]
-              [[id IN (str "("
-                           (string/join ", "
-                                        (map #(str "'" % "'") image-ids))
-                           ")") noquote]]))))
+;; filter passed in images to those that current user can view
+(defquery query-allowed-images [user image-ids]
+  (image__c [id exhibit_application__r.contact__c]
+            [[id IN (str "("
+                         (string/join ", "
+                                      (map #(str "'" % "'") image-ids))
+                         ")") noquote]])
+  (fn [form]
+    `(map :id
+          (filter
+           #(or (admin? ~'user)
+                (= (:id ~'user)
+                   (:contact__c (:exhibit_application__r
+                                 (tweak-image-result %)))))
+           ~form))))
 
 (defn- list-all-editor-css-files []
   "convenience function to list all google editor css files to include"
