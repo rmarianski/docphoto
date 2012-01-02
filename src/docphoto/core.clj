@@ -13,7 +13,7 @@
         [docphoto.utils :only (defn-debug-memo md5 multipart-form?
                                 send-message onpost when-logged-in)]
         [docphoto.form :only (defformpage came-from-field
-                               req-textfield textfield)])
+                               req-textfield textfield req-password)])
   (:require [compojure.route :as route]
             [docphoto.salesforce :as sf]
             [docphoto.persist :as persist]
@@ -337,8 +337,7 @@
 
 (defformpage login-view []
   [(req-textfield :userName__c "Username")
-   {:field [:password {} :password__c {:label "Password"}]
-    :validator {:fn not-empty :msg :required}}
+   (req-password :password__c "Password")
    {:custom came-from-field}]
   (layout
    request
@@ -400,10 +399,8 @@
 
 (defformpage register-view []
   [(req-textfield :userName__c "Username")
-   {:field [:password {} :password__c {:label "Password"}]
-    :validator {:fn not-empty :msg :required}}
-   {:field [:password {} :password2 {:label "Password"}]
-    :validator {:fn not-empty :msg :required}}
+   (req-password :password__c "Password")
+   (req-password :password2 "Password Again")
    (req-textfield :firstName "First Name")
    (req-textfield :lastName "Last Name")
    (req-textfield :email "Email")
@@ -500,10 +497,8 @@ To reset your password, please click on the following link:
                              " a password reset email."])))))
 
 (defformpage reset-password-view []
-  [{:field [:password {} :password1 {:label "Password"}]
-    :validator {:fn not-empty :msg :required}}
-   {:field [:password {} :password2 {:label "Password again"}]
-    :validator {:fn not-empty :msg :required}}]
+  [(req-password :password1 "Password")
+   (req-password :password2 "Password Again")]
   (if-let [user (-?> (session/password-reset-userid request)
                      query-user-by-id)]
     (layout
@@ -956,10 +951,8 @@ To reset your password, please click on the following link:
 
 (defformpage admin-password-reset []
   [(req-textfield :username "Username")
-   {:field [:password {} :password1 {:label "Password"}]
-    :validator {:fn not-empty :msg :required}}
-   {:field [:password {} :password2 {:label "Password again"}]
-    :validator {:fn not-empty :msg :required}}]
+   (req-password :password1 "Password")
+   (req-password :password2 "Password Again")]
   (when-admin
    (layout request "Reset Password"
            [:form.uniForm {:method :post :action (:uri request)}

@@ -132,6 +132,11 @@
   (assoc (textfield fieldname label)
     :validator {:fn not-empty :msg :required}))
 
+(defmacro req-password
+  "helper to simplify generating password fields"
+  [fieldname label]
+  {:field [:password {} fieldname {:label label}]})
+
 (defn came-from-field [request params errors]
   "a hidden input that passes came from information"
   (let [came-from (or (:came-from params) ((:headers request) "referer"))]
