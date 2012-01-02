@@ -214,30 +214,22 @@
   `(do ~@(for [slug application-slugs]
            `(defapplink ~slug))))
 
-(deflink application-link [application-id] "application" application-id)
 (defapplinks upload submit success update)
 
-(deflink my-applications-link [] "my-applications")
-
-(deflink cv-link [application-id] "cv" application-id)
-
-(deflink profile-update-link [] "profile")
-
-(deflink image-link [image-id & [scale]] "image" image-id scale)
-
-(deflink exhibits-link [] "exhibit/")
-(deflink exhibit-link [exhibit-slug] "exhibit" exhibit-slug)
-(deflink exhibit-apply-link [exhibit-slug] "exhibit" exhibit-slug "apply")
-
-(deflink forgot-link [] "password" "forgot")
-
-(deflink reset-request-link [] "password" "request-reset")
-(deflink reset-password-link [] "password" "reset")
-
-(deflink caption-save-link [application-id]
-  "application" application-id "caption")
-
-(deflink image-delete-link [image-id] "image" image-id "delete")
+(deflinks
+  (application-link [application-id] "application" application-id)
+  (my-applications-link [] "my-applications")
+  (cv-link [application-id] "cv" application-id)
+  (profile-update-link [] "profile")
+  (image-link [image-id & [scale]] "image" image-id scale)
+  (exhibits-link [] "exhibit/")
+  (exhibit-link [exhibit-slug] "exhibit" exhibit-slug)
+  (exhibit-apply-link [exhibit-slug] "exhibit" exhibit-slug "apply")
+  (forgot-link [] "password" "forgot")
+  (reset-request-link [] "password" "request-reset")
+  (reset-password-link [] "password" "reset")
+  (caption-save-link [application-id] "application" application-id "caption")
+  (image-delete-link [image-id] "image" image-id "delete"))
 
 (defn login-logout-snippet [request]
   (let [user (session/get-user request)]
@@ -307,9 +299,10 @@
   (let [exhibits (query-exhibits)]
     (if (not-empty exhibits)
       [:ul
-       (map #(vector :li [:a {:href (exhibit-link %)}
-                          (:name %)])
-            exhibits)])))
+       (for [exhibit exhibits]
+         [:li
+          [:a {:href (exhibit-link (:slug__c exhibit))}
+           (:name exhibit)]])])))
 
 (defview home-view "Documentary Photography Project"
   [:div
