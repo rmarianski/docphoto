@@ -226,7 +226,8 @@
   (reset-request-link [] "password" "request-reset")
   (reset-password-link [] "password" "reset")
   (caption-save-link [application-id] "application" application-id "caption")
-  (image-delete-link [image-id] "image" image-id "delete"))
+  (image-delete-link [image-id] "image" image-id "delete")
+  (admin-password-reset-link [] "admin" "password-reset"))
 
 (defn login-logout-snippet [request]
   (let [user (session/get-user request)]
@@ -813,13 +814,22 @@ To reset your password, please click on the following link:
 
 ;; need to figure out where to store this
 ;; maybe just in memory for now
-(defn admin? [user] false)
+(defmacro admin? [user]
+  (if cfg/debug true false))
 
 (defn application-owner? [user application]
   (= (:id user) (:contact__c application)))
 
 (defn can-view-application? [user application]
   (or (admin? user) (application-owner? user application)))
+
+(defmacro when-admin
+  "Checks that a user is an admin before proceeding. Returns appropriate error codes if not. Uses anaphora. Injects 'user' and depends on 'request' in scope."
+  [body]
+  `(when-logged-in
+    (if (admin? ~'user)
+      ~body
+      (forbidden ~'request))))
 
 (defmacro prepare-application-routes
   "Take care of fetching the application, and checking security. Anaphora: depends on having 'app-id' in context matching and injects 'application' into scope."
@@ -944,6 +954,29 @@ To reset your password, please click on the following link:
                                               "\"")}
          :body cv}))))
 
+(defformpage admin-password-reset []
+  [(req-textfield :username "Username")
+   {:field [:password {} :password1 {:label "Password"}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:password {} :password2 {:label "Password again"}]
+    :validator {:fn not-empty :msg :required}}]
+  (when-admin
+   (layout request "Reset Password"
+           [:form.uniForm {:method :post :action (:uri request)}
+            (render-fields request params errors)
+            [:input {:type :submit :value "Save"}]]))
+  (when-admin
+   (let [[pass1 pass2] ((juxt :password1 :password2) params)]
+     (if (= pass1 pass2)
+       (if-let [user (query-user-by-username (:username params))]
+         (do
+           (sf/update-user conn {:id (:id user)
+                                 :password__c (md5 pass1)})
+           (layout request "Password changed"
+                   [:h1 (str "Password changed for: " (:username params))]))
+         (render-form params {:username "User does not exist"}))
+       (render-form params {:password1 "Password don't match"})))))
+
 (defroutes main-routes
   (GET "/" request home-view)
   (GET "/about" [] about-view)
@@ -990,6 +1023,8 @@ To reset your password, please click on the following link:
         (reorder-images-view request order))
 
   (GET "/my-applications" [] my-applications-view)
+
+  (ANY "/admin/password-reset" [] admin-password-reset)
 
   (route/resources "/" {:root nil})
 
