@@ -192,55 +192,52 @@
          (str ":" (:server-port request)))
        url))
 
-(defn- application-link [application-id]
-  (str "/application/" application-id))
+(defmacro deflink
+  "Generate a string link from the parts. They are joined together with str"
+  [fn-name args & uri-parts]
+  `(defn ~fn-name ~args
+     (str "/" ~@(interpose "/" uri-parts))))
 
-(defn- application-upload-link [application-id]
-  (str (application-link application-id) "/upload"))
+(defmacro deflinks [& deflink-specs]
+  `(do ~@(for [spec deflink-specs]
+           `(deflink ~@spec))))
 
-(defn- application-submit-link [application-id]
-  (str (application-link application-id) "/submit"))
+(defmacro defapplink
+  "Create an application link function using conventions."
+  [application-slug]
+  (let [slug (name application-slug)
+        fn-name (str "application-" slug "-link")]
+    `(deflink ~(symbol fn-name) [application-id#]
+       "application" application-id# ~slug)))
 
-(defn application-success-link [application-id]
-  (str (application-link application-id) "/success"))
+(defmacro defapplinks [& application-slugs]
+  `(do ~@(for [slug application-slugs]
+           `(defapplink ~slug))))
 
-(defn my-applications-link [request]
-  "/my-applications")
+(deflink application-link [application-id] "application" application-id)
+(defapplinks upload submit success update)
 
-(defn cv-link [application-id]
-  (str "/cv/" application-id))
+(deflink my-applications-link [] "my-applications")
 
-(defn came-from-link-snippet [came-from]
-  (if came-from
-    (str "?came-from=" came-from)))
+(deflink cv-link [application-id] "cv" application-id)
 
-(defn profile-update-link [request & [came-from]]
-  (str "/profile"
-       (came-from-link-snippet came-from)))
+(deflink profile-update-link [] "profile")
 
-(defn application-update-link [application-id request & [came-from]]
-  (str (application-link application-id) "/update"
-       (came-from-link-snippet came-from)))
+(deflink image-link [image-id & [scale]] "image" image-id scale)
 
-(defn- image-link [image-id scale] (str "/image/" image-id "/" scale))
+(deflink exhibits-link [] "exhibit/")
+(deflink exhibit-link [exhibit-slug] "exhibit" exhibit-slug)
+(deflink exhibit-apply-link [exhibit-slug] "exhibit" exhibit-slug "apply")
 
-(defn- exhibits-link [request] (str "/exhibit/"))
+(deflink forgot-link [] "password" "forgot")
 
-(defn- exhibit-link [request exhibit]
-  (str (exhibits-link request) (:slug__c exhibit)))
+(deflink reset-request-link [] "password" "request-reset")
+(deflink reset-password-link [] "password" "reset")
 
-(defn- exhibit-apply-link [request exhibit]
-  (str (exhibit-link request exhibit) "/apply"))
+(deflink caption-save-link [application-id]
+  "application" application-id "caption")
 
-(defn forgot-link [request] "/password/forgot")
-(defn reset-request-link [request] "/password/request-reset")
-(defn reset-password-link [request] "/password/reset")
-
-(defn caption-save-link [application-id]
-  (str "/application/" application-id "/caption"))
-
-(defn image-delete-link [image-id]
-  (str "/image/" image-id "/delete"))
+(deflink image-delete-link [image-id] "image" image-id "delete")
 
 (defn login-logout-snippet [request]
   (let [user (session/get-user request)]
@@ -310,7 +307,7 @@
   (let [exhibits (query-exhibits)]
     (if (not-empty exhibits)
       [:ul
-       (map #(vector :li [:a {:href (exhibit-link request %)}
+       (map #(vector :li [:a {:href (exhibit-link %)}
                           (:name %)])
             exhibits)])))
 
@@ -366,7 +363,7 @@
     [:div
      [:p#forgot-password.note
       "Forgot your password? "
-      (ph/link-to (forgot-link request) "Reset") " it."]]))
+      (ph/link-to (forgot-link) "Reset") " it."]]))
   (if-let [user (query-user (:userName__c params) (md5 (:password__c params)))]
     (do (login request user)
         (redirect (if-let [came-from (:came-from params)]
@@ -398,7 +395,7 @@
    (layout
     request
     {}
-    [:form.uniForm {:method :post :action (profile-update-link request)}
+    [:form.uniForm {:method :post :action (profile-update-link)}
      [:h2 "Update profile"]
      (render-fields request (user-update-mailinglist-value
                              (merge user params)) errors)
@@ -458,7 +455,7 @@ To reset your password, please click on the following link:
 (defmacro send-email-reset [request email token]
   (let [reset-link-sym (gensym "resetlink__")]
     `(let [~reset-link-sym (absolute-link ~request
-                                          (str (reset-request-link ~request)
+                                          (str (reset-request-link)
                                                "?token=" ~token))]
        ~(if cfg/debug
           `(println "Password sent to:" ~email "with link:" ~reset-link-sym)
@@ -504,11 +501,11 @@ To reset your password, please click on the following link:
         (if (= (:token session-token) token)
           (do
             (session/allow-password-reset request (:userid session-token))
-            (redirect (reset-password-link request)))
+            (redirect (reset-password-link)))
           (do (println "session" (:token session-token) "passed" token)
               (reset-failure-page "Invalid token. Please double check the link in your email.")))
         (reset-failure-page [:span "Token expired. Are you using the same browser session as when you requested a password reset? If so, you can "
-                             (ph/link-to (forgot-link request) "resend")
+                             (ph/link-to (forgot-link) "resend")
                              " a password reset email."])))))
 
 (defformpage reset-password-view []
@@ -526,7 +523,7 @@ To reset your password, please click on the following link:
       [:p "Resetting password for user " (:userName__c user)]
       (render-fields request params errors)
       [:input {:type :submit :value "Reset"}]])
-    (redirect (forgot-link request)))
+    (redirect (forgot-link)))
   (if-let [userid (session/password-reset-userid request)]
     (if (= (:password1 params) (:password2 params))
       (do
@@ -773,8 +770,7 @@ To reset your password, please click on the following link:
                        "Not subscribed "
                        "Subscribed ")
                      "to mailing list")]
-            [:a {:href (profile-update-link request
-                                            (:uri request))} "Update"]))]
+            [:a {:href (profile-update-link)} "Update"]))]
         [:fieldset
          [:legend "Application"]
          [:h2 (:title__c application)]
@@ -789,7 +785,7 @@ To reset your password, please click on the following link:
           [:dd [:a {:href (cv-link app-id)} "Download CV"]]
           [:dt "Found out from"]
           [:dd (:referredby__c application)]]
-         [:a {:href (application-update-link app-id request)} "Update"]]
+         [:a {:href (application-update-link app-id)} "Update"]]
         [:fieldset
          [:legend "Images"]
          [:ol
@@ -813,7 +809,7 @@ To reset your password, please click on the following link:
    [:h2 "Thank you for your submission"]
    [:p "When we have made our selections, we will notify you at the email address you provided: " (:email (session/get-user request))]
    [:p "You can view all your "
-    [:a {:href (my-applications-link request)} "applications"] "."]])
+    [:a {:href (my-applications-link)} "applications"] "."]])
 
 (defn forbidden [request]
   {:status 403
@@ -899,7 +895,7 @@ To reset your password, please click on the following link:
           apps-by-exhibit (group-by (comp :name :exhibit__r) apps)]
       (if (empty? apps)
         [:p "You have no applications. Perhaps you would like to "
-         [:a {:href (exhibits-link request)} "apply"]]
+         [:a {:href (exhibits-link)} "apply"]]
         (list
          (for [[exhibit-name apps] apps-by-exhibit]
            [:div
