@@ -151,42 +151,37 @@
 
 (def user-fields (conj contact-fields :id :name))
 
-(defn create-contact [conn contact-data-map]
-  (create
-   conn
-   (sobject-array
-    [(create-sf-object
-      (Contact.)
-      (select-keys
-       contact-data-map
-       contact-fields
-       ))])))
+(defmacro defcreate [fn-name bindings class-instance-form key-form]
+  `(defn ~fn-name [conn# ~@bindings]
+     (-?>
+      (create
+       conn#
+       (sobject-array
+        [(create-sf-object
+          ~class-instance-form
+          ~key-form)]))
+      first
+      .getId)))
 
-(defn create-application [conn application-map]
-  (-?> (create
-        conn
-        (sobject-array
-         [(create-sf-object
-           (Exhibit_Application__c.)
-           (select-keys
-            application-map
-            [:statementRich__c :title__c :biography__c :website__c
-             :contact__c :exhibit__c :submission_Status__c :referredby__c]))]))
-       first
-       .getId))
+(defcreate create-contact [contact-data-map]
+  (Contact.)
+  (select-keys
+   contact-data-map
+   contact-fields))
 
-(defn create-image [conn image-map]
-  (-?> (create
-        conn
-        (sobject-array
-         [(create-sf-object
-           (Image__c.)
-           (select-keys
-            image-map
-            [:caption__c :exhibit_application__c :filename__c
-             :mime_type__c :order__c :url__c]))]))
-       first
-       .getId))
+(defcreate create-application [application-map]
+  (Exhibit_Application__c.)
+  (select-keys
+   application-map
+   [:statementRich__c :title__c :biography__c :website__c
+    :contact__c :exhibit__c :submission_Status__c :referredby__c]))
+
+(defcreate create-image [image-map]
+  (Image__c.)
+  (select-keys
+   image-map
+   [:caption__c :exhibit_application__c :filename__c
+    :mime_type__c :order__c :url__c]))
 
 (defn delete-ids [conn ids]
   "delete passed in ids"
