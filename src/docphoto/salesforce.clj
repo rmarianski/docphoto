@@ -1,5 +1,6 @@
 (ns docphoto.salesforce
-  (:use [clojure.core.incubator :only (-?>)])
+  (:use [clojure.core.incubator :only (-?>)]
+        [docphoto.utils :only (find-first)])
   (:require [clojure.string :as string])
   (:import [com.sforce.ws ConnectorConfig]
            [com.sforce.soap.enterprise Connector]
@@ -7,14 +8,6 @@
             Contact SObject Exhibit_Application__c Image__c]
            [com.sforce.soap.enterprise.fault UnexpectedErrorFault]
            [org.apache.commons.codec.digest DigestUtils]))
-
-;; no longer in contrib
-(defn find-first
-  "Returns the first item of coll for which (pred item) returns logical true.
-  Consumes sequences up to the first match, will consume the entire sequence
-  and return nil if no match is found."
-  [pred coll]
-  (first (filter pred coll)))
 
 (defn connector-config [username password]
   (doto (ConnectorConfig.)

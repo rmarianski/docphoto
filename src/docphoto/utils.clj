@@ -5,6 +5,14 @@
             [postal.core :as postal])
   (:import [org.apache.commons.codec.digest DigestUtils]))
 
+;; no longer in contrib
+(defn find-first
+  "Returns the first item of coll for which (pred item) returns logical true.
+  Consumes sequences up to the first match, will consume the entire sequence
+  and return nil if no match is found."
+  [pred coll]
+  (first (filter pred coll)))
+
 ;; copied from old clojure.contrib
 ;; defn-memo by Chouser:
 (defmacro defn-memo
