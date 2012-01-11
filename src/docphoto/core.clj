@@ -831,6 +831,9 @@ To reset your password, please click on the following link:
 (defmacro admin? [user]
   (if cfg/debug true false))
 
+(defmacro reviewer? [user]
+  (if cfg/debug true false))
+
 (defn application-owner? [user application]
   (= (:id user) (:contact__c application)))
 
