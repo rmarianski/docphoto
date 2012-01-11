@@ -28,6 +28,25 @@
 ;; global salesforce connection
 (defonce conn nil)
 
+(defn connect->salesforce
+  "connect global connection object to salesforce"
+  [username password token]
+  (def conn (sf/connector username (str password token))))
+
+(defn connect-cfgmap-salesforce
+  "take a connection config and use it to connect to salesforce"
+  [cfgmap]
+  (let [{:keys [user pass token]} cfgmap]
+    (if (and user pass token)
+      (connect->salesforce user pass token)
+      (throw (IllegalArgumentException. "invalid cfgmap")))))
+
+(defn connect-to-dev []
+  (connect-cfgmap-salesforce cfg/conn-dev))
+
+(defn connect-to-prod []
+  (connect-cfgmap-salesforce cfg/conn-prod))
+
 (declare admin?)
 
 (defn- tweak-application-result

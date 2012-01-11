@@ -1,15 +1,14 @@
-(ns docphoto.config
-  (:use [docphoto.salesforce :only (connector)]))
+(ns docphoto.config)
 
 (def debug false)
 
-(defn prod-hardcoded-connector []
-  (connector "username"
-             (str "password" "api-key")))
+(def conn-dev {:user "username"
+               :pass "password"
+               :token "token"})
 
-(defn dev-hardcoded-connector []
-  (connector "username"
-             (str "password" "api-key")))
+(def conn-prod {:user "username"
+                :pass "password"
+                :token "token"})
 
 (def mail-config
   {:from "defaultuser@example.com"})
