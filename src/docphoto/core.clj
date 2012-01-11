@@ -647,7 +647,7 @@ To reset your password, please click on the following link:
   {:title (:title__c application)}
   (list [:h2 (:title__c application)]
         [:dl
-         (for [[k v] application]
+         (for [[k v] (dissoc application :class)]
            (list
             [:dt k]
             [:dd v]))]))
