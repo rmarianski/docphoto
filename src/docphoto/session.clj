@@ -14,7 +14,7 @@
   "generate an anaphoric function that pulls the session out of the request"
   [fn-name args body]
   `(defn ~fn-name [~'request ~@args]
-     (let [~'session (:session ~'request)]
+     (if-let [~'session (:session ~'request)]
        ~body)))
 
 (defmacro defsession-getter

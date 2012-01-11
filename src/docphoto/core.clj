@@ -22,7 +22,8 @@
             [docphoto.session :as session]
             [clojure.string :as string]
             [clojure.walk]
-            [hiccup.page-helpers :as ph])
+            [hiccup.page-helpers :as ph]
+            [ring.middleware.stacktrace :as stacktrace])
   (:import [java.io File]))
 
 ;; global salesforce connection
@@ -1073,9 +1074,35 @@ To reset your password, please click on the following link:
                (update-in request [:params] convert-params-to-keywords)
                request))))
 
+(defn wrap-docphoto-stacktrace
+  "production ready 500 error page"
+  [handler]
+  (fn [request]
+    (try
+      (handler request)
+      (catch Exception ex
+        {:status 500
+         :headers {"Content-Type" "text/html; charset=utf-8"}
+         :body
+         (layout request "Error"
+                 (list
+                  [:h1 "Error"]
+                  [:p
+                   "We're sorry. We ran into an error. If the problem continues, "
+                   "please contact docphoto."]))}))))
+
+(defn wrap-stacktrace
+  "wrap the appropriate stack trace handler based on if debugging"
+  [handler]
+  ((if cfg/debug
+     stacktrace/wrap-stacktrace
+     wrap-docphoto-stacktrace)
+   handler))
+
 (def app
   (->
    main-routes
+   wrap-stacktrace
    session/wrap-servlet-session
    wrap-multipart-convert-params
    wrap-multipart-params

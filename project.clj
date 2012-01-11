@@ -4,6 +4,7 @@
                  [compojure "1.0.0"]
                  [hiccup "0.3.7"]
                  [ring/ring-servlet "1.0.1"]
+                 [ring/ring-devel "1.0.1"]
                  [rmarianski/ring-jetty-servlet-adapter "0.0.2"]
                  [commons-codec "1.6"]
                  [com.salesforce/wsc "2.2"]
