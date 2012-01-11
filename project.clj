@@ -8,6 +8,8 @@
                  [commons-codec "1.6"]
                  [com.salesforce/wsc "2.2"]
                  [org.soros/dev-salesforce-docphoto "0.0.1"]
+                 ;; if metadata operations are wanted
+                 ;; [org.soros/dev-salesforce-docphoto-metadata "0.0.1"]
                  [clj-decline "0.0.5"]
                  [flutter "0.0.6"]
                  [com.thebuzzmedia/imgscalr-lib "3.2"]
