@@ -234,7 +234,7 @@
 
 (deflinks
   (application-link [application-id] "application" application-id)
-  (my-applications-link [] "my-applications")
+  (user-applications-link [username] "user" "applications" username)
   (cv-link [application-id] "cv" application-id)
   (profile-update-link [] "profile")
   (image-link [image-id & [scale]] "image" image-id scale)
@@ -814,7 +814,8 @@ To reset your password, please click on the following link:
    [:h2 "Thank you for your submission"]
    [:p "When we have made our selections, we will notify you at the email address you provided: " (:email (session/get-user request))]
    [:p "You can view all your "
-    [:a {:href (my-applications-link)} "applications"] "."]])
+    [:a {:href (user-applications-link (:userName__c (session/get-user request)))}
+     "applications"] "."]])
 
 (defn forbidden [request]
   {:status 403
@@ -902,27 +903,32 @@ To reset your password, please click on the following link:
              image-ids-to-update))
            ""))))))
 
-(defn my-applications-view [request]
+(defn user-applications-view [request username]
   (when-logged-in
-   (layout
-    request
-    {:title "My applications"}
-    (let [userid (:id user)
-          apps (query-applications userid)
-          apps-by-exhibit (group-by (comp :name :exhibit__r) apps)]
-      (if (empty? apps)
-        [:p "You have no applications. Perhaps you would like to "
-         [:a {:href (exhibits-link)} "apply"]]
-        (list
-         (for [[exhibit-name apps] apps-by-exhibit]
-           [:div
-            [:h2 exhibit-name]
-            [:ul
-             (for [app (sort-by :lastModifiedDate apps)]
-               [:li
-                [:a {:href (application-submit-link (:id app))} (:title__c app)]
-                (if (= (:submission_Status__c app) "Final")
-                  " - (submitted)")])]])))))))
+   (if-not (or (= username (:userName__c user)) (admin? user) )
+     (forbidden request)
+     (if-let [for-user (query-user-by-username username)]
+      (layout
+       request
+       {:title (str "Applications for " username)}
+       (let [apps (query-applications (:id for-user))
+             apps-by-exhibit (group-by (comp :name :exhibit__r) apps)]
+         (if (empty? apps)
+           [:p "You have no applications. Perhaps you would like to "
+            [:a {:href (exhibits-link)} "apply"]]
+           (list
+            (for [[exhibit-name apps] apps-by-exhibit]
+              [:div
+               [:h2 exhibit-name]
+               [:ul
+                (for [app (sort-by :lastModifiedDate apps)]
+                  [:li
+                   [:a {:href (application-submit-link (:id app))} (:title__c app)]
+                   (if (= (:submission_Status__c app) "Final")
+                     " - (submitted)")])]])))))))))
+
+(defn current-user-applications-view [request]
+  (when-logged-in (redirect (user-applications-link (:userName__c user)))))
 
 (defview about-view "About the Documentary Photography Project"
   [:div
@@ -1037,7 +1043,9 @@ To reset your password, please click on the following link:
   (POST "/reorder-images" [order :as request]
         (reorder-images-view request order))
 
-  (GET "/my-applications" [] my-applications-view)
+  (GET "/user/applications" [] current-user-applications-view)
+  (GET "/user/applications/:username" [username :as request]
+       (user-applications-view request username))
 
   (ANY "/admin/password-reset" [] admin-password-reset)
 
