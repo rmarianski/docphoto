@@ -297,6 +297,17 @@
     (if-let [js (:js-script options)]
       (javascript-tag js))]))
 
+(defn- layout-form
+  "helper for defview macro to generate layout form"
+  [options body]
+  `(layout
+    ~'request
+    ~(cond (string? options) {:title options}
+           (map? options) options
+           :else (throw (IllegalArgumentException.
+                         (str "Unknown layout options: " options))))
+    (xhtml ~body)))
+
 ;; if this gets moved to utils, will need to separate layout stuff too
 ;; due to cyclical imports
 (defmacro defview
@@ -304,13 +315,9 @@
   ([fn-name options body] `(defview ~fn-name [] ~options ~body))
   ([fn-name args options body]
      `(defn ~fn-name [~'request ~@args]
-        (layout
-         ~'request
-         ~(cond (string? options) {:title options}
-                (map? options) options
-                :else (throw (IllegalArgumentException.
-                              (str "Unknown layout options: " options))))
-         (xhtml ~body)))))
+        ~(if (and (map? options) (:logged-in options))
+           `(when-logged-in ~(layout-form options body))
+           (layout-form options body)))))
 
 (defn- exhibits-html [request]
   (let [exhibits (query-exhibits)]
@@ -326,7 +333,7 @@
    [:h2 "Open competitions"]
    (exhibits-html request)])
 
-(defview userinfo-view "User Info View"
+(defview userinfo-view {:title "User Info View" :logged-in true}
   [:dl
    (for [[k v] (.getAttribute (:session request) "user")]
      (list [:dt k] [:dd v]))])
