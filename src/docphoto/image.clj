@@ -2,7 +2,7 @@
   (:import [java.awt.image BufferedImageOp]
            [java.io File]
            [javax.imageio ImageIO]
-           [com.thebuzzmedia.imgscalr Scalr]))
+           [org.imgscalr Scalr]))
 
 (defn extension [^File f]
   (let [path (.getPath f)

@@ -13,6 +13,6 @@
                  ;; [org.soros/dev-salesforce-docphoto-metadata "0.0.1"]
                  [clj-decline "0.0.5"]
                  [flutter "0.0.6"]
-                 [com.thebuzzmedia/imgscalr-lib "3.2"]
+                 [org.imgscalr/imgscalr-lib "4.1"]
                  [com.draines/postal "1.7.0"]
                  [org.clojars.mccraigmccraig/core.incubator "0.1.1-SNAPSHOT"]])
