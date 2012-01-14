@@ -48,10 +48,9 @@
                body)
             (catch Exception e#
               (if-let [cause# (.getCause e#)]
-                (if (and
-                     (instance? UnexpectedErrorFault (class cause#))
-                     (= "INVALID_SESSION_ID"
-                        (.getLocalPart (.getFaultCode cause#))))
+                (if (and (instance? UnexpectedErrorFault cause#)
+                         (= "INVALID_SESSION_ID"
+                            (.getLocalPart (.getFaultCode cause#))))
                   (let [cfg# (.getConfig conn#)
                         login-result# (.login conn#
                                               (.getUsername cfg#)
