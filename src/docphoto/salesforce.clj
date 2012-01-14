@@ -46,16 +46,20 @@
                             (str (find-first #(not (.isSuccess %)) results#))))
                     results#))
                body)
-            (catch UnexpectedErrorFault e#
-              (if (= "INVALID_SESSION_ID"
-                     (.getLocalPart (.getFaultCode e#)))
-                (let [cfg# (.getConfig conn#)
-                      login-result#
-                      (.login conn#
-                              (.getUsername cfg#) (.getPassword cfg#))]
-                  (.setSessionHeader conn# (.getSessionId login-result#))
-                  ;; retry function
-                  (apply ~fname ~bindings))
+            (catch Exception e#
+              (if-let [cause# (.getCause e#)]
+                (if (and
+                     (instance? UnexpectedErrorFault (class cause#))
+                     (= "INVALID_SESSION_ID"
+                        (.getLocalPart (.getFaultCode cause#))))
+                  (let [cfg# (.getConfig conn#)
+                        login-result# (.login conn#
+                                              (.getUsername cfg#)
+                                              (.getPassword cfg#))]
+                    (.setSessionHeader conn# (.getSessionId login-result#))
+                    ;; retry function
+                    (apply ~fname ~bindings))
+                  (throw e#))
                 (throw e#))))))))
 
 (defsfcommand query-records [conn query]
