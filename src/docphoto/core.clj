@@ -115,6 +115,7 @@
   (exhibit_application__c
    [id biography__c title__c website__c statementRich__c contact__c
     submission_Status__c exhibit__r.name exhibit__r.slug__c
+    summary_Engagement__c multimedia_Link__c
     referredby__c]
    [[id = app-id]])
   (fn [form] `(-?> ~form first tweak-application-result)))
@@ -584,9 +585,12 @@ To reset your password, please click on the following link:
     :validator {:fn not-empty :msg :required}}
    {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"}]
     :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#summaryEngagement.editor {} :summary_Engagement__c {:label "Summary of your engagement"}]
+    :validator {:fn not-empty :msg :required}}
    {:field [:file {} :cv {:label "Upload CV"}] :validator
     {:fn filesize-not-empty :msg :required}}
    (textfield :website__c "Website")
+   (textfield :multimedia_Link__c "Multimedia Link")
    (findout-field)]
   (when-logged-in
    (layout
@@ -619,8 +623,11 @@ To reset your password, please click on the following link:
     :validator {:fn not-empty :msg :required}}
    {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"}]
     :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#summaryEngagement.editor {} :summary_Engagement__c {:label "Summary of your engagement"}]
+    :validator {:fn not-empty :msg :required}}
    {:field [:file {} :cv {:label "Update CV"}]}
    (textfield :website__c "Website")
+   (textfield :multimedia_Link__c "Multimedia Link")
    (findout-field)]
   (layout
    request
@@ -635,8 +642,10 @@ To reset your password, please click on the following link:
       (render-fields request (merge application params) errors)]
      [:input {:type :submit :value "Update"}]]])
   (let [app-id (:id application)
-        app-update-map (merge (dissoc params :cv)
+        app-update-map (merge (dissoc params :cv :app-id)
                               {:id app-id})]
+    (def debugparams params)
+    (def debugappid app-id)
     (sf/update-application conn app-update-map)
     (let [cv (:cv params)
           tempfile (:tempfile cv)
@@ -794,6 +803,8 @@ To reset your password, please click on the following link:
           [:dd (:biography__c application)]
           [:dt "Website"]
           [:dd (:website__c application "No website")]
+          [:dt "Summary of Engagement"]
+          [:dd (:summary_Engagement__c application "No summary of engagement")]
           [:dt "CV"]
           [:dd [:a {:href (cv-link app-id)} "Download CV"]]
           [:dt "Found out from"]

@@ -170,7 +170,8 @@
   (select-keys
    application-map
    [:statementRich__c :title__c :biography__c :website__c
-    :contact__c :exhibit__c :submission_Status__c :referredby__c]))
+    :contact__c :exhibit__c :submission_Status__c :referredby__c
+    :summary_Engagement__c :multimedia_Link__c]))
 
 (defcreate create-image [image-map]
   (Image__c.)
