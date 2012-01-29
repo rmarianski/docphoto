@@ -19,7 +19,6 @@ goog.require('goog.editor.plugins.BasicTextFormatter');
 goog.require('goog.editor.plugins.EnterHandler');
 goog.require('goog.editor.plugins.HeaderFormatter');
 goog.require('goog.editor.plugins.ListTabHandler');
-goog.require('goog.editor.plugins.LoremIpsum');
 goog.require('goog.editor.plugins.RemoveFormatting');
 goog.require('goog.editor.plugins.SpacesTabHandler');
 goog.require('goog.editor.plugins.UndoRedo');
@@ -312,8 +311,6 @@ docphoto.editor.makeEditor = function(textarea) {
   field.registerPlugin(new goog.editor.plugins.SpacesTabHandler());
   field.registerPlugin(new goog.editor.plugins.EnterHandler());
   field.registerPlugin(new goog.editor.plugins.HeaderFormatter());
-  field.registerPlugin(
-      new goog.editor.plugins.LoremIpsum('Click here to edit'));
 
   // Specify the buttons to add to the toolbar, using built in default buttons.
   var buttons = [
