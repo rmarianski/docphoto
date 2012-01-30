@@ -246,15 +246,13 @@ docphoto.Uploader.prototype.onImageDelete = function(event) {
         if (goog.isDefAndNotNull(image)) {
           // the image itself has the id that we use for the ajax call
           var imageId = docphoto.parseImageId_(image);
-
-          // optimistically assume that the post will work out
-          // delete the element right away to provide a quick user experience
           var li = el.parentNode;
           goog.dom.removeNode(li);
 
-          goog.net.XhrIo.send('/image/' + imageId + '/delete',
-                              goog.nullFunction,
-                              'POST');
+          // not through ajax any more
+          // goog.net.XhrIo.send('/image/' + imageId + '/delete',
+          //                     goog.nullFunction,
+          //                     'POST');
         }
         break;
       }
@@ -281,14 +279,18 @@ docphoto.parseImageId_ = function(imageEl) {
  * @param {!Event} event
  */
 docphoto.Uploader.prototype.onDrag = function(event) {
-  var images = goog.dom.getElementsByTagNameAndClass(
-    goog.dom.TagName.IMG, undefined, this.images);
-  var ids = goog.array.map(images, docphoto.parseImageId_);
-  var paramString = 'order=' + ids.join(',');
-  goog.net.XhrIo.send('/reorder-images',
-                      goog.nullFunction,
-                      'POST',
-                      paramString);
+  var orderings = goog.dom.getElementsByTagNameAndClass(
+    goog.dom.TagName.INPUT, 'image-order', this.images);
+  for (var i = 0; i < orderings.length; i++) {
+    var order = orderings[i];
+    order.value = i+1;
+  }
+  // var ids = goog.array.map(images, docphoto.parseImageId_);
+  // var paramString = 'order=' + ids.join(',');
+  // goog.net.XhrIo.send('/reorder-images',
+  //                     goog.nullFunction,
+  //                     'POST',
+  //                     paramString);
 };
 
 docphoto.editor.triggerEditors = function() {

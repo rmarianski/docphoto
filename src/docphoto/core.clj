@@ -130,7 +130,7 @@
   (fn [form] `(-?> ~form first tweak-image-result)))
 
 (defquery query-images [application-id]
-  (image__c [id caption__c]
+  (image__c [id caption__c order__c]
             [[exhibit_application__c = application-id]]
             :append "order by order__c"))
 
@@ -246,7 +246,7 @@
   (forgot-link [] "password" "forgot")
   (reset-request-link [] "password" "request-reset")
   (reset-password-link [] "password" "reset")
-  (caption-save-link [application-id] "application" application-id "caption")
+  (images-update-link [application-id] "application" application-id "update-images")
   (image-delete-link [image-id] "image" image-id "delete")
   (admin-password-reset-link [] "admin" "password-reset"))
 
@@ -676,7 +676,8 @@ To reset your password, please click on the following link:
    [:textarea {:name (str "caption-" (:id image))}
     (or (:caption__c image) "")]
    [:a {:href (image-delete-link (:id image))
-        :class "image-delete"} "Delete"]))
+        :class "image-delete"} "Delete"]
+   [:input.image-order {:type :hidden :name :order :value (:order__c image)}]))
 
 (defn render-images [request images]
   [:ul#images-list
@@ -704,7 +705,7 @@ To reset your password, please click on the following link:
     [:p#images-description {:style "display: none"}
      (str "The order of your images is an important consideration. "
           "Drag them to re-order.")]
-    [:form {:method :post :action (caption-save-link (:id application))}
+    [:form {:method :post :action (images-update-link (:id application))}
      (render-images request (query-images (:id application)))
      [:input {:type "submit" :value "Save"}]]]))
 
@@ -730,12 +731,13 @@ To reset your password, please click on the following link:
                                           (:file (:params request)))
         exhibit-slug (:slug__c (:exhibit__r application))
         application-id (:id application)
+        order (-> (query-images application-id)
+                  count inc double)
         image-id (create-image
                   {:filename__c filename
                    :mime_type__c content-type
                    :exhibit_application__c application-id
-                   :order__c (-> (query-images application-id)
-                                 count inc double)})]
+                   :order__c order})]
     (persist-all-image-scales tempfile exhibit-slug application-id image-id)
     (html (render-image request (query-image image-id)))))
 
@@ -750,20 +752,57 @@ To reset your password, please click on the following link:
        :status 200
        :body f})))
 
-(defn parse-caption-maps [params]
+(defn- parse-caption-maps [params]
   (keep
    (fn [[k v]]
      (if-let [m (re-find #"^caption-(.*)"(name k))]
        {:id (second m) :caption__c (or v "")}))
    params))
 
-(defn application-save-captions-view [request application]
+(defn- parse-image-order-map
+  "given a list of image ids, generate a mapping from image id -> order"
+  [image-ids]
+  (reduce (fn [m [image-id n]]
+            (assoc m image-id n))
+          {}
+          (map vector
+               image-ids
+               (iterate inc 1))))
+
+(defn- merge-imageorder-with-captions
+  "take a seq of caption maps, a map of image-orderings (:id -> order} and combine them. Returns a vector of the combination."
+  [caption-maps image-order]
+  (map
+   (fn [m]
+     (if-let [order (image-order (:id m))]
+       (assoc m :order order)
+       m))
+   caption-maps))
+
+(defn- find-imageids-to-delete
+  "convenience function to intersect the image maps to update with all images queried from application"
+  [update-maps existing-images]
+  (clojure.set/difference
+   (set (map :id existing-images))
+   (set (map :id update-maps))))
+
+(defn application-update-images-view [request application]
   (if (= :post (:request-method request))
-    (let [caption-maps (parse-caption-maps (:params request))]
-      (if (not-empty caption-maps)
-        (redirect
-         (and (sf/update-application-captions conn caption-maps)
-              (application-submit-link (:id application))))))))
+    (let [caption-maps (parse-caption-maps (:params request))
+          ;; form params contains the elements in the original order
+          ;; in this case it is a list of image ids
+          image-order (parse-image-order-map (:order (:form-params request)))
+          image-maps (merge-imageorder-with-captions caption-maps image-order)
+          existing-images (query-images (:id application))]
+      (if (not-empty image-maps)
+        (sf/update-images conn image-maps))
+      ;; need to verify that user has permission to actually delete
+      ;; these ids
+      (let [imageids-to-delete (find-imageids-to-delete image-maps existing-images)]
+        (if (not-empty imageids-to-delete)
+          (sf/delete-ids conn imageids-to-delete)))
+      (redirect
+       (application-submit-link (:id application))))))
 
 (defn application-submit-view [request application]
   (let [app-id (:id application)]
@@ -1034,7 +1073,7 @@ To reset your password, please click on the following link:
     (prepare-application-routes
      (POST "/upload" [] (app-upload-image request application))
      (GET "/upload" [] (app-upload request application))
-     (POST "/caption" [] (application-save-captions-view request application))
+     (POST "/update-images" [] (application-update-images-view request application))
      (ANY "/submit" [] (application-submit-view request application))
      (GET "/success" [] (application-success-view request application))
      (ANY "/update" [] (application-update-view request application))

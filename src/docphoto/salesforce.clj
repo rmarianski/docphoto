@@ -215,3 +215,7 @@
 
 (defn update-application [conn application-map]
   (update conn Exhibit_Application__c [application-map]))
+
+(defn update-images [conn image-maps]
+  (update conn Image__c
+          (map #(select-keys % [:id :order__c :caption__c]) image-maps)))
