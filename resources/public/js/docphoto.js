@@ -281,16 +281,9 @@ docphoto.parseImageId_ = function(imageEl) {
 docphoto.Uploader.prototype.onDrag = function(event) {
   var orderings = goog.dom.getElementsByTagNameAndClass(
     goog.dom.TagName.INPUT, 'image-order', this.images);
-  for (var i = 0; i < orderings.length; i++) {
-    var order = orderings[i];
-    order.value = i+1;
-  }
-  // var ids = goog.array.map(images, docphoto.parseImageId_);
-  // var paramString = 'order=' + ids.join(',');
-  // goog.net.XhrIo.send('/reorder-images',
-  //                     goog.nullFunction,
-  //                     'POST',
-  //                     paramString);
+  goog.array.forEach(orderings, function(ordering, i) {
+    ordering.value = i+1;
+  });
 };
 
 docphoto.editor.triggerEditors = function() {
