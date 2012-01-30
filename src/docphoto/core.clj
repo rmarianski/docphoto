@@ -678,11 +678,11 @@ To reset your password, please click on the following link:
   (list
    [:div.image-container.goog-inline-block
     (ph/image (image-link (:id image) "small"))]
-   [:textarea {:name (str "caption-" (:id image))}
+   [:input {:type :hidden :name :imageids :value (:id image)}]
+   [:textarea {:name "captions"}
     (or (:caption__c image) "")]
-   [:a {:href (image-delete-link (:id image))
-        :class "image-delete"} "Delete"]
-   [:input.image-order {:type :hidden :name :order :value (:id image)}]))
+   [:a {:href "#"
+        :class "image-delete"} "Delete"]))
 
 (defn render-images [request images]
   [:ul#images-list
@@ -757,33 +757,6 @@ To reset your password, please click on the following link:
        :status 200
        :body f})))
 
-(defn- parse-caption-maps [params]
-  (keep
-   (fn [[k v]]
-     (if-let [m (re-find #"^caption-(.*)"(name k))]
-       {:id (second m) :caption__c (or v "")}))
-   params))
-
-(defn- parse-image-order-map
-  "given a list of image ids, generate a mapping from image id -> order"
-  [image-ids]
-  (reduce (fn [m [image-id n]]
-            (assoc m image-id n))
-          {}
-          (map vector
-               image-ids
-               (iterate (comp double inc) 1.0))))
-
-(defn- merge-imageorder-with-captions
-  "take a seq of caption maps, a map of image-orderings (:id -> order} and combine them. Returns a vector of the combination."
-  [caption-maps image-order]
-  (map
-   (fn [m]
-     (if-let [order (image-order (:id m))]
-       (assoc m :order__c order)
-       m))
-   caption-maps))
-
 (defn- find-imageids-to-delete
   "convenience function to intersect the image maps to update with all images queried from application"
   [update-maps existing-images]
@@ -791,19 +764,42 @@ To reset your password, please click on the following link:
    (set (map :id existing-images))
    (set (map :id update-maps))))
 
+(defn create-image-update-maps [imageids captions]
+  (map
+   (fn [[imageid caption n]]
+     {:id imageid
+      :caption__c caption
+      :order__c n })
+   (map vector imageids captions
+        (iterate (comp double inc) 1.0))))
+
+(defn normalize-form-param
+  "normalize the form param to a vactor"
+  [value]
+  (cond
+   (nil? value) []
+   (string? value) [value]
+   (vector? value) value
+   :else value))
+
 (defn application-update-images-view [request application]
   (if (= :post (:request-method request))
-    (let [caption-maps (parse-caption-maps (:params request))
-          ;; form params contains the elements in the original order
-          ;; in this case it is a list of image ids
-          image-order (parse-image-order-map ((:form-params request) "order"))
-          image-maps (merge-imageorder-with-captions caption-maps image-order)
-          existing-images (query-images (:id application))]
-      (if (not-empty image-maps)
-        (sf/update-images conn image-maps))
-      ;; need to verify that user has permission to actually delete
-      ;; these ids
-      (let [imageids-to-delete (find-imageids-to-delete image-maps existing-images)]
+    ;; the :form-params data preserves ordering with multiple keys
+    (let [ordered-form-params (:form-params request)
+          ;; need to check if these are always lists
+          imageids (normalize-form-param (ordered-form-params "imageids"))
+          captions (normalize-form-param (ordered-form-params "captions"))
+          image-update-maps (create-image-update-maps imageids captions)
+          existing-images (query-images (:id application))
+          ;; only allow updates for images that user is allowed to see
+          ;; since it's tied to the application, we just need to make
+          ;; sure that the images are in the existing list
+          existing-imageids-set (set (map :id existing-images))
+          image-update-maps (filter #(existing-imageids-set (:id %))
+                                    image-update-maps)]
+      (if (not-empty image-update-maps)
+        (sf/update-images conn image-update-maps))
+      (let [imageids-to-delete (find-imageids-to-delete image-update-maps existing-images)]
         (if (not-empty imageids-to-delete)
           (delete-images (-> application :exhibit__r :slug__c)
                          (:id application)
@@ -1070,7 +1066,7 @@ To reset your password, please click on the following link:
      (GET "/small" [] (image-view request image "small"))
      (GET "/large" [] (image-view request image "large"))
      (GET "/original" [] (image-view request image "original"))
-     (GET "/" [] (image-view request image "original"))|))
+     (GET "/" [] (image-view request image "original"))))
 
   (GET "/cv/:app-id" [app-id :as request]
     ;; re-using application macro for setup logic
