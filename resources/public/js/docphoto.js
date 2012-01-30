@@ -109,8 +109,10 @@ docphoto.Uploader.prototype.initializeDragDrop = function() {
   this.dlg.setDragItemHandleHoverClass('draggable');
   this.dlg.setDraggerElClass('dragging');
   this.dlg.setFunctionToGetHandleForDragItem(docphoto.findDragElement);
-  goog.events.listen(this.dlg, goog.fx.DragListGroup.EventType.DRAGEND,
-                     this.onDrag, false, this);
+
+  // ondrag handler not needed any more
+  // goog.events.listen(this.dlg, goog.fx.DragListGroup.EventType.DRAGEND,
+  //                    this.onDrag, false, this);
   this.dlg.init();
 };
 
@@ -268,16 +270,18 @@ docphoto.parseImageId_ = function(imageEl) {
   return imageId;
 };
 
-/**
- * @param {!Event} event
- */
-docphoto.Uploader.prototype.onDrag = function(event) {
-  // var orderings = goog.dom.getElementsByTagNameAndClass(
-  //   goog.dom.TagName.INPUT, 'image-order', this.images);
-  // goog.array.forEach(orderings, function(ordering, i) {
-  //   ordering.value = i+1;
-  // });
-};
+// not needed any more
+// ordering is handled through order of inputs on page
+// /**
+//  * @param {!Event} event
+//  */
+// docphoto.Uploader.prototype.onDrag = function(event) {
+//   // var orderings = goog.dom.getElementsByTagNameAndClass(
+//   //   goog.dom.TagName.INPUT, 'image-order', this.images);
+//   // goog.array.forEach(orderings, function(ordering, i) {
+//   //   ordering.value = i+1;
+//   // });
+// };
 
 docphoto.editor.triggerEditors = function() {
   var textareas = goog.dom.getElementsByTagNameAndClass(

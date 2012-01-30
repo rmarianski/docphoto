@@ -941,33 +941,6 @@ To reset your password, please click on the following link:
           (if (can-view-application? ~'user ~'application)
             (routing ~'request ~@image-routes)))))))
 
-(defn image-delete-view [request image]
-  (if (= (:request-method request) :post)
-    (let [app (:exhibit_application__r image)
-          exhibit-slug (:slug__c (:exhibit__r app))]
-      (delete-image exhibit-slug
-                    (:id app)
-                    (:id image))
-      "")))
-
-(defn reorder-images-view [request order-string]
-  (when-logged-in
-   (if order-string
-     (let [image-ids (.split order-string ",")
-           allowed-image-ids (query-allowed-images user image-ids)
-           image-ids-to-update (filter (set allowed-image-ids)
-                                       image-ids)]
-       (if (not-empty image-ids-to-update)
-         (do
-           (sf/update-image-order
-            conn
-            (map-indexed
-             (fn [n image-id]
-               {:id image-id
-                :order__c (double (inc n))})
-             image-ids-to-update))
-           ""))))))
-
 (defn user-applications-view [request username]
   (when-logged-in
    (if-not (or (= username (:userName__c user)) (admin? user) )
@@ -1097,16 +1070,12 @@ To reset your password, please click on the following link:
      (GET "/small" [] (image-view request image "small"))
      (GET "/large" [] (image-view request image "large"))
      (GET "/original" [] (image-view request image "original"))
-     (GET "/" [] (image-view request image "original"))
-     (POST "/delete" [] (image-delete-view request image))))
+     (GET "/" [] (image-view request image "original"))|))
 
   (GET "/cv/:app-id" [app-id :as request]
     ;; re-using application macro for setup logic
     (prepare-application-routes
      (ANY "*" [] (cv-view request application))))
-
-  (POST "/reorder-images" [order :as request]
-        (reorder-images-view request order))
 
   (GET "/user/applications" [] current-user-applications-view)
   (GET "/user/applications/:username" [username :as request]

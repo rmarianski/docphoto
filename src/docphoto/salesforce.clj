@@ -199,12 +199,6 @@
 (defn delete-image [conn image-id]
   (delete-ids conn [image-id]))
 
-(defn update-application-captions [conn caption-maps]
-  (update conn Image__c (map #(select-keys % [:id :caption__c]) caption-maps)))
-
-(defn update-image-order [conn image-maps]
-  (update conn Image__c (map #(select-keys % [:id :order__c]) image-maps)))
-
 (defn update-application-status [conn application-id status]
   (update conn Exhibit_Application__c [{:id application-id
                                         :submission_Status__c status}]))
