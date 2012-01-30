@@ -244,15 +244,8 @@ docphoto.Uploader.prototype.onImageDelete = function(event) {
       if (goog.dom.classes.has(el, 'image-container')) {
         var image = goog.dom.getFirstElementChild(el);
         if (goog.isDefAndNotNull(image)) {
-          // the image itself has the id that we use for the ajax call
-          var imageId = docphoto.parseImageId_(image);
           var li = el.parentNode;
           goog.dom.removeNode(li);
-
-          // not through ajax any more
-          // goog.net.XhrIo.send('/image/' + imageId + '/delete',
-          //                     goog.nullFunction,
-          //                     'POST');
         }
         break;
       }
@@ -279,11 +272,11 @@ docphoto.parseImageId_ = function(imageEl) {
  * @param {!Event} event
  */
 docphoto.Uploader.prototype.onDrag = function(event) {
-  var orderings = goog.dom.getElementsByTagNameAndClass(
-    goog.dom.TagName.INPUT, 'image-order', this.images);
-  goog.array.forEach(orderings, function(ordering, i) {
-    ordering.value = i+1;
-  });
+  // var orderings = goog.dom.getElementsByTagNameAndClass(
+  //   goog.dom.TagName.INPUT, 'image-order', this.images);
+  // goog.array.forEach(orderings, function(ordering, i) {
+  //   ordering.value = i+1;
+  // });
 };
 
 docphoto.editor.triggerEditors = function() {

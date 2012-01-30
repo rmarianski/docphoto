@@ -548,13 +548,18 @@ To reset your password, please click on the following link:
       (render-form params {:password1 "Passwords don't match"}))))
 
 
-(defn delete-images [exhibit-slug application-id]
+(defn delete-images-for-application [exhibit-slug application-id]
   (sf/delete-images-for-application conn application-id)
   (persist/delete-images-for-application exhibit-slug application-id))
 
 (defn delete-image [exhibit-slug application-id image-id]
   (sf/delete-image conn image-id)
   (persist/delete-image exhibit-slug application-id image-id))
+
+(defn delete-images [exhibit-slug application-id imageids]
+  (sf/delete-ids conn imageids)
+  (doseq [imageid imageids]
+    (persist/delete-image exhibit-slug application-id imageid)))
 
 (defn exhibit-latest-view [request]
   (redirect (or (-?>> (query-latest-exhibit) :slug__c (str "/exhibit/"))
@@ -677,7 +682,7 @@ To reset your password, please click on the following link:
     (or (:caption__c image) "")]
    [:a {:href (image-delete-link (:id image))
         :class "image-delete"} "Delete"]
-   [:input.image-order {:type :hidden :name :order :value (:order__c image)}]))
+   [:input.image-order {:type :hidden :name :order :value (:id image)}]))
 
 (defn render-images [request images]
   [:ul#images-list
@@ -767,7 +772,7 @@ To reset your password, please click on the following link:
           {}
           (map vector
                image-ids
-               (iterate inc 1))))
+               (iterate (comp double inc) 1.0))))
 
 (defn- merge-imageorder-with-captions
   "take a seq of caption maps, a map of image-orderings (:id -> order} and combine them. Returns a vector of the combination."
@@ -775,7 +780,7 @@ To reset your password, please click on the following link:
   (map
    (fn [m]
      (if-let [order (image-order (:id m))]
-       (assoc m :order order)
+       (assoc m :order__c order)
        m))
    caption-maps))
 
@@ -791,7 +796,7 @@ To reset your password, please click on the following link:
     (let [caption-maps (parse-caption-maps (:params request))
           ;; form params contains the elements in the original order
           ;; in this case it is a list of image ids
-          image-order (parse-image-order-map (:order (:form-params request)))
+          image-order (parse-image-order-map ((:form-params request) "order"))
           image-maps (merge-imageorder-with-captions caption-maps image-order)
           existing-images (query-images (:id application))]
       (if (not-empty image-maps)
@@ -800,7 +805,9 @@ To reset your password, please click on the following link:
       ;; these ids
       (let [imageids-to-delete (find-imageids-to-delete image-maps existing-images)]
         (if (not-empty imageids-to-delete)
-          (sf/delete-ids conn imageids-to-delete)))
+          (delete-images (-> application :exhibit__r :slug__c)
+                         (:id application)
+                         imageids-to-delete)))
       (redirect
        (application-submit-link (:id application))))))
 
