@@ -649,8 +649,6 @@ To reset your password, please click on the following link:
   (let [app-id (:id application)
         app-update-map (merge (dissoc params :cv :app-id)
                               {:id app-id})]
-    (def debugparams params)
-    (def debugappid app-id)
     (sf/update-application conn app-update-map)
     (let [cv (:cv params)
           tempfile (:tempfile cv)
