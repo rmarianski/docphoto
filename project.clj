@@ -12,7 +12,7 @@
                  ;; if metadata operations are wanted
                  ;; [org.soros/dev-salesforce-docphoto-metadata "0.0.1"]
                  [clj-decline "0.0.5"]
-                 [flutter "0.0.6"]
+                 [flutter "0.0.7"]
                  [org.imgscalr/imgscalr-lib "4.1"]
                  [com.draines/postal "1.7.0"]
                  [org.clojars.mccraigmccraig/core.incubator "0.1.1-SNAPSHOT"]])
