@@ -707,7 +707,9 @@ To reset your password, please click on the following link:
    [:div#images
     [:p#images-description {:style "display: none"}
      (str "The order of your images is an important consideration. "
-          "Drag them to re-order.")]
+          "Drag them to re-order.")
+     [:br]
+     "There is a 5 megabyte limit on images."]
     [:form {:method :post :action (images-update-link (:id application))}
      (render-images request (query-images (:id application)))
      [:input {:type "submit" :value "Save"}]]]))
