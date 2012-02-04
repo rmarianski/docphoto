@@ -584,19 +584,46 @@ To reset your password, please click on the following link:
                    [:option "Other" "Other"]]}]
    :validator {:fn not-empty :msg :required}})
 
+;; the exhibit apply and application update views share a lot of the
+;; same fields
+;; here's a single source that they can both draw from
+
+(def exhibit-application-fields
+  {:title (req-textfield :title__c "Project Title")
+   :statement {:field [:text-area#statement.editor {} :statementRich__c
+                       {:label "Project Statement" :description "(600 words maximum) describing the project you would like to exhibit"}]
+               :validator {:fn not-empty :msg :required}}
+   :bio {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"
+                                                               :description "(250 words maximum) summarizing your previous work and experience"}]
+         :validator {:fn not-empty :msg :required}}
+   :summary {:field [:text-area#summaryEngagement.editor {} :summary_Engagement__c {:label "Summary of your engagement"
+                                                                                    :description "(600 words maximum) Please comment on your relationship with the issue or community you photographed. How and why did you begin the project? How long have you  been working on the project? Are there particular methods you  use while working?   What do you hope a viewer will take away from your project?"}]
+             :validator {:fn not-empty :msg :required}}
+   :cv {:field [:file {} :cv {:label "Upload CV"}] :validator
+        {:fn filesize-not-empty :msg :required}}
+   :website {:field [:text {} :website__c {:label "Website" :description "Personal Web Site (Optional)"}]}
+   :multimedia-link {:field [:text {} :multimedia_Link__c
+                             {:label "Multmedia Link"
+                              :description
+                              "Moving Walls has the capacity to exhibit multimedia in addition to (but not in place of) the print exhibition. A multimedia sample should be submitted only if it complements or enhances, rather than duplicates, the other submitted materials. The sample will be judged on its ability to present complex issues through compelling multimedia storytelling, and will not negatively impact the print submission. If you are submitting a multimedia piece for consideration, please post the piece on a free public site such as youtube YouTube or Vimeo and include a link. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
+   :findout (findout-field)})
+
+(defmacro appfield
+  "convenience to lookup exhibit application field"
+  [key]
+  (if-let [field (exhibit-application-fields key)]
+    field
+    (throw (IllegalArgumentException. (str "Unknown field key: " key)))))
+
 (defformpage exhibit-apply-view [exhibit]
-  [(req-textfield :title__c "Project Title")
-   {:field [:text-area#statement.editor {} :statementRich__c {:label "Project Statement"}]
-    :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"}]
-    :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#summaryEngagement.editor {} :summary_Engagement__c {:label "Summary of your engagement"}]
-    :validator {:fn not-empty :msg :required}}
-   {:field [:file {} :cv {:label "Upload CV"}] :validator
-    {:fn filesize-not-empty :msg :required}}
-   (textfield :website__c "Website")
-   (textfield :multimedia_Link__c "Multimedia Link")
-   (findout-field)]
+  [(appfield :title)
+   (appfield :statement)
+   (appfield :bio)
+   (appfield :summary)
+   (appfield :cv)
+   (appfield :website)
+   (appfield :multimedia-link)
+   (appfield :findout)]
   (when-logged-in
    (layout
     request
@@ -623,17 +650,14 @@ To reset your password, please click on the following link:
          "/upload"))))
 
 (defformpage application-update-view [application]
-  [(req-textfield :title__c "Project Title")
-   {:field [:text-area#statement.editor {} :statementRich__c {:label "Project Statement"}]
-    :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"}]
-    :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#summaryEngagement.editor {} :summary_Engagement__c {:label "Summary of your engagement"}]
-    :validator {:fn not-empty :msg :required}}
+  [(appfield :title)
+   (appfield :statement)
+   (appfield :bio)
+   (appfield :summary)
    {:field [:file {} :cv {:label "Update CV"}]}
-   (textfield :website__c "Website")
-   (textfield :multimedia_Link__c "Multimedia Link")
-   (findout-field)]
+   (appfield :website)
+   (appfield :multimedia-link)
+   (appfield :findout)]
   (layout
    request
    {:title (str "Update application")
