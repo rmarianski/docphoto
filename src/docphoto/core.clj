@@ -696,6 +696,7 @@ To reset your password, please click on the following link:
                       (:uri request))}
   (list
    [:h2 "Upload images"]
+   [:p "Please upload 15-20 images."]
    [:form.uniForm {:method :post :action (:uri request)}
     [:div#plupload
      [:div#files-list
@@ -705,11 +706,10 @@ To reset your password, please click on the following link:
      [:span " | "]
      [:a#upload {:href "#"} "Upload"]]]
    [:div#images
+    [:p "There is a 5 megabyte limit on images."]
     [:p#images-description {:style "display: none"}
      (str "The order of your images is an important consideration. "
-          "Drag them to re-order.")
-     [:br]
-     "There is a 5 megabyte limit on images."]
+          "Drag them to re-order.")]
     [:form {:method :post :action (images-update-link (:id application))}
      (render-images request (query-images (:id application)))
      [:input {:type "submit" :value "Save"}]]]))
