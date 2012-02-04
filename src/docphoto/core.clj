@@ -849,6 +849,10 @@ To reset your password, please click on the following link:
           [:dd (:summary_Engagement__c application "No summary of engagement")]
           [:dt "CV"]
           [:dd [:a {:href (cv-link app-id)} "Download CV"]]
+          (if-let [ml (:multimedia_Link__c application)]
+            (list
+             [:dt "Multimedia Link"]
+             [:dd ml]))
           [:dt "Found out from"]
           [:dd (:referredby__c application)]]
          [:a {:href (application-update-link app-id)} "Update"]]
