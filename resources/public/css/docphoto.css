@@ -8,7 +8,7 @@
     text-transform: inherit;
 }
 #logo {
-    width: 450px;
+    width: 270px;
 }
 #menu {
     width: 500px;
@@ -18,7 +18,9 @@
     height: 90px;
 }
 #osf-logo {
-    clear: both;
+    float: left;
+    position: relative;
+    top: 10px;
 }
 #content {
     margin-bottom: 2em;
