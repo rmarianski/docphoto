@@ -16,4 +16,5 @@
                  [flutter "0.0.7"]
                  [org.imgscalr/imgscalr-lib "4.1"]
                  [com.draines/postal "1.7.0"]
-                 [org.clojars.mccraigmccraig/core.incubator "0.1.1-SNAPSHOT"]])
+                 [org.clojars.mccraigmccraig/core.incubator "0.1.1-SNAPSHOT"]
+                 [clj-stacktrace "0.2.4"]])
