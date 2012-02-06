@@ -687,7 +687,7 @@ To reset your password, please click on the following link:
      (or (:came-from params)
          (application-submit-link app-id)))))
 
-(defview app-view [application]
+(defview app-debug-view [application]
   {:title (:title__c application)}
   (list [:h2 (:title__c application)]
         [:dl
@@ -695,6 +695,9 @@ To reset your password, please click on the following link:
            (list
             [:dt k]
             [:dd v]))]))
+
+(defn app-view [request application]
+  (redirect (application-submit-link (:id application))))
 
 (defn render-image [request image]
   (list
@@ -1081,6 +1084,7 @@ To reset your password, please click on the following link:
      (ANY "/submit" [] (application-submit-view request application))
      (GET "/success" [] (application-success-view request application))
      (ANY "/update" [] (application-update-view request application))
+     (GET "/debug" [] (app-debug-view request application))
      (GET "/" [] (app-view request application))))
 
   (GET "/exhibit" [] exhibit-latest-view)
