@@ -12,3 +12,6 @@
 
 (def mail-config
   {:from "defaultuser@example.com"})
+
+(def admins
+  (set ["admin-contact-username"]))

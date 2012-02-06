@@ -928,10 +928,8 @@ To reset your password, please click on the following link:
            [:h2 "Forbidden"]
            [:p "You don't have access to view this page"]))})
 
-;; need to figure out where to store this
-;; maybe just in memory for now
 (defmacro admin? [user]
-  (if cfg/debug true false))
+  (if cfg/debug true `(cfg/admins (:userName__c ~user))))
 
 (defmacro reviewer? [user]
   (if cfg/debug true false))
