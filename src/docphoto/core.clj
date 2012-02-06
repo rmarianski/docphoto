@@ -262,14 +262,15 @@
          " | "
          [:a {:href "/register"} "Register"]))]
      (if user
-       [:div.applications
-        [:h2 "applications"]
-        (let [apps (query-applications (:id user))]
-          [:ul
-           (for [app (reverse (sort-by :lastModifiedDate apps))]
-             [:li
-              [:a {:href (application-submit-link (:id app))}
-               (:title__c app)]])])]))))
+       (let [apps (query-applications (:id user))]
+         (if (not-empty apps)
+           [:div.applications
+            [:h2 "applications"]
+            [:ul
+             (for [app (reverse (sort-by :lastModifiedDate apps))]
+               [:li
+                [:a {:href (application-submit-link (:id app))}
+                 (:title__c app)]])]]))))))
 
 (defn layout [request options body]
   (xhtml
