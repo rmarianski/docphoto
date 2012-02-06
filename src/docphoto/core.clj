@@ -856,7 +856,7 @@ To reset your password, please click on the following link:
         [:p "Review your application before submitting."]
         [:fieldset
          [:legend "Contact info"]
-         (let [user (session/get-user request)]
+         (let [user (query-user-by-id (:contact__c application))]
            (list
             [:h2 (:name user)]
             [:p (:email user)]
