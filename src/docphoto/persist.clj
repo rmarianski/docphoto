@@ -36,9 +36,13 @@
 (defn- ensure-cv-path [exhibit-slug app-id]
   (ensure-dir-exists *base-storage-path* exhibit-slug app-id "cv"))
 
-(defn remove-existing-cvs [exhibit-slug app-id]
+(defn delete-existing-cvs [exhibit-slug app-id]
   (FileUtils/deleteDirectory
    (file *base-storage-path* exhibit-slug app-id "cv")))
+
+(defn delete-application [exhibit-slug app-id]
+  (FileUtils/deleteDirectory
+   (file *base-storage-path* exhibit-slug app-id)))
 
 (defn persist-image-chunk
   [^File chunk exhibit-slug application-id image-id scale-type]

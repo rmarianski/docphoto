@@ -561,6 +561,15 @@ To reset your password, please click on the following link:
   (doseq [imageid imageids]
     (persist/delete-image exhibit-slug application-id imageid)))
 
+(defn delete-application
+  ([application] (delete-application (:slug__c (:exhibit__r application))
+                                     (:id application)))
+  ([exhibit-slug application-id]
+     (sf/delete-ids conn [application-id])
+     (delete-images-for-application exhibit-slug application-id)
+     (persist/delete-existing-cvs exhibit-slug application-id)
+     (persist/delete-application exhibit-slug application-id)))
+
 (defn exhibit-latest-view [request]
   (redirect (or (-?>> (query-latest-exhibit) :slug__c (str "/exhibit/"))
                 "/")))
@@ -681,7 +690,7 @@ To reset your password, please click on the following link:
           exhibit-slug (:slug__c (:exhibit__r application))]
       (if (and :cv (not-empty filename) (pos? size))
         (do
-          (persist/remove-existing-cvs exhibit-slug app-id)
+          (persist/delete-existing-cvs exhibit-slug app-id)
           (persist/persist-cv tempfile exhibit-slug app-id filename))))
     (redirect
      (or (:came-from params)
