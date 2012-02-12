@@ -934,7 +934,7 @@ To reset your password, please click on the following link:
            [:li
             [:div.image-container.goog-inline-block
              (ph/image (image-link (:id image) "small"))]
-            [:span (:caption__c image)]])]
+            [:div.goog-inline-block.image-caption (:caption__c image)]])]
         [:a {:href (application-upload-link app-id)} "Update"]]
        [:form {:method :post :action (application-submit-link app-id)}
         [:div.submit-button

@@ -72,6 +72,10 @@ a#upload {
     width: 125px;
     display: inline-block;
 }
+.image-caption {
+    display: inline-block;
+    width: 400px;
+}
 #images a {
     position: relative;
     top: -50px;
@@ -109,11 +113,6 @@ a#upload {
 }
 .application-submit ol li {
     margin: 2em 0;
-}
-.application-submit ol span {
-    position: relative;
-    top: -80px;
-    left: 15px;
 }
 .application-submit .submit-button {
     margin: 2em 0;
