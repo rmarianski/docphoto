@@ -116,6 +116,7 @@
    [id biography__c title__c website__c statementRich__c contact__c
     submission_Status__c exhibit__r.name exhibit__r.slug__c
     summary_Engagement__c multimedia_Link__c
+    focus_Country__c focus_Region__c
     referredby__c]
    [[id = app-id]])
   (fn [form] `(-?> ~form first tweak-application-result)))
@@ -149,6 +150,21 @@
                    (:contact__c (:exhibit_application__r
                                  (tweak-image-result %)))))
            ~form))))
+
+;; picklist values for application
+(defn-debug-memo picklist-application-field-metadata [field-name]
+  (sf/picklist-field-metadata conn :exhibit_application__c field-name))
+
+;; select field whose source is an application picklist
+(defmacro salesforce-picklist-field [field-name field-label]
+  `(fn [request# field# params# errors#]
+     (let [field-values# (picklist-application-field-metadata ~field-name)]
+       (field#
+        :select {} ~field-name
+        {:label ~field-label
+         :opts (cons [:option ""]
+                     (for [[label# value#] field-values#]
+                       [:option label# value#]))}))))
 
 (defn- list-all-editor-css-files []
   "convenience function to list all google editor css files to include"
@@ -616,7 +632,9 @@ To reset your password, please click on the following link:
                              {:label "Multmedia Link"
                               :description
                               "Moving Walls has the capacity to exhibit multimedia in addition to (but not in place of) the print exhibition. A multimedia sample should be submitted only if it complements or enhances, rather than duplicates, the other submitted materials. The sample will be judged on its ability to present complex issues through compelling multimedia storytelling, and will not negatively impact the print submission. If you are submitting a multimedia piece for consideration, please post the piece on a free public site such as youtube YouTube or Vimeo and include a link. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
-   :findout (findout-field)})
+   :findout (findout-field)
+   :focus-region {:custom (salesforce-picklist-field :focus_Region__c "Focus Region")}
+   :focus-country {:custom (salesforce-picklist-field :focus_Country__c "Focus Country")}})
 
 (defmacro appfield
   "convenience to lookup exhibit application field"
@@ -633,7 +651,9 @@ To reset your password, please click on the following link:
    (appfield :cv)
    (appfield :website)
    (appfield :multimedia-link)
-   (appfield :findout)]
+   (appfield :findout)
+   (appfield :focus-region)
+   (appfield :focus-country)]
   (when-logged-in
    (layout
     request
@@ -667,7 +687,9 @@ To reset your password, please click on the following link:
    {:field [:file {} :cv {:label "Update CV"}]}
    (appfield :website)
    (appfield :multimedia-link)
-   (appfield :findout)]
+   (appfield :findout)
+   (appfield :focus-region)
+   (appfield :focus-country)]
   (layout
    request
    {:title (str "Update application")
@@ -681,8 +703,14 @@ To reset your password, please click on the following link:
       (render-fields request (merge application params) errors)]
      [:input {:type :submit :value "Update"}]]])
   (let [app-id (:id application)
-        app-update-map (merge (dissoc params :cv :app-id)
-                              {:id app-id})]
+        normalize-picklist-value (fn [m k]
+                                   (update-in m [k]
+                                              #(if (empty? %) nil %)))
+        app-update-map (-> params
+                           (dissoc :cv :app-id)
+                           (merge {:id app-id})
+                           (normalize-picklist-value :focus_Region__c)
+                           (normalize-picklist-value :focus_Country__c))]
     (sf/update-application conn app-update-map)
     (let [cv (:cv params)
           tempfile (:tempfile cv)
@@ -847,68 +875,73 @@ To reset your password, please click on the following link:
 (defn application-submit-view [request application]
   (let [app-id (:id application)]
     (onpost
-      (and (sf/update-application-status conn app-id "Final")
-           (redirect (application-success-link app-id)))
-      (layout
-       request
-       {:title "Review submission"}
-       [:div.application-submit
-        [:h2 "Application review"]
-        [:p "Review your application before submitting."]
-        [:fieldset
-         [:legend "Contact info"]
-         (let [user (query-user-by-id (:contact__c application))]
+     (and (sf/update-application-status conn app-id "Final")
+          (redirect (application-success-link app-id)))
+     (layout
+      request
+      {:title "Review submission"}
+      [:div.application-submit
+       [:h2 "Application review"]
+       [:p "Review your application before submitting."]
+       [:fieldset
+        [:legend "Contact info"]
+        (let [user (query-user-by-id (:contact__c application))]
+          (list
+           [:h2 (:name user)]
+           [:p (:email user)]
+           [:p (:phone user)]
+           [:p
+            (:mailingStreet user) [:br]
+            (:mailingCity user) ", " (:mailingState user) " "
+            (:mailingPostalCode user) [:br]
+            (:mailingCountry user)]
+           [:p (str (if-not (:docPhoto_Mail_List__c user)
+                      "Not subscribed "
+                      "Subscribed ")
+                    "to mailing list")]
+           [:a {:href (profile-update-link)} "Update"]))]
+       [:fieldset
+        [:legend "Application"]
+        [:h2 (:title__c application)]
+        [:dl
+         [:dt "Project Statement"]
+         [:dd (:statementRich__c application)]
+         [:dt "Short biography"]
+         [:dd (:biography__c application)]
+         [:dt "Summary of Engagement"]
+         [:dd (:summary_Engagement__c application "No summary of engagement")]
+         [:dt "CV"]
+         [:dd [:a {:href (cv-link app-id)} "Download CV"]]
+         [:dt "Found out from"]
+         [:dd (:referredby__c application)]
+         (letfn [(display-if-set [k title]
+                   (let [x (k application)]
+                     (when-not (empty? x)
+                       (list
+                        [:dt title]
+                        [:dd x]))))]
            (list
-            [:h2 (:name user)]
-            [:p (:email user)]
-            [:p (:phone user)]
-            [:p
-             (:mailingStreet user) [:br]
-             (:mailingCity user) ", " (:mailingState user) " "
-             (:mailingPostalCode user) [:br]
-             (:mailingCountry user)]
-            [:p (str (if-not (:docPhoto_Mail_List__c user)
-                       "Not subscribed "
-                       "Subscribed ")
-                     "to mailing list")]
-            [:a {:href (profile-update-link)} "Update"]))]
-        [:fieldset
-         [:legend "Application"]
-         [:h2 (:title__c application)]
-         [:dl
-          [:dt "Project Statement"]
-          [:dd (:statementRich__c application)]
-          [:dt "Short biography"]
-          [:dd (:biography__c application)]
-          [:dt "Website"]
-          [:dd (:website__c application "No website")]
-          [:dt "Summary of Engagement"]
-          [:dd (:summary_Engagement__c application "No summary of engagement")]
-          [:dt "CV"]
-          [:dd [:a {:href (cv-link app-id)} "Download CV"]]
-          (if-let [ml (:multimedia_Link__c application)]
-            (list
-             [:dt "Multimedia Link"]
-             [:dd ml]))
-          [:dt "Found out from"]
-          [:dd (:referredby__c application)]]
-         [:a {:href (application-update-link app-id)} "Update"]]
-        [:fieldset
-         [:legend "Images"]
-         [:ol
-          (for [image (query-images app-id)]
-            [:li
-             [:div.image-container.goog-inline-block
-              (ph/image (image-link (:id image) "small"))]
-             [:span (:caption__c image)]])]
-         [:a {:href (application-upload-link app-id)} "Update"]]
-        [:form {:method :post :action (application-submit-link app-id)}
-         [:div.submit-button
-          (if (= "Final" (:submission_Status__c application))
-            [:p "Your application has already been submitted. When we are finished reviewing all applications, we will get back to you."]
-            (list
-             [:p "Once you have reviewed your application, please click on the submit button below."]
-             [:input {:type "submit" :value "Submit your application"}]))]]]))))
+            (display-if-set :website__c "Website")
+            (display-if-set :multimedia_Link__c "Multimedia Link")
+            (display-if-set :focus_Region__c "Focus Region")
+            (display-if-set :focus_Country__c "Focus Country")))]
+        [:a {:href (application-update-link app-id)} "Update"]]
+       [:fieldset
+        [:legend "Images"]
+        [:ol
+         (for [image (query-images app-id)]
+           [:li
+            [:div.image-container.goog-inline-block
+             (ph/image (image-link (:id image) "small"))]
+            [:span (:caption__c image)]])]
+        [:a {:href (application-upload-link app-id)} "Update"]]
+       [:form {:method :post :action (application-submit-link app-id)}
+        [:div.submit-button
+         (if (= "Final" (:submission_Status__c application))
+           [:p "Your application has already been submitted. When we are finished reviewing all applications, we will get back to you."]
+           (list
+            [:p "Once you have reviewed your application, please click on the submit button below."]
+            [:input {:type "submit" :value "Submit your application"}]))]]]))))
 
 (defview application-success-view [application]
   {:title "Thank you for your submission"}

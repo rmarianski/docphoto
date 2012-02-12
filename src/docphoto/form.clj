@@ -72,7 +72,7 @@
   "parse a fieldspec and create a form to render the field. Returns nil if the parse fails."
   [field params request errors fieldspec]
   (if-let [customfn (:custom fieldspec)]
-    `(~customfn ~request ~params ~errors)
+    `(~customfn ~request ~field ~params ~errors)
     (if-let [fieldspec (:field fieldspec)]
       `(~field ~@fieldspec))))
 
@@ -137,8 +137,9 @@
   [fieldname label]
   {:field [:password {} fieldname {:label label}]})
 
-(defn came-from-field [request params errors]
+(defn came-from-field
   "a hidden input that passes came from information"
+  [request field params errors]
   (let [came-from (or (:came-from params) ((:headers request) "referer"))]
     (if (not-empty came-from)
       [:input {:type :hidden

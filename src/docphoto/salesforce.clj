@@ -129,6 +129,19 @@
 (defn describe-sobject-names [conn object-name]
   (->> object-name (describe-sobject conn) :fields (map :name)))
 
+(defn picklist-field-metadata
+  "Given the name of an object and field, return a seq of [label value] from the picklist"
+  [conn object-name field-name]
+  (when-let [object-description (.describeSObject conn (name object-name))]
+    (let [fields (.getFields object-description)
+          field-name (string/lower-case (name field-name))]
+      (when-let [field-entries (seq (filter #(= (string/lower-case (.getName %)) field-name)
+                                            fields))]
+        (let [field (first field-entries)]
+          (when-let [picklist-entries (.getPicklistValues field)]
+            (for [picklist-entry picklist-entries]
+              [(.getLabel picklist-entry) (.getValue picklist-entry)])))))))
+
 (defn create-sf-object [obj data-map]
   (doseq [[k v] data-map]
     (clojure.lang.Reflector/invokeInstanceMethod
@@ -171,7 +184,8 @@
    application-map
    [:statementRich__c :title__c :biography__c :website__c
     :contact__c :exhibit__c :submission_Status__c :referredby__c
-    :summary_Engagement__c :multimedia_Link__c]))
+    :summary_Engagement__c :multimedia_Link__c
+    :focus_Region__c :focus_Country__c]))
 
 (defcreate create-image [image-map]
   (Image__c.)
