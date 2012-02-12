@@ -769,7 +769,6 @@ To reset your password, please click on the following link:
       (str "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus "
            "or HTML5 support.")]
      [:a#pick-files {:href "#"} "Select files"]
-     [:span " | "]
      [:a#upload {:href "#"} "Upload"]]]
    [:div#images
     [:p "There is a 5 megabyte limit on images."]

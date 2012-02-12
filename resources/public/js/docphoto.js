@@ -161,7 +161,7 @@ docphoto.Uploader.prototype.onFilesAdded = function(up, files) {
     n += 1;
   });
   this.filesToUpload += n;
-  this.uploadLink.style.display = 'inline';
+  this.uploadLink.style.display = 'block';
 };
 
 /**

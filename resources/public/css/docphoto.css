@@ -60,6 +60,9 @@ a#pick-files:hover {
 }
 a#upload {
     display: none;
+    font-weight: bold;
+    font-size: 20px;
+    margin: 1em 0;
 }
 
 #images textarea {
