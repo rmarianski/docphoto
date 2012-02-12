@@ -230,6 +230,17 @@
 (defn update-application [conn application-map]
   (update conn Exhibit_Application__c [application-map]))
 
+(defn normalize-image-map
+  "update image map to allow for salesforce update, ie ensure length of captions is valid"
+  [image-map]
+  (letfn [(limit-string [s n]
+            (when s
+              (if (< (count s) n)
+               s
+               (.substring s 0 n))))]
+    (update-in image-map [:caption__c] limit-string 255)))
+
 (defn update-images [conn image-maps]
   (update conn Image__c
-          (map #(select-keys % [:id :order__c :caption__c]) image-maps)))
+          (map #(select-keys % [:id :order__c :caption__c])
+               (map normalize-image-map image-maps))))
