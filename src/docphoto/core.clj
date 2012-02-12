@@ -535,8 +535,7 @@ To reset your password, please click on the following link:
           (do
             (session/allow-password-reset request (:userid session-token))
             (redirect (reset-password-link)))
-          (do (println "session" (:token session-token) "passed" token)
-              (reset-failure-page "Invalid token. Please double check the link in your email.")))
+          (reset-failure-page "Invalid token. Please double check the link in your email."))
         (reset-failure-page [:span "Token expired. Are you using the same browser session as when you requested a password reset? If so, you can "
                              (ph/link-to (forgot-link) "resend")
                              " a password reset email."])))))
