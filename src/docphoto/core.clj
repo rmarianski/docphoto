@@ -607,8 +607,7 @@ To reset your password, please click on the following link:
             :opts [[:option ""]
                    [:option "Friend" "Friend"]
                    [:option "Website" "Website"]
-                   [:option "Other" "Other"]]}]
-   :validator {:fn not-empty :msg :required}})
+                   [:option "Other" "Other"]]}]})
 
 ;; the exhibit apply and application update views share a lot of the
 ;; same fields
@@ -627,12 +626,12 @@ To reset your password, please click on the following link:
              :validator {:fn not-empty :msg :required}}
    :cv {:field [:file {} :cv {:label "Upload CV"}] :validator
         {:fn filesize-not-empty :msg :required}}
+   :findout (findout-field)
    :website {:field [:text {} :website__c {:label "Website" :description "Personal Web Site (Optional)"}]}
    :multimedia-link {:field [:text {} :multimedia_Link__c
                              {:label "Multmedia Link"
                               :description
                               "Moving Walls has the capacity to exhibit multimedia in addition to (but not in place of) the print exhibition. A multimedia sample should be submitted only if it complements or enhances, rather than duplicates, the other submitted materials. The sample will be judged on its ability to present complex issues through compelling multimedia storytelling, and will not negatively impact the print submission. If you are submitting a multimedia piece for consideration, please post the piece on a free public site such as youtube YouTube or Vimeo and include a link. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
-   :findout (findout-field)
    :focus-region {:custom (salesforce-picklist-field :focus_Region__c "Focus Region")}
    :focus-country {:custom (salesforce-picklist-field :focus_Country__c "Focus Country")}})
 
@@ -651,9 +650,9 @@ To reset your password, please click on the following link:
    (appfield :cv)
    (appfield :website)
    (appfield :multimedia-link)
-   (appfield :findout)
    (appfield :focus-region)
-   (appfield :focus-country)]
+   (appfield :focus-country)
+   (appfield :findout)]
   (when-logged-in
    (layout
     request
@@ -687,9 +686,9 @@ To reset your password, please click on the following link:
    {:field [:file {} :cv {:label "Update CV"}]}
    (appfield :website)
    (appfield :multimedia-link)
-   (appfield :findout)
    (appfield :focus-region)
-   (appfield :focus-country)]
+   (appfield :focus-country)
+   (appfield :findout)]
   (layout
    request
    {:title (str "Update application")
@@ -703,14 +702,17 @@ To reset your password, please click on the following link:
       (render-fields request (merge application params) errors)]
      [:input {:type :submit :value "Update"}]]])
   (let [app-id (:id application)
-        normalize-picklist-value (fn [m k]
-                                   (update-in m [k]
-                                              #(if (empty? %) nil %)))
+        normalize-empty-value (fn [m k]
+                                (update-in m [k]
+                                           #(if (empty? %) nil %)))
         app-update-map (-> params
                            (dissoc :cv :app-id)
                            (merge {:id app-id})
-                           (normalize-picklist-value :focus_Region__c)
-                           (normalize-picklist-value :focus_Country__c))]
+                           (normalize-empty-value :focus_Region__c)
+                           (normalize-empty-value :focus_Country__c)
+                           (normalize-empty-value :referredby__c)
+                           (normalize-empty-value :website__c)
+                           (normalize-empty-value :multimedia_Link__c))]
     (sf/update-application conn app-update-map)
     (let [cv (:cv params)
           tempfile (:tempfile cv)
@@ -912,8 +914,7 @@ To reset your password, please click on the following link:
          [:dd (:summary_Engagement__c application "No summary of engagement")]
          [:dt "CV"]
          [:dd [:a {:href (cv-link app-id)} "Download CV"]]
-         [:dt "Found out from"]
-         [:dd (:referredby__c application)]
+         
          (letfn [(display-if-set [k title]
                    (let [x (k application)]
                      (when-not (empty? x)
@@ -924,7 +925,8 @@ To reset your password, please click on the following link:
             (display-if-set :website__c "Website")
             (display-if-set :multimedia_Link__c "Multimedia Link")
             (display-if-set :focus_Region__c "Focus Region")
-            (display-if-set :focus_Country__c "Focus Country")))]
+            (display-if-set :focus_Country__c "Focus Country")
+            (display-if-set :referredby__c "Found out from")))]
         [:a {:href (application-update-link app-id)} "Update"]]
        [:fieldset
         [:legend "Images"]
