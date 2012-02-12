@@ -143,14 +143,20 @@
               [(.getLabel picklist-entry) (.getValue picklist-entry)])))))))
 
 (defn create-sf-object [obj data-map]
-  (doseq [[k v] data-map]
-    (clojure.lang.Reflector/invokeInstanceMethod
-     obj
-     (apply str "set"
-            (string/capitalize (first (name k)))
-            (rest (name k)))
-     (to-array [v])))
-  obj)
+  (letfn [(field-name [k]
+            (apply str
+                   (string/capitalize (first (name k)))
+                   (rest (name k))))]
+    (doseq [[k v] data-map]
+      (clojure.lang.Reflector/invokeInstanceMethod
+       obj
+       (str "set" (field-name k))
+       (to-array [v])))
+    (let [fields-to-null (keep (fn [[k v]]
+                                 (when (nil? v) (field-name k))) data-map)]
+      (when (seq fields-to-null)
+        (.setFieldsToNull obj (into-array String fields-to-null))))
+    obj))
 
 (def contact-fields
   [:firstName :lastName :email :phone
