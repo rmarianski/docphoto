@@ -22,6 +22,7 @@
             [docphoto.session :as session]
             [clojure.string :as string]
             [clojure.walk]
+            [docphoto.guidelines :as guidelines]
             [hiccup.page-helpers :as ph]
             [ring.middleware.stacktrace :as stacktrace])
   (:import [java.io File]))
@@ -590,12 +591,15 @@ To reset your password, please click on the following link:
   (redirect (or (-?>> (query-latest-exhibit) :slug__c (str "/exhibit/"))
                 "/")))
 
+(defn exhibit-guidelines [request exhibit]
+  (or (guidelines/guidelines (keyword (:slug__c exhibit)))
+      (:description__c exhibit)))
+
 (defview exhibit-view [exhibit]
   {:title (:name exhibit)
     :js-script "docphoto.removeAnchorTargets();"}
-  [:div
-   [:h2 (:name exhibit)]
-   [:p (:description__c exhibit)]])
+  [:div#guidelines
+   (exhibit-guidelines request exhibit)])
 
 (defn filesize-not-empty [fileobject]
   (pos? (:size fileobject 0)))

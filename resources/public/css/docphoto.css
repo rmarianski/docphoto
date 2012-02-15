@@ -145,3 +145,18 @@ a#upload {
 #forgot-password {
     margin: 1em 0;
 }
+
+#guidelines h1 {
+    text-align: center;
+}
+
+#guidelines h2 {
+    font-size: 16px;
+    text-decoration: underline;
+    color: black;
+    margin: 1em 0;
+}
+
+#guidelines h3 {
+    font-size: 15px;
+}
