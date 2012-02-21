@@ -1061,46 +1061,42 @@ To reset your password, please click on the following link:
         [:legend "Application"]
         [:h2 (:title__c application)]
         [:dl
-         [:dt "Cover Page"]
-         [:dd (:cover_Page__c application)]
-         [:dt "Project Statement"]
-         [:dd (:statementRich__c application)]
-         [:dt "Short biography"]
-         [:dd (:biography__c application)]
-         [:dt "Summary of Engagement"]
-         [:dd (:summary_Engagement__c application "No summary of engagement")]
-         [:dt "CV"]
-         [:dd [:a {:href (cv-link app-id)} "Download CV"]]
-         
          (letfn [(display-if-set [k title]
-                   (let [x (k application)]
-                     (when-not (empty? x)
-                       (list
-                        [:dt title]
-                        [:dd x]))))]
+                    (let [x (k application)]
+                      (when-not (empty? x)
+                        (list
+                         [:dt title]
+                         [:dd x]))))]
            (list
+            (display-if-set :cover_Page__c "Cover Page")
+            (display-if-set :statementRich__c "Statement")
+            (display-if-set :biography__c "Short biography")
+            (display-if-set :summary_Engagement__c "Summary of Engagement")
+            (list
+             [:dt "CV"]
+             [:dd [:a {:href (cv-link app-id)} "Download CV"]])
             (display-if-set :website__c "Website")
             (display-if-set :multimedia_Link__c "Multimedia Link")
             (display-if-set :focus_Region__c "Focus Region")
             (display-if-set :focus_Country__c "Focus Country")
             (display-if-set :referredby__c "Found out from")))]
         [:a {:href (application-update-link app-id)} "Update"]]
-       [:fieldset
-        [:legend "Images"]
-        [:ol
-         (for [image (query-images app-id)]
-           [:li
-            [:div.image-container.goog-inline-block
-             (ph/image (image-link (:id image) "small"))]
-            [:div.goog-inline-block.image-caption (:caption__c image)]])]
-        [:a {:href (application-upload-link app-id)} "Update"]]
-       [:form {:method :post :action (application-submit-link app-id)}
-        [:div.submit-button
-         (if (= "Final" (:submission_Status__c application))
-           [:p "Your application has already been submitted. When we are finished reviewing all applications, we will get back to you."]
-           (list
-            [:p "Once you have reviewed your application, please click on the submit button below."]
-            [:input {:type "submit" :value "Submit your application"}]))]]]))))
+      [:fieldset
+       [:legend "Images"]
+       [:ol
+        (for [image (query-images app-id)]
+          [:li
+           [:div.image-container.goog-inline-block
+            (ph/image (image-link (:id image) "small"))]
+           [:div.goog-inline-block.image-caption (:caption__c image)]])]
+       [:a {:href (application-upload-link app-id)} "Update"]]
+      [:form {:method :post :action (application-submit-link app-id)}
+       [:div.submit-button
+        (if (= "Final" (:submission_Status__c application))
+          [:p "Your application has already been submitted. When we are finished reviewing all applications, we will get back to you."]
+          (list
+           [:p "Once you have reviewed your application, please click on the submit button below."]
+           [:input {:type "submit" :value "Submit your application"}]))]]]))))
 
 (defview application-success-view [application]
   {:title "Thank you for your submission"}
