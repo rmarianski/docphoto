@@ -131,7 +131,7 @@ a#upload {
     margin-left: 0;
 }
 
-#statement, #biography, #summaryEngagement {
+.editor {
     width: 650px;
 }
 
