@@ -586,8 +586,6 @@ To reset your password, please click on the following link:
                                      (:id application)))
   ([exhibit-slug application-id]
      (sf/delete-ids conn [application-id])
-     (delete-images-for-application exhibit-slug application-id)
-     (persist/delete-existing-cvs exhibit-slug application-id)
      (persist/delete-application exhibit-slug application-id)))
 
 (defview exhibit-list-view [] "Exhibits"
