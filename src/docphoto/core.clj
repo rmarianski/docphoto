@@ -117,7 +117,7 @@
   (exhibit_application__c
    [id biography__c title__c website__c statementRich__c contact__c
     submission_Status__c exhibit__r.name exhibit__r.slug__c
-    summary_Engagement__c multimedia_Link__c
+    summary_Engagement__c multimedia_Link__c cover_Page__c
     focus_Country__c focus_Region__c
     referredby__c]
    [[id = app-id]])
@@ -618,6 +618,10 @@ To reset your password, please click on the following link:
 
 (def exhibit-application-fields
   {:title (req-textfield :title__c "Project Title")
+   :cover-page {:field [:text-area#coverpage.editor {} :cover_Page__c
+                        {:label "Application Cover Page"
+                         :description "(200 words maximum) introducing the project you would like to exhibit"}]
+                :validator {:fn not-empty :msg :required}}
    :statement {:field [:text-area#statement.editor {} :statementRich__c
                        {:label "Project Statement" :description "(600 words maximum) describing the project you would like to exhibit"}]
                :validator {:fn not-empty :msg :required}}
@@ -647,6 +651,7 @@ To reset your password, please click on the following link:
 
 (defformpage exhibit-apply-view [exhibit]
   [(appfield :title)
+   (appfield :cover-page)
    (appfield :statement)
    (appfield :bio)
    (appfield :summary)
@@ -683,6 +688,7 @@ To reset your password, please click on the following link:
 
 (defformpage application-update-view [application]
   [(appfield :title)
+   (appfield :cover-page)
    (appfield :statement)
    (appfield :bio)
    (appfield :summary)
@@ -699,7 +705,7 @@ To reset your password, please click on the following link:
     :js-script "docphoto.editor.triggerEditors();"}
    [:div
     [:form.uniForm {:method :post :action (:uri request)
-            :enctype "multipart/form-data"}
+                    :enctype "multipart/form-data"}
      [:fieldset
       [:legend "Update application"]
       (render-fields request (merge application params) errors)]
@@ -908,6 +914,8 @@ To reset your password, please click on the following link:
         [:legend "Application"]
         [:h2 (:title__c application)]
         [:dl
+         [:dt "Cover Page"]
+         [:dd (:cover_Page__c application)]
          [:dt "Project Statement"]
          [:dd (:statementRich__c application)]
          [:dt "Short biography"]
