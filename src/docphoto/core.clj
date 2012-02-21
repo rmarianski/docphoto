@@ -11,7 +11,7 @@
         [clojure.core.incubator :only (-?> -?>>)]
         [clojure.java.io :only (copy file input-stream output-stream)]
         [docphoto.utils :only (defn-debug-memo md5 multipart-form?
-                                send-message onpost when-logged-in)]
+                                send-message onpost when-logged-in dbg)]
         [docphoto.form :only (defformpage came-from-field
                                req-textfield textfield req-password)])
   (:require [compojure.route :as route]
