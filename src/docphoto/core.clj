@@ -92,7 +92,8 @@
 
 (defquery query-exhibits []
   (exhibit__c [id name slug__c application_start_date__c description__c]
-              [[closed__c = false noquote]]))
+              [[closed__c = false noquote]]
+              :append "order by application_start_date__c asc"))
 
 (defquery-single query-latest-exhibit []
   (exhibit__c [id name slug__c application_start_date__c description__c]
@@ -587,9 +588,8 @@ To reset your password, please click on the following link:
      (persist/delete-existing-cvs exhibit-slug application-id)
      (persist/delete-application exhibit-slug application-id)))
 
-(defn exhibit-latest-view [request]
-  (redirect (or (-?>> (query-latest-exhibit) :slug__c (str "/exhibit/"))
-                "/")))
+(defview exhibit-list-view [] "Exhibits"
+  (exhibits-html request))
 
 (defn exhibit-guidelines [request exhibit]
   (or (guidelines/guidelines (keyword (:slug__c exhibit)))
@@ -1132,7 +1132,7 @@ To reset your password, please click on the following link:
      (GET "/debug" [] (app-debug-view request application))
      (GET "/" [] (app-view request application))))
 
-  (GET "/exhibit" [] exhibit-latest-view)
+  (GET "/exhibit" [] exhibit-list-view)
   (context "/exhibit/:exhibit-id" [exhibit-id]
     (prepare-exhibit-routes
      (ANY "/apply" [] (exhibit-apply-view request exhibit))
