@@ -119,7 +119,7 @@
   (exhibit_application__c
    [id biography__c title__c website__c statementRich__c contact__c
     submission_Status__c exhibit__r.name exhibit__r.slug__c
-    summary_Engagement__c multimedia_Link__c cover_Page__c
+    summary_Engagement__c narrative__c multimedia_Link__c cover_Page__c
     focus_Country__c focus_Region__c
     referredby__c]
    [[id = app-id]])
@@ -647,7 +647,11 @@ To reset your password, please click on the following link:
                               :description
                               "Moving Walls has the capacity to exhibit multimedia in addition to (but not in place of) the print exhibition. A multimedia sample should be submitted only if it complements or enhances, rather than duplicates, the other submitted materials. The sample will be judged on its ability to present complex issues through compelling multimedia storytelling, and will not negatively impact the print submission. If you are submitting a multimedia piece for consideration, please post the piece on a free public site such as youtube YouTube or Vimeo and include a link. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
    :focus-region {:custom (salesforce-picklist-field :focus_Region__c "Focus Region")}
-   :focus-country {:custom (salesforce-picklist-field :focus_Country__c "Focus Country")}})
+   :focus-country {:custom (salesforce-picklist-field :focus_Country__c "Focus Country")}
+   :narrative {:field [:text-area#narrative.editor {} :narrative__c
+                       {:label "Proposal Narrative"
+                        :description "Please provide a three-page description of the proposed project, a summary of the issue and its importance, a description of the plan for producing the work, a description of sources and contacts for the project, and thoughts on how the finished product might be distributed."}]
+               :validator {:fn not-empty :msg :required}}})
 
 (defmacro appfield
   "convenience to lookup exhibit application field"
@@ -667,7 +671,7 @@ To reset your password, please click on the following link:
 (defmethod exhibit-apply-fields :prodgrant2012 [exhibit]
   (map
    exhibit-application-fields
-   [:title :statement-personal :cv]))
+   [:title :narrative :statement-personal :cv]))
 
 (defmulti application-update-fields (comp keyword :slug__c :exhibit__r))
 
@@ -1069,6 +1073,7 @@ To reset your password, please click on the following link:
                          [:dd x]))))]
            (list
             (display-if-set :cover_Page__c "Cover Page")
+            (display-if-set :narrative__c "Proposal Narrative")
             (display-if-set :statementRich__c "Statement")
             (display-if-set :biography__c "Short biography")
             (display-if-set :summary_Engagement__c "Summary of Engagement")
