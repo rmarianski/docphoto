@@ -696,7 +696,7 @@ To reset your password, please click on the following link:
 (defn exhibit-apply-view [request exhibit]
   (when-logged-in
    (let [params (:params request)
-         fields (exhibit-fields exhibit)
+         fields (exhibit-apply-fields exhibit)
          render-form (fn [params errors]
                        (let [field (form/field-render-fn params errors)]
                          (layout
