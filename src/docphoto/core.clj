@@ -849,7 +849,7 @@ To reset your password, please click on the following link:
         (iterate (comp double inc) 1.0))))
 
 (defn normalize-form-param
-  "normalize the form param to a vactor"
+  "normalize the form param to a vector"
   [value]
   (cond
    (nil? value) []
