@@ -20,11 +20,13 @@
             [docphoto.image :as image]
             [docphoto.config :as cfg]
             [docphoto.session :as session]
+            [docphoto.form :as form]
             [clojure.string :as string]
             [clojure.walk]
             [docphoto.guidelines :as guidelines]
             [hiccup.page-helpers :as ph]
-            [ring.middleware.stacktrace :as stacktrace])
+            [ring.middleware.stacktrace :as stacktrace]
+            [decline.core :as decline])
   (:import [java.io File]))
 
 ;; global salesforce connection
@@ -622,8 +624,13 @@ To reset your password, please click on the following link:
                         {:label "Application Cover Page"
                          :description "(200 words maximum) introducing the project you would like to exhibit"}]
                 :validator {:fn not-empty :msg :required}}
+   ;; heights on editor fields can be applied using styles
    :statement {:field [:text-area#statement.editor {} :statementRich__c
                        {:label "Project Statement" :description "(600 words maximum) describing the project you would like to exhibit"}]
+               :validator {:fn not-empty :msg :required}}
+   ;; salesforce field being re-used for either project/personal statements
+   :statement-personal {:field [:text-area#statement.editor {} :statementRich__c
+                                {:label "Personal Statement" :description "Please provide a one-page summary of your experience as a photographer, the training you have received, and why you feel this grant program would be useful for you now."}]
                :validator {:fn not-empty :msg :required}}
    :bio {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"
                                                                :description "(250 words maximum) summarizing your previous work and experience"}]
@@ -649,92 +656,232 @@ To reset your password, please click on the following link:
     field
     (throw (IllegalArgumentException. (str "Unknown field key: " key)))))
 
-(defformpage exhibit-apply-view [exhibit]
-  [(appfield :title)
-   (appfield :cover-page)
-   (appfield :statement)
-   (appfield :bio)
-   (appfield :summary)
-   (appfield :cv)
-   (appfield :website)
-   (appfield :multimedia-link)
-   (appfield :focus-region)
-   (appfield :focus-country)
-   (appfield :findout)]
-  (when-logged-in
-   (layout
-    request
-    {:title (str "Apply to " (:name exhibit))
-     :include-editor-css true
-     :js-script "docphoto.editor.triggerEditors();"}
-    [:div
-     [:h2 (str "Apply to " (:name exhibit))]
-     [:form.uniForm {:method :post :action (:uri request)
-                     :enctype "multipart/form-data"}
-      [:fieldset
-       [:legend "Apply"]
-       (render-fields request params errors)]
-      [:input {:type :submit :value "Apply"}]]]))
-  (when-logged-in
-   (redirect
-    (str "/application/"
-         (create-application
-          (:slug__c exhibit)
-          (merge
-           params
-           {:contact__c (:id (session/get-user request))
-            :exhibit__c (:id exhibit)}))
-         "/upload"))))
+(defmulti exhibit-apply-fields (comp keyword :slug__c))
 
-(defformpage application-update-view [application]
-  [(appfield :title)
-   (appfield :cover-page)
-   (appfield :statement)
-   (appfield :bio)
-   (appfield :summary)
-   {:field [:file {} :cv {:label "Update CV"}]}
-   (appfield :website)
-   (appfield :multimedia-link)
-   (appfield :focus-region)
-   (appfield :focus-country)
-   (appfield :findout)]
-  (layout
-   request
-   {:title (str "Update application")
-    :include-editor-css true
-    :js-script "docphoto.editor.triggerEditors();"}
-   [:div
-    [:form.uniForm {:method :post :action (:uri request)
-                    :enctype "multipart/form-data"}
-     [:fieldset
-      [:legend "Update application"]
-      (render-fields request (merge application params) errors)]
-     [:input {:type :submit :value "Update"}]]])
-  (let [app-id (:id application)
-        normalize-empty-value (fn [m k]
-                                (update-in m [k]
-                                           #(if (empty? %) nil %)))
-        app-update-map (-> params
-                           (dissoc :cv :app-id)
-                           (merge {:id app-id})
-                           (normalize-empty-value :focus_Region__c)
-                           (normalize-empty-value :focus_Country__c)
-                           (normalize-empty-value :referredby__c)
-                           (normalize-empty-value :website__c)
-                           (normalize-empty-value :multimedia_Link__c))]
-    (sf/update-application conn app-update-map)
-    (let [cv (:cv params)
-          tempfile (:tempfile cv)
-          filename (persist/safe-filename (:filename cv))
-          size (:size cv)
-          exhibit-slug (:slug__c (:exhibit__r application))]
-      (if (and :cv (not-empty filename) (pos? size))
-        (do
-          (persist/delete-existing-cvs exhibit-slug app-id)
-          (persist/persist-cv tempfile exhibit-slug app-id filename))))
-    (redirect
-     (or (:came-from params)
-         (application-submit-link app-id)))))
+(defmethod exhibit-apply-fields :mw20 [exhibit]
+  (map
+   exhibit-application-fields
+   [:title :cover-page :statement :bio :summary :cv
+    :findout :website :multimedia-link :focus-region :focus-country]))
+
+(defmethod exhibit-apply-fields :prodgrant2012 [exhibit]
+  (map
+   exhibit-application-fields
+   [:title :statement-personal :cv]))
+
+(defmulti application-update-fields (comp keyword :slug__c :exhibit__r))
+
+(defn make-cv-field-optional
+  "The cv field is optional when updating the application"
+  [fields]
+  (map (fn [field]
+         (or 
+          (when-let [fieldspec (:field field)]
+            (when-let [field-name (nth fieldspec 2 nil)]
+              (when (= field-name :cv)
+                (dissoc field :validator))))
+          field))
+       fields))
+
+(defmethod application-update-fields :mw20 [application]
+  (make-cv-field-optional (exhibit-apply-fields (:exhibit__r application))))
+
+(defmethod application-update-fields :prodgrant2012 [application]
+  (make-cv-field-optional (exhibit-apply-fields (:exhibit__r application))))
+
+(defn exhibit-apply-view [request exhibit]
+  (when-logged-in
+   (let [params (:params request)
+         fields (exhibit-fields exhibit)
+         render-form (fn [params errors]
+                       (let [field (form/field-render-fn params errors)]
+                         (layout
+                          request
+                          {:title (str "Apply to " (:name exhibit))
+                           :include-editor-css true
+                           :js-script "docphoto.editor.triggerEditors();"}
+                          [:div
+                           [:h2 (str "Apply to " (:name exhibit))]
+                           [:form.uniForm {:method :post :action (:uri request)
+                                           :enctype "multipart/form-data"}
+                            [:fieldset
+                             [:legend "Apply"]
+                             (letfn [(render-field [field-stanza]
+                                       (if-let [customfn (:custom field-stanza)]
+                                         (customfn request field params errors)
+                                         (if-let [fieldspec (:field field-stanza)]
+                                           (apply field fieldspec))))]
+                               (map render-field fields))]
+                            [:input {:type :submit :value "Apply"}]]])))]
+     (onpost
+      (let [validate (apply
+                      decline/validations
+                      (keep (fn [fieldspec]
+                              (let [{:keys [field validator]} fieldspec
+                                    {:keys [fn msg]} validator
+                                    [_ _ name] field]
+                                (when-not (some nil? [fn msg name])
+                                  (decline/validate-val name fn {name msg}))))
+                            fields))]
+        (if-let [errors (validate params)]
+          (render-form params errors)
+          (let [appid (create-application
+                       (:slug__c exhibit)
+                       (merge params
+                              {:contact__c (:id (session/get-user request))
+                               :exhibit__c (:id exhibit)}))]
+            (redirect (application-upload-link appid)))))
+      (render-form params {})))))
+
+(defn application-update-view [request application]
+  (when-logged-in
+   (let [params (:params request)
+         exhibit (:exhibit__r application)
+         fields (application-update-fields application)
+         render-form (fn [params errors]
+                       (let [field (form/field-render-fn params errors)]
+                         (layout
+                          request
+                          {:title (str "Update application")
+                           :include-editor-css true
+                           :js-script "docphoto.editor.triggerEditors();"}
+                          [:div
+                           [:form.uniForm {:method :post :action (:uri request)
+                                           :enctype "multipart/form-data"}
+                            [:fieldset
+                             [:legend "Update application"]
+                             (letfn [(render-field [field-stanza]
+                                       (if-let [customfn (:custom field-stanza)]
+                                         (customfn request field params errors)
+                                         (if-let [fieldspec (:field field-stanza)]
+                                           (apply field fieldspec))))]
+                               (map render-field fields))]
+                            [:input {:type :submit :value "Update"}]]])))]
+     (onpost
+      (let [validate (apply
+                      decline/validations
+                      (keep (fn [fieldspec]
+                              (let [{:keys [field validator]} fieldspec
+                                    {:keys [fn msg]} validator
+                                    [_ _ name] field]
+                                (when-not (some nil? [fn msg name])
+                                  (decline/validate-val name fn {name msg}))))
+                            fields))]
+        (if-let [errors (validate params)]
+          (render-form (merge application params) errors)
+          (let [app-id (:id application)
+                normalize-empty-value (fn [m k]
+                                        (update-in m [k]
+                                                   #(if (empty? %) nil %)))
+                app-update-map (-> params
+                                   (dissoc :cv :app-id)
+                                   (merge {:id app-id})
+                                   (normalize-empty-value :focus_Region__c)
+                                   (normalize-empty-value :focus_Country__c)
+                                   (normalize-empty-value :referredby__c)
+                                   (normalize-empty-value :website__c)
+                                   (normalize-empty-value :multimedia_Link__c))]
+            (sf/update-application conn app-update-map)
+            (when-let [cv (:cv params)]
+              (let [tempfile (:tempfile cv)
+                    filename (persist/safe-filename (:filename cv))
+                    size (:size cv)
+                    exhibit-slug (:slug__c exhibit)]
+                (when (and :cv (not-empty filename) (pos? size))
+                  (do
+                    (persist/delete-existing-cvs exhibit-slug app-id)
+                    (persist/persist-cv tempfile exhibit-slug app-id filename)))))
+            (redirect
+             (or (:came-from params)
+                 (application-submit-link app-id))))))
+      (render-form (merge application params) {})))))
+
+;; (defformpage exhibit-apply-view [exhibit]
+;;   [(appfield :title)
+;;    (appfield :cover-page)
+;;    (appfield :statement)
+;;    (appfield :bio)
+;;    (appfield :summary)
+;;    (appfield :cv)
+;;    (appfield :website)
+;;    (appfield :multimedia-link)
+;;    (appfield :focus-region)
+;;    (appfield :focus-country)
+;;    (appfield :findout)]
+;;   (when-logged-in
+;;    (layout
+;;     request
+;;     {:title (str "Apply to " (:name exhibit))
+;;      :include-editor-css true
+;;      :js-script "docphoto.editor.triggerEditors();"}
+;;     [:div
+;;      [:h2 (str "Apply to " (:name exhibit))]
+;;      [:form.uniForm {:method :post :action (:uri request)
+;;                      :enctype "multipart/form-data"}
+;;       [:fieldset
+;;        [:legend "Apply"]
+;;        (render-fields request params errors)]
+;;       [:input {:type :submit :value "Apply"}]]]))
+;;   (when-logged-in
+;;    (redirect
+;;     (str "/application/"
+;;          (create-application
+;;           (:slug__c exhibit)
+;;           (merge
+;;            params
+;;            {:contact__c (:id (session/get-user request))
+;;             :exhibit__c (:id exhibit)}))
+;;          "/upload"))))
+
+;; (defformpage application-update-view [application]
+;;   [(appfield :title)
+;;    (appfield :cover-page)
+;;    (appfield :statement)
+;;    (appfield :bio)
+;;    (appfield :summary)
+;;    {:field [:file {} :cv {:label "Update CV"}]}
+;;    (appfield :website)
+;;    (appfield :multimedia-link)
+;;    (appfield :focus-region)
+;;    (appfield :focus-country)
+;;    (appfield :findout)]
+;;   (layout
+;;    request
+;;    {:title (str "Update application")
+;;     :include-editor-css true
+;;     :js-script "docphoto.editor.triggerEditors();"}
+;;    [:div
+;;     [:form.uniForm {:method :post :action (:uri request)
+;;                     :enctype "multipart/form-data"}
+;;      [:fieldset
+;;       [:legend "Update application"]
+;;       (render-fields request (merge application params) errors)]
+;;      [:input {:type :submit :value "Update"}]]])
+;;   (let [app-id (:id application)
+;;         normalize-empty-value (fn [m k]
+;;                                 (update-in m [k]
+;;                                            #(if (empty? %) nil %)))
+;;         app-update-map (-> params
+;;                            (dissoc :cv :app-id)
+;;                            (merge {:id app-id})
+;;                            (normalize-empty-value :focus_Region__c)
+;;                            (normalize-empty-value :focus_Country__c)
+;;                            (normalize-empty-value :referredby__c)
+;;                            (normalize-empty-value :website__c)
+;;                            (normalize-empty-value :multimedia_Link__c))]
+;;     (sf/update-application conn app-update-map)
+;;     (let [cv (:cv params)
+;;           tempfile (:tempfile cv)
+;;           filename (persist/safe-filename (:filename cv))
+;;           size (:size cv)
+;;           exhibit-slug (:slug__c (:exhibit__r application))]
+;;       (if (and :cv (not-empty filename) (pos? size))
+;;         (do
+;;           (persist/delete-existing-cvs exhibit-slug app-id)
+;;           (persist/persist-cv tempfile exhibit-slug app-id filename))))
+;;     (redirect
+;;      (or (:came-from params)
+;;          (application-submit-link app-id)))))
 
 (defview app-debug-view [application]
   {:title (:title__c application)}
