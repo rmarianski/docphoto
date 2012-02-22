@@ -94,7 +94,7 @@
 
            [:p "You will be asked to complete or upload the following:"]
            [:ol
-            [:li [:strong "application cover page"]]
+            [:li [:strong "application cover page"] " (200 words maximum) introducing the project you would like to exhibit;"]
             [:li [:strong "a project statement*"] " (600 words maximum) describing the project you would like to exhibit;"]
             [:li [:strong "a short narrative bio"] " (250 words maximum) summarizing your previous work and experience;"]
             [:li [:strong "a summary of your engagement"] " with the story or issue (600 words maximum). Please respond to the following questions:"
