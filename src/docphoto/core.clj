@@ -21,6 +21,7 @@
             [docphoto.config :as cfg]
             [docphoto.session :as session]
             [docphoto.form :as form]
+            [docphoto.i18n :as i18n]
             [clojure.string :as string]
             [clojure.walk]
             [docphoto.guidelines :as guidelines]
@@ -215,14 +216,14 @@
      `(let [~uri-sym ~uri]
         [:ul
          ~@(for [[link text active-link-fn]
-                 [["/" "Home"]
-                  ["/exhibit" "Exhibits" :starts-with]
-                  ["/about" "About"]]]
+                 [["/" :home]
+                  ["/exhibit" :exhibits :starts-with]
+                  ["/about" :about]]]
              `[:li (if ~(if (= :starts-with active-link-fn)
                           `(.startsWith ~uri-sym ~link)
                           `(= ~uri-sym ~link))
                      {:class "current_page_item"})
-               [:a {:href ~link} ~text]])])]))
+               [:a {:href ~link} (i18n/translate-text ~text)]])])]))
 
 (defn absolute-link [request url]
   (str (subs (str (:scheme request)) 1) "://" (:server-name request)
@@ -234,7 +235,7 @@
   "Generate a string link from the parts. They are joined together with str"
   [fn-name args & uri-parts]
   `(defn ~fn-name ~args
-     (str "/" ~@(interpose "/" uri-parts))))
+     (ph/url "/" ~@(interpose "/" uri-parts))))
 
 (defmacro deflinks [& deflink-specs]
   `(do ~@(for [spec deflink-specs]
@@ -268,7 +269,8 @@
   (reset-password-link [] "password" "reset")
   (images-update-link [application-id] "application" application-id "update-images")
   (image-delete-link [image-id] "image" image-id "delete")
-  (admin-password-reset-link [] "admin" "password-reset"))
+  (admin-password-reset-link [] "admin" "password-reset")
+  (switch-language-link [lang came-from] "language" lang {:came-from came-from}))
 
 (defn login-logout-snippet [request]
   (let [user (session/get-user request)]
@@ -308,7 +310,17 @@
          [:a {:href "/"} [:span "Documentary"] " Photography"]]]
        (theme-menu (:uri request))
        [:div#osf-logo (ph/image "/public/osf-logo.png"
-                                "Open Society Foundations")]]]
+                                "Open Society Foundations")]
+       [:div#language
+        [:ul
+         (let [came-from (:uri request)
+               current-language (or (session/get-language request) :en)]
+           (for [[text lang] [["English" "en"] ["Русский" "ru"]]]
+            [:li
+             (if (= (keyword lang) current-language)
+               text
+               (ph/link-to
+                (switch-language-link lang came-from) text))]))]]]]
      [:div#page
       [:div#content body]]
      [:div#sidebar
@@ -1262,6 +1274,11 @@ To reset your password, please click on the following link:
          (render-form params {:username "User does not exist"}))
        (render-form params {:password1 "Password don't match"})))))
 
+(defn language-view [request language came-from]
+  (when (#{"en" "ru"} language)
+    (session/save-language request (keyword language)))
+  (redirect (or came-from "/")))
+
 (defroutes main-routes
   (GET "/" request home-view)
   (GET "/about" [] about-view)
@@ -1310,6 +1327,9 @@ To reset your password, please click on the following link:
 
   (ANY "/admin/password-reset" [] admin-password-reset)
 
+  (ANY "/language/:language/" [language came-from :as request]
+       (language-view request language came-from))
+
   (route/resources "/" {:root nil})
 
   not-found-view)
@@ -1352,9 +1372,15 @@ To reset your password, please click on the following link:
      wrap-docphoto-stacktrace)
    handler))
 
+(defn bind-language [handler]
+  (fn [request]
+    (i18n/with-language (session/get-language request)
+      (handler request))))
+
 (def app
   (->
    main-routes
+   bind-language
    wrap-stacktrace
    session/wrap-servlet-session
    wrap-multipart-convert-params

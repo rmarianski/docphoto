@@ -22,6 +22,24 @@
     position: relative;
     top: 10px;
 }
+#language {
+    clear: both;
+    position: relative;
+    top: -25px;
+    right: -25px;
+    float: right;
+    width: 200px;
+}
+#language ul,
+#language li {
+    list-style: none;
+    display: inline;
+    margin: 0;
+    padding: 0;
+}
+#language li {
+    margin: 0 5px;
+}
 #content {
     margin-bottom: 2em;
 }

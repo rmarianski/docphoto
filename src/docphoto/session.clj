@@ -46,3 +46,6 @@
 (defsession-getter password-reset-userid "allow-password-reset")
 (defsession remove-allow-password-reset []
   (.removeAttribute session "allow-password-reset"))
+
+(defsession-getter get-language "language")
+(defsession-setter save-language "language")
