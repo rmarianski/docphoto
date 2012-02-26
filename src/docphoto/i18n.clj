@@ -55,6 +55,19 @@
 
    ;; form related
    :required "Required" "требуется"
+
+   ;; applications
+   :project-title "A one sentence summary of proposed body of work (English only)" "Название проекта (Это поле не принимает кирриллические буквы)"
+   :proposal-narrative "Proposal Narrative" "Описание предложения"
+   :proposal-narrative-description
+   "Please provide a three-page description of the proposed project, a summary of the issue and its importance, a description of the plan for producing the work, a description of sources and contacts for the project, and thoughts on how the finished product might be distributed."
+   "Пожалуйста, представьте трёхстраничное описание предложенного проекта, краткое изложение темы и её важность, описание плана выполнения работы, описание источников и контактов по проекту, соображения относительно того, каким образом окончательный продукт мог бы распространяться."
+   :personal-statement "Personal Statement" "Персональное заявление"
+   :personal-statement-description
+   "Please provide a one-page summary of your experience as a photographer, the training you have received, and why you feel this grant program would be useful for you now."
+   "Пожалуйста, представьте одну страницу с кратким изложением вашего опыта как фотографа, полученной подготовки, а также того, почему вы чувствуете, что эта грантовая программа была бы полезной вам в данное время."
+
+   :cv "Curriculum Vitae" "Резюме"
    ))
 
 (defn translate [translation-keyword]
