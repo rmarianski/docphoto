@@ -4,7 +4,8 @@
         [flutter.shortcuts :only (wrap-shortcuts)]
         [flutter.params :only (wrap-params)]
         [decline.core :only (validations validate-val)])
-  (:require [clojure.string :as string]))
+  (:require [clojure.string :as string]
+            [docphoto.i18n :as i18n]))
 
 (defn wrap-errors
   "add in errors for form fields puts the error in opts if it's a map"
@@ -27,12 +28,12 @@
     [:div.ctrlHolder
      (list
       [:label {:required (:required opts)}
-       (or (:label opts) (string/capitalize (name field-name)))]
+       (or (i18n/translate (:label opts)) (string/capitalize (name field-name)))]
       (when-let [desc (:description opts)]
-        [:p.formHint desc])
+        [:p.formHint (i18n/translate desc)])
       (f type attrs field-name (:opts opts) value)
       (when-let [error (:error opts)]
-        [:div.error error]))]))
+        [:div.error (i18n/translate error)]))]))
 
 (defn wrap-textinput-classes
   "add a textInput class to text inputs"

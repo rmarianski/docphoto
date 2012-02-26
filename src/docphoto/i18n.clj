@@ -23,12 +23,16 @@
    :about "About" "О"
    :russian "Russian" "Русский"
    :login "Login" "Войти"
+   :logout "Logout" "Выход"
    :register "Register" "Регистрировать"
 
    ;; register / login
    :username "Username" "Имя пользователя"
    :password "Password" "пароль"
    :password-again "Password Again" "Пароль еще раз"
+   :already-logged-in (fn [username] (str "Already logged in as: " username))
+                      (fn [username] (str "Уже вошли как: " username))
+   :invalid-credentials "Invalid Credentials" "Неверное Полномочия"
    :forgot-your-password-reset (fn [forgot-link]
                                  (list "Forgot your password? "
                                        (ph/link-to forgot-link "Reset") " it."))
@@ -48,7 +52,12 @@
 
    ;; exhibits
    :open-competitions "Open Competitions" "Открытые конкурсы"
+
+   ;; form related
+   :required "Required" "требуется"
    ))
 
 (defn translate [translation-keyword]
-  (-> translations translation-keyword *language*))
+  (if (keyword? translation-keyword)
+    (-> translations translation-keyword *language*)
+    translation-keyword))

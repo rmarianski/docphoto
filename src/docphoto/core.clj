@@ -277,8 +277,8 @@
     (list
      [:div.login-logout
       (if user
-        [:a {:href "/logout" :title (str "Logout " (:userName__c user))}
-         "Logout"]
+        [:a {:href "/logout" :title (str (i18n/translate :logout) " " (:userName__c user))}
+         (i18n/translate :logout)]
         (list
          [:a {:href "/login"} (i18n/translate :login)]
          " | "
@@ -365,7 +365,7 @@
 
 (defview home-view "Documentary Photography Project"
   [:div
-   [:h2 "Open competitions"]
+   [:h2 (i18n/translate :open-competitions)]
    (exhibits-html request)])
 
 (defview userinfo-view {:title "User Info View" :logged-in true}
@@ -397,20 +397,20 @@
   (session/delete request))
 
 (defformpage login-view []
-  [(req-textfield :userName__c "Username")
-   (req-password :password__c "Password")
+  [(req-textfield :userName__c :username)
+   (req-password :password__c :password)
    {:custom came-from-field}]
   (layout
    request
    {}
    (list
-    [:h2 "Login"]
+    [:h2 (i18n/translate :login)]
     [:form.uniForm {:method :post :action "/login"}
      [:fieldset
-      (if-let [user (session/get-user request)]
-        [:p (str "Already logged in as: " (:name user))])
+      (when-let [user (session/get-user request)]
+        [:p ((i18n/translate :already-logged-in) (:name user))])
       (render-fields request params errors)
-      [:input {:type :submit :value "Login"}]]]
+      [:input {:type :submit :value (i18n/translate :login)}]]]
     [:div
      [:p#forgot-password.note
       ((i18n/translate :forgot-your-password-reset) (forgot-link))]]))
@@ -419,7 +419,7 @@
         (redirect (if-let [came-from (:came-from params)]
                     (if (.endsWith came-from "/login") "/" came-from)
                     "/")))
-    (render-form params {:userName__c "Invalid Credentials"})))
+    (render-form params {:userName__c (i18n/translate :invalid-credentials)})))
 
 (defn logout-view [request] (logout request) (redirect "/login"))
 
@@ -458,27 +458,27 @@
      (redirect (or (:came-from params) "/")))))
 
 (defformpage register-view []
-  [(req-textfield :userName__c "Username")
-   (req-password :password__c "Password")
-   (req-password :password2 "Password Again")
-   (req-textfield :firstName "First Name")
-   (req-textfield :lastName "Last Name")
-   (req-textfield :email "Email")
-   (req-textfield :phone "Phone")
-   (req-textfield :mailingStreet "Address")
-   (req-textfield :mailingCity "City")
-   (req-textfield :mailingState "State")
-   (req-textfield :mailingPostalCode "Postal Code")
-   (req-textfield :mailingCountry "Country")
+  [(req-textfield :userName__c :username)
+   (req-password :password__c :password)
+   (req-password :password2 :password-again)
+   (req-textfield :firstName :first-name)
+   (req-textfield :lastName :last-name)
+   (req-textfield :email :email)
+   (req-textfield :phone :phone)
+   (req-textfield :mailingStreet :address)
+   (req-textfield :mailingCity :city)
+   (req-textfield :mailingState :state)
+   (req-textfield :mailingPostalCode :postal-code)
+   (req-textfield :mailingCountry :country)
    {:field [:checkbox {} :docPhoto_Mail_List__c
-            {:label "Subscribe to mailing list?"}]}]
+            {:label :subscribe-to-mailinglist}]}]
   (layout
    request
    {}
    [:form.uniForm {:method :post :action "/register"}
-    [:h2 "Register"]
+    [:h2 (i18n/translate :register)]
     (render-fields request params errors)
-    [:input {:type :submit :value "Register"}]])
+    [:input {:type :submit :value (i18n/translate :register)}]])
   (let [{password1 :password__c password2 :password2
          username :userName__c} params]
     (if (not (= password1 password2))
