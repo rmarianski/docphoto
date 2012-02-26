@@ -223,7 +223,7 @@
                           `(.startsWith ~uri-sym ~link)
                           `(= ~uri-sym ~link))
                      {:class "current_page_item"})
-               [:a {:href ~link} (i18n/translate-text ~text)]])])]))
+               [:a {:href ~link} (i18n/translate ~text)]])])]))
 
 (defn absolute-link [request url]
   (str (subs (str (:scheme request)) 1) "://" (:server-name request)
@@ -280,9 +280,9 @@
         [:a {:href "/logout" :title (str "Logout " (:userName__c user))}
          "Logout"]
         (list
-         [:a {:href "/login"} "Login"]
+         [:a {:href "/login"} (i18n/translate :login)]
          " | "
-         [:a {:href "/register"} "Register"]))]
+         [:a {:href "/register"} (i18n/translate :register)]))]
      (if user
        (let [apps (query-applications (:id user))]
          (if (not-empty apps)
@@ -413,8 +413,7 @@
       [:input {:type :submit :value "Login"}]]]
     [:div
      [:p#forgot-password.note
-      "Forgot your password? "
-      (ph/link-to (forgot-link) "Reset") " it."]]))
+      ((i18n/translate :forgot-your-password-reset) (forgot-link))]]))
   (if-let [user (query-user-by-credentials (:userName__c params) (md5 (:password__c params)))]
     (do (login request user)
         (redirect (if-let [came-from (:came-from params)]
