@@ -120,7 +120,7 @@
   (exhibit_application__c
    [id biography__c title__c website__c statementRich__c contact__c
     submission_Status__c exhibit__r.name exhibit__r.slug__c
-    summary_Engagement__c narrative__c multimedia_Link__c cover_Page__c
+    narrative__c multimedia_Link__c cover_Page__c
     focus_Country__c focus_Region__c
     referredby__c]
    [[id = app-id]])
@@ -628,24 +628,20 @@ To reset your password, please click on the following link:
 ;; here's a single source that they can both draw from
 
 (def exhibit-application-fields
-  {:title (req-textfield :title__c "Project Title")
+  {:title (req-textfield :title__c :project-title)
    :cover-page {:field [:text-area#coverpage.editor {} :cover_Page__c
-                        {:label "Application Cover Page"
-                         :description "(200 words maximum) introducing the project you would like to exhibit"}]
+                        {:label "Project Summary"
+                         :description "A one sentence description of the project, including title (if applicable) and main subject/content."}]
                 :validator {:fn not-empty :msg :required}}
    ;; heights on editor fields can be applied using styles
    :statement {:field [:text-area#statement.editor {} :statementRich__c
                        {:label "Project Statement" :description "(600 words maximum) describing the project you would like to exhibit"}]
                :validator {:fn not-empty :msg :required}}
-   ;; salesforce field being re-used for either project/personal statements
-   :statement-personal {:field [:text-area#statement.editor {} :statementRich__c
-                                {:label "Personal Statement" :description "Please provide a one-page summary of your experience as a photographer, the training you have received, and why you feel this grant program would be useful for you now."}]
-               :validator {:fn not-empty :msg :required}}
    :bio {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"
                                                                :description "(250 words maximum) summarizing your previous work and experience"}]
          :validator {:fn not-empty :msg :required}}
-   :summary {:field [:text-area#summaryEngagement.editor {} :summary_Engagement__c {:label "Summary of your engagement"
-                                                                                    :description "(600 words maximum) Please comment on your relationship with the issue or community you photographed. How and why did you begin the project? How long have you  been working on the project? Are there particular methods you  use while working?   What do you hope a viewer will take away from your project?"}]
+   :summary {:field [:text-area#summaryEngagement.editor {} :narrative__c {:label "Summary of your engagement"
+                                                                           :description "(600 words maximum) Please comment on your relationship with the issue or community you photographed. How and why did you begin the project? How long have you  been working on the project? Are there particular methods you  use while working?   What do you hope a viewer will take away from your project?"}]
              :validator {:fn not-empty :msg :required}}
    :cv {:field [:file {} :cv {:label "Upload CV"}] :validator
         {:fn filesize-not-empty :msg :required}}
@@ -680,7 +676,7 @@ To reset your password, please click on the following link:
 (defmethod exhibit-apply-fields :prodgrant2012 [exhibit]
   (map
    exhibit-application-fields
-   [:title :narrative :statement-personal :cv]))
+   [:title :narrative :bio :cv]))
 
 (defmulti application-update-fields (comp keyword :slug__c :exhibit__r))
 
@@ -1081,11 +1077,10 @@ To reset your password, please click on the following link:
                          [:dt title]
                          [:dd x]))))]
            (list
-            (display-if-set :cover_Page__c "Cover Page")
+            (display-if-set :cover_Page__c "Summary")
             (display-if-set :narrative__c "Proposal Narrative")
             (display-if-set :statementRich__c "Statement")
             (display-if-set :biography__c "Short biography")
-            (display-if-set :summary_Engagement__c "Summary of Engagement")
             (list
              [:dt "CV"]
              [:dd [:a {:href (cv-link app-id)} "Download CV"]])
