@@ -638,7 +638,7 @@ To reset your password, please click on the following link:
 (defmulti exhibit-apply-fields (comp keyword :slug__c))
 
 (defmethod exhibit-apply-fields :mw20 [exhibit]
-  [(req-textfield :title__c :project-title)
+  [(req-textfield :title__c "Project Title")
    {:field [:text-area#coverpage.editor {} :cover_Page__c
             {:label "Project Summary"
              :description "A one sentence description of the project, including title (if applicable) and main subject/content."}]
