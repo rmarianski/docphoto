@@ -623,53 +623,45 @@ To reset your password, please click on the following link:
                    [:option "Website" "Website"]
                    [:option "Other" "Other"]]}]})
 
-;; the exhibit apply and application update views share a lot of the
-;; same fields
-;; here's a single source that they can both draw from
-
-(def exhibit-application-fields
-  {:title (req-textfield :title__c :project-title)
-   :cover-page {:field [:text-area#coverpage.editor {} :cover_Page__c
-                        {:label "Project Summary"
-                         :description "A one sentence description of the project, including title (if applicable) and main subject/content."}]
-                :validator {:fn not-empty :msg :required}}
-   ;; heights on editor fields can be applied using styles
-   :statement {:field [:text-area#statement.editor {} :statementRich__c
-                       {:label "Project Statement" :description "(600 words maximum) describing the project you would like to exhibit"}]
-               :validator {:fn not-empty :msg :required}}
-   :bio {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"
-                                                               :description "(250 words maximum) summarizing your previous work and experience"}]
-         :validator {:fn not-empty :msg :required}}
-   :summary {:field [:text-area#summaryEngagement.editor {} :narrative__c {:label "Summary of your engagement"
-                                                                           :description "(600 words maximum) Please comment on your relationship with the issue or community you photographed. How and why did you begin the project? How long have you  been working on the project? Are there particular methods you  use while working?   What do you hope a viewer will take away from your project?"}]
-             :validator {:fn not-empty :msg :required}}
-   :cv {:field [:file {} :cv {:label "Upload CV"}] :validator
-        {:fn filesize-not-empty :msg :required}}
-   :findout (findout-field)
-   :website {:field [:text {} :website__c {:label "Website" :description "Personal Web Site (Optional)"}]}
-   :multimedia-link {:field [:text {} :multimedia_Link__c
-                             {:label "Multmedia Link"
-                              :description
-                              "Moving Walls has the capacity to exhibit multimedia in addition to (but not in place of) the print exhibition. A multimedia sample should be submitted only if it complements or enhances, rather than duplicates, the other submitted materials. The sample will be judged on its ability to present complex issues through compelling multimedia storytelling, and will not negatively impact the print submission. If you are submitting a multimedia piece for consideration, please post the piece on a free public site such as YouTube or Vimeo and include a link. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
-   :focus-region {:custom (salesforce-picklist-field :focus_Region__c "Focus Region")}
-   :focus-country {:custom (salesforce-picklist-field :focus_Country__c "Focus Country")}
-   :narrative {:field [:text-area#narrative.editor {} :narrative__c
-                       {:label "Proposal Narrative"
-                        :description "Please provide a three-page description of the proposed project, a summary of the issue and its importance, a description of the plan for producing the work, a description of sources and contacts for the project, and thoughts on how the finished product might be distributed."}]
-               :validator {:fn not-empty :msg :required}}})
+(def common-application-fields
+  {:cv {:field [:file {} :cv {:label :cv :description :cv-description}]
+        :validator {:fn filesize-not-empty :msg :required}}})
 
 (defmulti exhibit-apply-fields (comp keyword :slug__c))
 
 (defmethod exhibit-apply-fields :mw20 [exhibit]
-  (map
-   exhibit-application-fields
-   [:title :cover-page :statement :bio :summary :cv
-    :findout :website :multimedia-link :focus-region :focus-country]))
+  [(req-textfield :title__c :project-title)
+   {:field [:text-area#coverpage.editor {} :cover_Page__c
+            {:label "Project Summary"
+             :description "A one sentence description of the project, including title (if applicable) and main subject/content."}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#statement.editor {} :statementRich__c
+            {:label "Project Statement" :description "(600 words maximum) describing the project you would like to exhibit"}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"
+                                                          :description "(250 words maximum) summarizing your previous work and experience"}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#summaryEngagement.editor {} :narrative__c {:label "Summary of your engagement"
+                                                                  :description "(600 words maximum) Please comment on your relationship with the issue or community you photographed. How and why did you begin the project? How long have you  been working on the project? Are there particular methods you  use while working?   What do you hope a viewer will take away from your project?"}]
+    :validator {:fn not-empty :msg :required}}
+   (common-application-fields :cv)
+   (findout-field)
+   {:field [:text {} :website__c {:label "Website" :description "Personal Web Site (Optional)"}]}
+   {:field [:text {} :multimedia_Link__c
+            {:label "Multmedia Link"
+             :description
+             "Moving Walls has the capacity to exhibit multimedia in addition to (but not in place of) the print exhibition. A multimedia sample should be submitted only if it complements or enhances, rather than duplicates, the other submitted materials. The sample will be judged on its ability to present complex issues through compelling multimedia storytelling, and will not negatively impact the print submission. If you are submitting a multimedia piece for consideration, please post the piece on a free public site such as YouTube or Vimeo and include a link. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
+   {:custom (salesforce-picklist-field :focus_Region__c "Focus Region")}
+   {:custom (salesforce-picklist-field :focus_Country__c "Focus Country")}])
 
 (defmethod exhibit-apply-fields :prodgrant2012 [exhibit]
-  (map
-   exhibit-application-fields
-   [:title :narrative :bio :cv]))
+  [{:field [:text {} :title__c {:label :pg-project-title :description :pg-project-title-description}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#narrative.editor {} :narrative__c {:label :pg-proposal-narrative :description :pg-proposal-narrative-description}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#personal-statement.editor {} :biography__c {:label :pg-personal-statement :description :pg-personal-statement-description}]
+    :validator {:fn not-empty :msg :required}}
+   (common-application-fields :cv)])
 
 (defmulti application-update-fields (comp keyword :slug__c :exhibit__r))
 
