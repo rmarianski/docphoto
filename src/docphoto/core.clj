@@ -658,13 +658,6 @@ To reset your password, please click on the following link:
                         :description "Please provide a three-page description of the proposed project, a summary of the issue and its importance, a description of the plan for producing the work, a description of sources and contacts for the project, and thoughts on how the finished product might be distributed."}]
                :validator {:fn not-empty :msg :required}}})
 
-(defmacro appfield
-  "convenience to lookup exhibit application field"
-  [key]
-  (if-let [field (exhibit-application-fields key)]
-    field
-    (throw (IllegalArgumentException. (str "Unknown field key: " key)))))
-
 (defmulti exhibit-apply-fields (comp keyword :slug__c))
 
 (defmethod exhibit-apply-fields :mw20 [exhibit]
@@ -804,93 +797,6 @@ To reset your password, please click on the following link:
              (or (:came-from params)
                  (application-submit-link app-id))))))
       (render-form (merge application params) {})))))
-
-;; (defformpage exhibit-apply-view [exhibit]
-;;   [(appfield :title)
-;;    (appfield :cover-page)
-;;    (appfield :statement)
-;;    (appfield :bio)
-;;    (appfield :summary)
-;;    (appfield :cv)
-;;    (appfield :website)
-;;    (appfield :multimedia-link)
-;;    (appfield :focus-region)
-;;    (appfield :focus-country)
-;;    (appfield :findout)]
-;;   (when-logged-in
-;;    (layout
-;;     request
-;;     {:title (str "Apply to " (:name exhibit))
-;;      :include-editor-css true
-;;      :js-script "docphoto.editor.triggerEditors();"}
-;;     [:div
-;;      [:h2 (str "Apply to " (:name exhibit))]
-;;      [:form.uniForm {:method :post :action (:uri request)
-;;                      :enctype "multipart/form-data"}
-;;       [:fieldset
-;;        [:legend "Apply"]
-;;        (render-fields request params errors)]
-;;       [:input {:type :submit :value "Apply"}]]]))
-;;   (when-logged-in
-;;    (redirect
-;;     (str "/application/"
-;;          (create-application
-;;           (:slug__c exhibit)
-;;           (merge
-;;            params
-;;            {:contact__c (:id (session/get-user request))
-;;             :exhibit__c (:id exhibit)}))
-;;          "/upload"))))
-
-;; (defformpage application-update-view [application]
-;;   [(appfield :title)
-;;    (appfield :cover-page)
-;;    (appfield :statement)
-;;    (appfield :bio)
-;;    (appfield :summary)
-;;    {:field [:file {} :cv {:label "Update CV"}]}
-;;    (appfield :website)
-;;    (appfield :multimedia-link)
-;;    (appfield :focus-region)
-;;    (appfield :focus-country)
-;;    (appfield :findout)]
-;;   (layout
-;;    request
-;;    {:title (str "Update application")
-;;     :include-editor-css true
-;;     :js-script "docphoto.editor.triggerEditors();"}
-;;    [:div
-;;     [:form.uniForm {:method :post :action (:uri request)
-;;                     :enctype "multipart/form-data"}
-;;      [:fieldset
-;;       [:legend "Update application"]
-;;       (render-fields request (merge application params) errors)]
-;;      [:input {:type :submit :value "Update"}]]])
-;;   (let [app-id (:id application)
-;;         normalize-empty-value (fn [m k]
-;;                                 (update-in m [k]
-;;                                            #(if (empty? %) nil %)))
-;;         app-update-map (-> params
-;;                            (dissoc :cv :app-id)
-;;                            (merge {:id app-id})
-;;                            (normalize-empty-value :focus_Region__c)
-;;                            (normalize-empty-value :focus_Country__c)
-;;                            (normalize-empty-value :referredby__c)
-;;                            (normalize-empty-value :website__c)
-;;                            (normalize-empty-value :multimedia_Link__c))]
-;;     (sf/update-application conn app-update-map)
-;;     (let [cv (:cv params)
-;;           tempfile (:tempfile cv)
-;;           filename (persist/safe-filename (:filename cv))
-;;           size (:size cv)
-;;           exhibit-slug (:slug__c (:exhibit__r application))]
-;;       (if (and :cv (not-empty filename) (pos? size))
-;;         (do
-;;           (persist/delete-existing-cvs exhibit-slug app-id)
-;;           (persist/persist-cv tempfile exhibit-slug app-id filename))))
-;;     (redirect
-;;      (or (:came-from params)
-;;          (application-submit-link app-id)))))
 
 (defview app-debug-view [application]
   {:title (:title__c application)}
