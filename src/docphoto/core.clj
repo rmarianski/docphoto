@@ -294,6 +294,13 @@
                 [:a {:href (application-submit-link (:id app))}
                  (:title__c app)]])]]))))))
 
+(defmacro when-multiple-languages [& body]
+  (cond
+   (= true cfg/multiple-languages) `(do ~@body)
+   (nil? cfg/multiple-languages) nil
+   :else `(when (= (:server-name ~'request) ~cfg/multiple-languages)
+            ~@body)))
+
 (defn layout [request options body]
   (xhtml
    [:head
@@ -311,16 +318,17 @@
        (theme-menu (:uri request))
        [:div#osf-logo (ph/image "/public/osf-logo.png"
                                 "Open Society Foundations")]
-       [:div#language
-        [:ul
-         (let [came-from (:uri request)
-               current-language (or (session/get-language request) :en)]
-           (for [[text lang] [["English" "en"] ["Русский" "ru"]]]
-            [:li
-             (if (= (keyword lang) current-language)
-               text
-               (ph/link-to
-                (switch-language-link lang came-from) text))]))]]]]
+       (when-multiple-languages
+        [:div#language
+         [:ul
+          (let [came-from (:uri request)
+                current-language (or (session/get-language request) :en)]
+            (for [[text lang] [["English" "en"] ["Русский" "ru"]]]
+              [:li
+               (if (= (keyword lang) current-language)
+                 text
+                 (ph/link-to
+                  (switch-language-link lang came-from) text))]))]])]]
      [:div#page
       [:div#content body]]
      [:div#sidebar

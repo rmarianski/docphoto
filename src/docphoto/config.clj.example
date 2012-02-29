@@ -15,3 +15,9 @@
 
 (def admins
   (set ["admin-contact-username"]))
+
+;; depending on value, we get different behavior
+;; true -> always show multiple language selector
+;; nil -> never show multiple language selector
+;; "domain" -> show multiple language selector when this host matches
+(def multiple-languages "docphoto.soros.org")
