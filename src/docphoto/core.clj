@@ -298,7 +298,7 @@
   (cond
    (= true cfg/multiple-languages) `(do ~@body)
    (nil? cfg/multiple-languages) nil
-   :else `(when (= (:server-name ~'request) ~cfg/multiple-languages)
+   :else `(when (= ((:headers ~'request) "x-forwarded-host") ~cfg/multiple-languages)
             ~@body)))
 
 (defn layout [request options body]
