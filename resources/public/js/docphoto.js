@@ -213,7 +213,7 @@ docphoto.Uploader.prototype.onUploadDone = function(up, file, responseObject) {
   li.innerHTML = imageHtml;
   goog.dom.appendChild(this.images, li);
 
-  this.updateFilePercentage(file, 'Success');
+  this.updateFilePercentage(file, '100%');
 
   this.fileUploaded_();
 };

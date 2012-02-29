@@ -73,6 +73,25 @@
    "Please provide a one-page summary of your experience as a photographer, the training you have received, and why you feel this grant program would be useful for you now."
    "Пожалуйста, представьте одну страницу с кратким изложением вашего опыта как фотографа, полученной подготовки, а также того, почему вы чувствуете, что эта грантовая программа была бы полезной вам в данное время."
 
+   ;; image upload
+   :upload-images "Upload images" "Загрузка изображений"
+   :upload-image-amount "Please upload 15-20 images." "Пожалуйста, загрузите 15-20 изображений"
+   :upload-no-support
+   "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus or HTML5 support."
+   "Ваш браузер не установлен Flash, Silverlight, Gears, BrowserPlus или поддержки HTML5."
+
+   :upload-select-files "Select files" "Выбор файлов"
+   :upload "Upload" "загружать"
+
+   :upload-image-limit "There is a 5 megabyte limit on images." "Существует 5 мегабайт ограничения на изображениях."
+   :upload-image-reorder
+   "The order of your images is an important consideration. Drag them to re-order."
+   "Порядок изображений является важным фактором. Перетащите их на повторный заказ."
+
+   :save "Save" "экономить"
+   :delete "Delete" "удалять"
+   :applications "Applications" "применения"
+
    ))
 
 (defn translate [translation-keyword]

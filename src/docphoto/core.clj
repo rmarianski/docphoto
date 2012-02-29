@@ -287,7 +287,7 @@
        (let [apps (query-applications (:id user))]
          (if (not-empty apps)
            [:div.applications
-            [:h2 "applications"]
+            [:h2 (i18n/translate :applications)]
             [:ul
              (for [app (reverse (sort-by :lastModifiedDate apps))]
                [:li
@@ -818,7 +818,7 @@ To reset your password, please click on the following link:
    [:textarea {:name "captions"}
     (or (:caption__c image) "")]
    [:a {:href "#"
-        :class "image-delete"} "Delete"]))
+        :class "image-delete"} (i18n/translate :delete)]))
 
 (defn render-images [request images]
   [:ul#images-list
@@ -833,23 +833,20 @@ To reset your password, please click on the following link:
                            "'images-description', {url: \"%s\"});")
                       (:uri request))}
   (list
-   [:h2 "Upload images"]
-   [:p "Please upload 15-20 images."]
+   [:h2 (i18n/translate :upload-images)]
+   [:p (i18n/translate :upload-image-amount )]
    [:form.uniForm {:method :post :action (:uri request)}
     [:div#plupload
-     [:div#files-list
-      (str "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus "
-           "or HTML5 support.")]
-     [:a#pick-files {:href "#"} "Select files"]
-     [:a#upload {:href "#"} "Upload"]]]
+     [:div#files-list (i18n/translate :upload-no-support)]
+     [:a#pick-files {:href "#"} (i18n/translate :upload-select-files)]
+     [:a#upload {:href "#"} (i18n/translate :upload)]]]
    [:div#images
-    [:p "There is a 5 megabyte limit on images."]
+    [:p (i18n/translate :upload-image-limit)]
     [:p#images-description {:style "display: none"}
-     (str "The order of your images is an important consideration. "
-          "Drag them to re-order.")]
+     (i18n/translate :upload-image-reorder)]
     [:form {:method :post :action (images-update-link (:id application))}
      (render-images request (query-images (:id application)))
-     [:input {:type "submit" :value "Save"}]]]))
+     [:input {:type "submit" :value (i18n/translate :save)}]]]))
 
 (defn persist-all-image-scales [^File chunk exhibit-slug application-id image-id]
   "save all necessary image scales for a particular image"
