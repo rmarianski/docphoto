@@ -20,7 +20,7 @@
    ;; nav
    :home "Home" "Домой"
    :exhibits "Exhibits" "Экспонаты"
-   :about "About" "О"
+   :about "About" "О нас"
    :russian "Russian" "Русский"
    :login "Login" "Войти"
    :logout "Logout" "Выход"
