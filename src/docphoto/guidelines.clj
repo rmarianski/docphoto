@@ -1,12 +1,24 @@
 (ns docphoto.guidelines
   (:use [hiccup.page-helpers :only (link-to)]))
 
-(defn interest-list [heading & items]
+(defn link
+  "gudielines have many cases where the text of the link is the link itself"
+  [url]
+  (link-to url url))
+
+(defn interest-list
+  "moving walls interest list section builder"
+  [heading & items]
   (list
    [:h3 heading]
    [:ul
     (for [item items]
       [:li item])]))
+
+(defn defined-item
+  "central asia uses these for most sections"
+  [title body]
+  [:p [:strong title] body])
 
 (def guidelines
   {:mw20  (list
@@ -90,7 +102,7 @@
            [:p "Recipients will be determined based on, among other things, prior international travel experience, prior attendance at workshops and seminars outside their home communities, publication and exhibition history, awards, and potential impact on their professional development."]
 
            [:h2 "Application Process"]
-           [:p "Photographers must apply online at " (link-to "http://apply.movingwalls.org/exhibit/mw20/apply" "http://apply.movingwalls.org/exhibit/mw20/apply") "."]
+           [:p "Photographers must apply online at " (link "http://apply.movingwalls.org/exhibit/mw20/apply") "."]
 
            [:p "You will be asked to complete or upload the following:"]
            [:ol
@@ -165,7 +177,7 @@
            [:p "Group submissions are eligible. It is important to consider, however, that a group application will be considered for a space normally devoted to a single photographer's work. The edits will need to be quite tight in order to accommodate a group exhibition."]
 
            [:h3 "Do you accept photographic projects about the United States?"]
-           [:p "Yes. The Open Society Foundations has extensive programming based in the United States. Please consult the US Programs website to get a sense of the priority issues: " (link-to "http://www.soros.org/initiatives/usprograms" "http://www.soros.org/initiatives/usprograms") "."]
+           [:p "Yes. The Open Society Foundations has extensive programming based in the United States. Please consult the US Programs website to get a sense of the priority issues: " (link "http://www.soros.org/initiatives/usprograms") "."]
 
            [:h3 "Is there work that you do not show?"]
            [:p "The work exhibited should explore issues in which the larger Open Society Foundations engages. Please take a look at our website (" (link-to "http://www.soros.org/" "www.soros.org") ") for a better idea of what those issues are. There are some geographic regions in which we do not currently work, including Oceania, India, and Canada ; work from these countries will likely be considered out of scope. Themes that are out of scope include animal rights  and images of extreme poverty or homelessness without a social justice component."]
@@ -179,7 +191,130 @@
            [:p "Due to high volume of submissions, we occasionally experience technical difficulties with the submission system on or approaching the day of the deadline. If this occurs, we ask that you please be patient and continue to check the site. If troubles persist, please send an email to " (link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org") "."]
 
            )
-   :central-asia (list
-                  [:div {:style "text-align: center"}
-                   ]
-   )})
+   :prodgrant2012 (list
+                   [:p {:style "margin-bottom: 4em"}
+                    "Once you have read the guidelines, you can "
+                    (link-to "http://docphoto.soros.org/exhibit/prodgrant2012/apply" "apply")]
+                   [:div {:style "text-align: center"}
+                    [:h1 "GUIDELINES – 2012 COMPETITION"]
+                    [:h1 "Grant Opportunity for Photographers From Central Asia, the South Caucasus, Afghanistan, Mongolia, and Pakistan"]
+                    [:hr {:style "margin: 2em 0"}]
+                    [:p {:style "font-weight: bold"} "Deadline: May 10, 2012 at 5pm EST"]
+                    [:hr {:style "margin: 2em 0"}]]
+                   [:p "The Open Society Documentary Photography Project and the Arts and Culture Program are offering grants for documentary photographers from Central Asia, the South Caucasus, Afghanistan, Mongolia, and Pakistan. With these grants, we support visual documentation of important human rights and social issues in the region and provide training and mentorship to local photographers."]
+                   [:p "We will award approximately ten cash stipends in the amount of $3,500 USD each to photographers to produce a photo essay on a critical human rights or social issue in the region. Along with the stipend, successful applicants will receive two master-level workshops (past workshops were held in Istanbul and Tbilisi) on visual storytelling through photography and multimedia. These workshops are led by internationally-recognized photographers and industry professionals who will provide ongoing mentorship throughout the six-month grant term."]
+                   [:p "This grant is intended for photographers who are committed to pursuing a career in photography and have prior technical expertise and/or training.  Details about past recipients of this grant and their projects can be found on our web site here:"]
+                   [:p (link "http://www.soros.org/initiatives/photography/focus_areas/production-individual/grantees")]
+                   [:h2 "Details &amp; Information"]
+                   [:p "The six-month grant program will provide up to 10 regionally based photographers with: "]
+                   [:ul
+                    [:li "A cash stipend;"]
+                    [:li "Audio equipment and software;"]
+                    [:li "Two advanced training workshops;"]
+                    [:li "Ongoing coaching and mentoring throughout the grant period;"]
+                    [:li "Deadlines to keep your project on track;"]
+                    [:li "Publicity and promotion of the work produced; and"]
+                    [:li "Opportunities for follow-up support to distribute the finished work;"]]
+                   (defined-item "Grant Term" ": The grant will begin in November 2012 and end in June 2013.")
+                   (defined-item "Grant" ": Approximately 10 cash stipends in the amount of $3,500 each, plus audio equipment and software purchased by Open Society Foundations will be awarded to photographers to assist in the production of a discrete body of work on a proposed topic.  The cash stipend can be used for project expenses, new equipment, film and developing costs, the photographer’s time to work on the project, etc.")
+                   (defined-item "Mentorship" ": Grantees will be assigned an internationally recognized photographer who will serve as a mentor throughout the grant period.  Past mentors include Thomas Dworzak, Yuri Kozyrev, and Antonin Kratochvil. During the six-month period, grantees will be asked to upload images every month and discuss them with their mentors.")
+                   (defined-item "Workshops" ": Mentors and grantees will participate in two workshops. The first is a seven-day workshop and will take place in November 2012. It will consist of discussion of proposed projects, portfolio review, shooting and editing exercises, and audio and multimedia training. Instructor Bob Sacha has led the audio and multimedia workshop in the past. The second workshop will be held over five days in June 2013. We will ask grantees to prepare a final edit of their projects. They will receive guidance from their mentors and work alongside internationally recognized picture and multimedia editors to explore options for continuing their projects and distributing their work. Past editors include MaryAnne Golon, Andrei Polikanov, Francesca Sears, and Chad Stevens.")
+                   [:p "Workshop location will be confirmed approximately 2 months prior to each workshop. Past workshops were held in Istanbul, Turkey and Tbilisi, Georgia. Language translation for Russian and Mongolian speakers will be provided if necessary. Translation from other languages will not be available."]
+                   [:p "The Open Society Foundations will pay travel and hotel expenses and provide a per diem to cover meals and incidentals for the workshops."]
+                   (defined-item "Collaboration" ": Cooperation with other Open Society Foundations programs is encouraged.")
+                   (defined-item "Publicity and Promotion" ": The Open Society Foundations will publish finished grantee projects on our web site, promote the projects online via Facebook and Twitter, and facilitate relationships with photo editors, curators, and festival and exhibition organizers to help bring the work to broader audiences (there are no guarantees about publication).")
+                   (defined-item "Rights to Work and Licensing" ": By participating in the grant program, you grant the Open Society Foundations a non-exclusive, royalty-free, irrevocable, perpetual, sublicensable, and worldwide license to the images you create pursuant to the grant (“Portfolio Images”) for the following:")
+                   [:ul
+                    [:li [:strong "Web and exhibition use, in perpetuity"] ": to publish, distribute, and make derivative works from your Portfolio Images on the internet, including the Open Society Foundations-related websites and in Open Society Foundations-related traveling exhibitions."]
+                    [:li [:strong "Print rights, for two years"] ": to publish and distribute the Portfolio Images in any Open Society Foundations print publication for a period of two years after the grant period is complete."]
+                    [:li [:strong "Distribution"] ": Upon completion of the project, grantees will have the opportunity to apply for additional support to distribute the finished work, including funds for exhibition, publication, advocacy-based projects, and creating visual resources."]]
+
+                   (defined-item "Selection Process" ": Open Society Foundations staff will review the applications and select a group of finalists.  Finalist proposals will then be carefully reviewed by the master photographer mentors, plus a jury of Open Society Foundations staff and outside experts familiar with the region.  Applicants will be judged on the strength of their images, their potential for professional growth, and the relevance of their proposed subject to Open Society Foundations work.")
+                   [:h2 "Areas of Interest"]
+                   [:p "Proposals should address a specific problem of social justice or human rights in one or more of the eligible countries.  Listed below are topics of interest to the Open Society Foundations. " [:strong "Please note that applicants are welcome to submit a proposal on a topic not included on this list."]]
+                   [:ul
+                    (let [topics
+                          ["Women’s human rights;"
+                           "Sexual and reproductive health and rights;"
+                           "Ethnic minorities;"
+                           "Migration, including labor migrants, migrant detention, returned migrants, border controls, migrant children and children left behind, labor migration from CA republics to Russia;"
+                           "LGBTI (lesbian, gay, bisexual, transgender, intersex) rights;"
+                           "Statelessness and citizenship;"
+                           "Pre-trial detention, including ill-treatment in custody;"
+                           "War crimes and crimes against humanity;"
+                           "Religious freedom;"
+                           "Climate change and environmental challenges;"
+                           "Urban renewal and transformation"
+                           "Public health issues including but not limited to tuberculosis, HIV, AIDS, Hepatitis C, and access to essential medicines;"
+                           "Palliative care;"
+                           "Drug policy and narcotics;"
+                           "Resource development and exploitation;"
+                           "Violence against women, including harmful traditional practices;"
+                           "Regional and ethnic integration;"
+                           "Youth activism; and"
+                           "Disability rights/equality and inclusion of people with disabilities."
+                           ]]
+                      (for [topic topics] [:li topic]))]
+                   [:p "Grants may be used to begin a new project that can be completed in the six-month timeframe of the grant or to complete work on an existing project. Projects should explore an issue in-depth, over an extended period of time. Photographers will be expected to work on the project consistently over the course of the six-month grant term."]
+                   [:p "For a summary of topics that have been awarded grants in 2009-2011, please see here:" [:br]
+                    (link "http://www.soros.org/initiatives/photography/focus_areas/production-individual/grantees")]
+                   [:h2 "Eligibility"]
+                   [:p "The competition is open to photographers from the following countries:  Afghanistan, Armenia, Azerbaijan, Georgia, Kazakhstan, Kyrgyzstan, Mongolia, Pakistan, Tajikistan, Turkmenistan, and Uzbekistan."]
+                   [:p "Applicants must currently reside in their home country. Exceptions will be made for applicants from Turkmenistan and Uzbekistan living outside their home country."]
+                   [:p "Applicants from other countries may also be eligible if they can demonstrate a long-term commitment to one of the designated countries (for example, by having lived and worked in one of the countries for many years)."]
+                   [:p "Professional and emerging photographers are eligible to apply. Photographers who have not specialized in documentary photography will be considered as long as the proposed work is documentary in nature."]
+                   [:p "Technical familiarity with photography is required.  Journalists or activists who have not had experience with photography are not eligible to apply."]
+                   [:p "Applicants must speak English or Russian."]
+                   [:p "Participants must be able to attend both workshops (in November 2012 and June 2013) and commit themselves to working and communicating consistently over the six months of the grant term."]
+                   [:p "Collaborative projects will be considered and applicants from different countries may apply together (in which case each photographer will receive a $3,500 grant)."]
+                   [:h2 "History and Background"]
+                   [:p "The Open Society Documentary Photography Project and the Arts and Culture Program created the grant in 2009 to support photographers from the region who contribute to civil society by critically exploring current social problems. The focus of the grant and training program is to encourage long-form documentary storytelling that explores issues in-depth and over time, rather than spot news photography.  The program promotes personal and professional growth through guided and personalized feedback, project assistance, and professional education. We also recognize the lack of affordable, advanced training programs for photographers in the region. This grant program aims to help locally-based photographers compete in international markets."]
+                   [:p "We are also committed to furthering public dialogue around issues relevant to the work of the Open Society Foundations. As such, proposals will be carefully judged by Open Society Foundations staff and outside advisors to ensure that the issues are urgent and timely."]
+                   [:h2 "Application Instructions"]
+                   [:p "Too apply, please go to: " (link "http://docphoto.soros.org/exhibit/prodgrant2012/apply")]
+                   [:h2 "Deadline"]
+                   [:p "The deadline for applying is " [:strong "May 10, 2012 at 5pm EST."]]
+                   [:h2 "Contact Information"]
+                   [:p "Please write to " (link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org") " with any questions you have about the program."]
+                   [:div {:style "text-align: center; margin-top: 8em"}
+                    [:h1 "OPEN SOCIETY DOCUMENTARY PHOTOGRAPHY PROJECT AND
+ARTS AND CULTURE NETWORK PROGRAM"]
+                    [:h1 "Grant for Photographers From Central Asia, the South Caucasus, Afghanistan, Mongolia, and Pakistan"]
+                    [:h2 {:style "margin: 3em 0"} "Application Form and Instructions"]]
+                   [:h2 "DEADLINE:  May 10, 2012 at 5pm EST"]
+                   [:h2 "APPLICATION: To apply on-line, please go to: " (link "http://docphoto.soros.org/exhibit/prodgrant2012/apply")]
+                   [:h2 "Contact Information and Project Summary:"]
+                   [:p [:strong "This section must be filled out in English, including one sentence summarizing your project."]]
+                   (let [fields
+                         ["Last Name:"
+                          "First Name:"
+                          "Street:"
+                          "City:"
+                          "State:"
+                          "Country:"
+                          "Postal Code:"
+                          "Email Address:"
+                          "Phone Number:"
+                          "Project Summary:"]]
+                     [:ul
+                      (for [field fields] [:li field])])
+                   [:h2 "Additional Proposal Requirements:"]
+                   [:p [:strong "Please submit all application texts in English or Russian."]]
+                   (defined-item "Proposal Narrative" ": Please provide a three-page description of the proposed project, a summary of the issue and its importance, a description of the plan for producing the work, a description of sources and contacts for the project, and thoughts on how the finished product might be distributed.")
+                   (defined-item "Personal Statement" ": Please provide a one-page summary of your experience as a photographer, the training you have received, and why you feel this grant program would be useful for you now.")
+                   (defined-item "Photographs" ": Please provide 20-30 examples of your photography (up to 5 MB each image) with captions in English or Russian.   The judges will be getting a sense of how you will approach your proposed subject.  We suggest including images that include any combination of the following:")
+                   (let [images
+                         ["a current project you are working on"
+                          "a project you have completed"
+                          "images that you feel best represent your vision as a photographer"
+                          "anything else that might suggest what your final set of images might look like."]]
+                     [:ul
+                      (for [image images] [:li image])])
+                   [:p "If you don’t have images that meet these suggestions or if you are proposing to try a new direction in your work, you may also include a brief statement that explains your ideas and the directions you are considering."]
+                   [:h2 "Application Instructions If You Are Applying Online:"]
+                   [:p "To apply on-line, please go to: " (link "http://docphoto.soros.org/exhibit/prodgrant2012/apply")]
+                   [:p "The \"Contact Information and Project Summary\" section should be completed in English. The proposal statements can be entered into a text box in English or Russian. The photographs should be uploaded as low-res jpegs with captions. Any additional text or other material can be uploaded in English or Russian as a Word document."]
+                   [:p "Application deadline is May 10, 2012 at 5pm EST."]
+                   [:p "If you are unable to apply online, please write to " (link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org") " to make alternate arrangements."]
+                   [:p [:strong "*NOTE: Applications may be submitted in English or Russian only."]]
+                   )})
