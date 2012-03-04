@@ -52,7 +52,8 @@
 (defn connect-to-prod []
   (connect-cfgmap-salesforce cfg/conn-prod))
 
-(declare admin?)
+(defmacro admin? [user]
+  (if cfg/debug true `(cfg/admins (:userName__c ~user))))
 
 (defn- tweak-application-result
   "convert application query responses to have the exhibit value be a map"
@@ -259,7 +260,7 @@
   (application-link [application-id] "application" application-id)
   (user-applications-link [username] "user" "applications" username)
   (cv-link [application-id] "cv" application-id)
-  (profile-update-link [] "profile")
+  (profile-update-link [user-id] "profile" user-id)
   (image-link [image-id & [scale]] "image" image-id scale)
   (exhibits-link [] "exhibit/")
   (exhibit-link [exhibit-slug] "exhibit" exhibit-slug)
@@ -286,7 +287,7 @@
      (when user
        (list
         [:div#update-profile
-         (ph/link-to (profile-update-link) (i18n/translate :update-profile))]
+         (ph/link-to (profile-update-link (:id user)) (i18n/translate :update-profile))]
         (let [apps (query-applications (:id user))]
           (if (not-empty apps)
             [:div#applications-list
@@ -439,34 +440,43 @@
   [m]
   (update-in m [:docPhoto_Mail_List__c] boolean))
 
-(defformpage profile-view []
-  [(req-textfield :firstName "First Name")
-   (req-textfield :lastName "Last Name")
-   (req-textfield :email "Email")
-   (req-textfield :phone "Phone")
-   (req-textfield :mailingStreet "Address")
-   (req-textfield :mailingCity "City")
-   (req-textfield :mailingState "State")
-   (req-textfield :mailingPostalCode "Postal Code")
-   (req-textfield :mailingCountry "Country")
+(defmacro when-profile-update-access [user-id & body]
+  `(when-logged-in
+    (when (or (admin? ~'user)
+              (= (:id ~'user) ~user-id))
+      ~@body)))
+
+(defformpage profile-view [user-id]
+  [(req-textfield :firstName :first-name)
+   (req-textfield :lastName :last-name)
+   (req-textfield :email :email)
+   (req-textfield :phone :phone)
+   (req-textfield :mailingStreet :address)
+   (req-textfield :mailingCity :city)
+   (req-textfield :mailingState :state)
+   (req-textfield :mailingPostalCode :postal-code)
+   (req-textfield :mailingCountry :country)
    {:field [:checkbox {} :docPhoto_Mail_List__c
-            {:label "Subscribe to mailing list?"}]}
+            {:label :subscribe-to-mailinglist}]}
    {:custom came-from-field}]
-  (when-logged-in
-   (layout
-    request
-    {}
-    [:form.uniForm {:method :post :action (profile-update-link)}
-     [:h2 "Update profile"]
-     (render-fields request (user-update-mailinglist-value
-                             (merge user params)) errors)
-     [:input {:type :submit :value "Update"}]]))
-  (when-logged-in
-   (let [user-params (user-update-mailinglist-value
-                      (select-keys params sf/contact-fields))]
-     (sf/update-user conn (merge {:id (:id user)} user-params))
-     (session/save-user request (merge user user-params))
-     (redirect (or (:came-from params) "/")))))
+  (when-profile-update-access
+   user-id
+   (if-let [user (query-user-by-id user-id)]
+     (layout
+      request
+      {}
+      [:form.uniForm {:method :post :action (profile-update-link user-id)}
+       [:h2 (i18n/translate :update-profile)]
+       (render-fields request (user-update-mailinglist-value
+                               (merge user params)) errors)
+       [:input {:type :submit :value (i18n/translate :update)}]])
+     (not-found-view)))
+  (when-profile-update-access user-id
+                              (let [user-params (user-update-mailinglist-value
+                                                 (select-keys params sf/contact-fields))]
+                                (sf/update-user conn (merge {:id (:id user)} user-params))
+                                (session/save-user request (merge user user-params))
+                                (redirect (or (:came-from params) "/")))))
 
 (defformpage register-view []
   [(req-textfield :userName__c :username)
@@ -717,7 +727,7 @@ To reset your password, please click on the following link:
                                          (if-let [fieldspec (:field field-stanza)]
                                            (apply field fieldspec))))]
                                (map render-field fields))]
-                            [:input {:type :submit :value "Apply"}]]])))]
+                            [:input {:type :submit :value (i18n/translate :proceed-to-upload-images)}]]])))]
      (onpost
       (let [validate (apply
                       decline/validations
@@ -953,10 +963,10 @@ To reset your password, please click on the following link:
       request
       {:title "Review submission"}
       [:div.application-submit
-       [:h2 "Application review"]
-       [:p "Review your application before submitting."]
+       [:h2 (i18n/translate :application-review)]
+       [:p (i18n/translate :review-application-before-submitting)]
        [:fieldset
-        [:legend "Contact info"]
+        [:legend (i18n/translate :contact-info)]
         (let [user (query-user-by-id (:contact__c application))]
           (list
            [:h2 (:name user)]
@@ -967,60 +977,60 @@ To reset your password, please click on the following link:
             (:mailingCity user) ", " (:mailingState user) " "
             (:mailingPostalCode user) [:br]
             (:mailingCountry user)]
-           [:p (str (if-not (:docPhoto_Mail_List__c user)
-                      "Not subscribed "
-                      "Subscribed ")
-                    "to mailing list")]
-           [:a {:href (profile-update-link)} "Update"]))]
+           [:p (i18n/translate
+                (if (:docPhoto_Mail_List__c user)
+                  :subscribed-to-mailing-list
+                  :not-subscribed-to-mailing-list))]
+           [:a {:href (profile-update-link (:id user))} (i18n/translate :update)]))]
        [:fieldset
-        [:legend "Application"]
+        [:legend (i18n/translate :application)]
         [:h2 (:title__c application)]
         [:dl
          (letfn [(display-if-set [k title]
                     (let [x (k application)]
                       (when-not (empty? x)
                         (list
-                         [:dt title]
+                         [:dt (i18n/translate title)]
                          [:dd x]))))]
            (list
-            (display-if-set :cover_Page__c "Summary")
-            (display-if-set :narrative__c "Proposal Narrative")
-            (display-if-set :statementRich__c "Statement")
-            (display-if-set :biography__c "Short biography")
+            (display-if-set :cover_Page__c :summary)
+            (display-if-set :narrative__c :proposal-narrative)
+            (display-if-set :statementRich__c :statement)
+            (display-if-set :biography__c :biography)
             (list
-             [:dt "CV"]
-             [:dd [:a {:href (cv-link app-id)} "Download CV"]])
+             [:dt (i18n/translate :cv)]
+             [:dd [:a {:href (cv-link app-id)} (i18n/translate :cv-download)]])
             (display-if-set :website__c "Website")
             (display-if-set :multimedia_Link__c "Multimedia Link")
             (display-if-set :focus_Region__c "Focus Region")
             (display-if-set :focus_Country__c "Focus Country")
             (display-if-set :referredby__c "Found out from")))]
-        [:a {:href (application-update-link app-id)} "Update"]]
+        [:a {:href (application-update-link app-id)} (i18n/translate :update)]]
       [:fieldset
-       [:legend "Images"]
+       [:legend (i18n/translate :images)]
        [:ol
         (for [image (query-images app-id)]
           [:li
            [:div.image-container.goog-inline-block
             (ph/image (image-link (:id image) "small"))]
            [:div.goog-inline-block.image-caption (:caption__c image)]])]
-       [:a {:href (application-upload-link app-id)} "Update"]]
+       [:a {:href (application-upload-link app-id)} (i18n/translate :update)]]
       [:form {:method :post :action (application-submit-link app-id)}
        [:div.submit-button
         (if (= "Final" (:submission_Status__c application))
-          [:p "Your application has already been submitted. When we are finished reviewing all applications, we will get back to you."]
+          [:p (i18n/translate :application-already-submitted)]
           (list
-           [:p "Once you have reviewed your application, please click on the submit button below."]
-           [:input {:type "submit" :value "Submit your application"}]))]]]))))
+           [:p (i18n/translate :application-submit)]
+           [:input {:type "submit" :value (i18n/translate :application-submit-button)}]))]]]))))
 
 (defview application-success-view [application]
-  {:title "Thank you for your submission"}
+  {:title (i18n/translate :submission-thank-you)}
   [:div
-   [:h2 "Thank you for your submission"]
-   [:p "When we have made our selections, we will notify you at the email address you provided: " (:email (session/get-user request))]
-   [:p "You can view all your "
+   [:h2 (i18n/translate :submission-thank-you)]
+   [:p (i18n/translate :selection-email-notification) (:email (session/get-user request))]
+   [:p (i18n/translate :view-all-applications)
     [:a {:href (user-applications-link (:userName__c (session/get-user request)))}
-     "applications"] "."]])
+     (i18n/translate :applications)] "."]])
 
 (defn forbidden [request]
   {:status 403
@@ -1031,9 +1041,6 @@ To reset your password, please click on the following link:
           (list
            [:h2 "Forbidden"]
            [:p "You don't have access to view this page"]))})
-
-(defmacro admin? [user]
-  (if cfg/debug true `(cfg/admins (:userName__c ~user))))
 
 (defmacro reviewer? [user]
   (if cfg/debug true false))
@@ -1081,7 +1088,7 @@ To reset your password, please click on the following link:
 
 (defn user-applications-view [request username]
   (when-logged-in
-   (if-not (or (= username (:userName__c user)) (admin? user) )
+   (if-not (or (admin? user) (= username (:userName__c user)) )
      (forbidden request)
      (if-let [for-user (query-user-by-username username)]
       (layout
@@ -1101,7 +1108,7 @@ To reset your password, please click on the following link:
                   [:li
                    [:a {:href (application-submit-link (:id app))} (:title__c app)]
                    (if (= (:submission_Status__c app) "Final")
-                     " - (submitted)")])]])))))))))
+                     (str " - " (i18n/translate :submitted)))])]])))))))))
 
 (defn current-user-applications-view [request]
   (when-logged-in (redirect (user-applications-link (:userName__c user)))))
@@ -1185,7 +1192,7 @@ To reset your password, please click on the following link:
   (GET "/userinfo" [] userinfo-view)
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
-  (ANY "/profile" [] profile-view)
+  (ANY "/profile/:user-id" [user-id :as request] (profile-view request user-id))
   (ANY "/register" [] register-view)
   (ANY "/password/forgot" [] forgot-password-view)
   (ANY "/password/request-reset" [token :as request]

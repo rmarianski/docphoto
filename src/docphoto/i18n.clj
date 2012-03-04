@@ -63,6 +63,7 @@
    :cv-description
    "The preferred format for Curriculum Vitae is either Microsoft Word or PDF"
    "предпочтительный формат для резюме – либо документ Microsoft Word, либо PDF"
+   :cv-download "Download CV" "Скачать резюме"
 
    :pg-project-title "Project Title" "Название проекта"
    :pg-project-title-description "A one sentence summary of proposed body of work (English only)" "Это поле не принимает кирриллические буквы"
@@ -89,10 +90,46 @@
    :upload-image-reorder
    "The order of your images is an important consideration. Drag them to re-order."
    "Порядок изображений является важным фактором. Перетащите их на повторный заказ."
+   :proceed-to-upload-images "Proceed to Upload Images" "Приступить к Загрузить изображения"
+
+   :application-review "Application Review" "Обзор приложений"
+   :review-application-before-submitting
+   "Review your application before submitting."
+   "Обзор приложения перед отправкой."
+   :contact-info "Contact Information" "Контактная информация"
+   :subscribed-to-mailing-list "Subscribed to mailing list" "Подписка на рассылку"
+   :not-subscribed-to-mailing-list "Not subscribed to mailing list" "Не подписаны на рассылку"
+
+   :summary "Summary" "резюме"
+   :proposal-narrative "Proposal Narrative" "Описание предложения"
+   :statement "Statement" "заявление"
+   :biography "Short biography" "Краткая биография"
+
+   :images "Images" "изображения"
 
    :save "Save" "экономить"
    :delete "Delete" "удалять"
+   :update "Update" "обновлять"
    :applications "Applications" "применения"
+   :application "Application" "применение"
+
+   :application-already-submitted
+   "Your application has already been submitted. When we are finished reviewing all applications, we will get back to you."
+   "Ваша заявка уже подана. Когда мы закончили рассмотрение всех приложений, мы свяжемся с вами."
+
+   :application-submit
+   "Once you have reviewed your application, please click on the submit button below."
+   "После того как вы изучили приложения, нажмите на кнопку отправки ниже."
+   :application-submit-button "Submit your application" "Подайте заявку"
+
+   :submission-thank-you "Thank you for your submission" "Спасибо за Ваше представление"
+   :selection-email-notification
+   "When we have made our selections, we will notify you at the email address you provided: "
+   "Когда мы сделали наш выбор, мы сообщим вам на адрес электронной почты, при условии: "
+
+   :view-all-applications "You can view all your " "Вы можете просмотреть все "
+
+   :submitted "Submitted" "представленный"
 
    ))
 
