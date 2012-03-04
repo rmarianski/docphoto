@@ -138,12 +138,17 @@ a#upload {
 .application-submit .submit-button {
     margin: 2em 0;
 }
-
-#sidebar .applications {
+#sidebar #login-logout {
+    margin: 0 0 1em 0;
+}
+#sidebar #update-profile {
+    margin: 1em 0;
+}
+#sidebar #applications-list {
     margin-top: 1em;
 }
-#sidebar .applications ul,
-#sidebar .applications li,
+#sidebar #applications-list ul,
+#sidebar #applications-list li,
 #sidebar h2 {
     padding: 0;
     margin-left: 0;

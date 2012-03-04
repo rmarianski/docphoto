@@ -50,6 +50,8 @@
    :country "Country" "страна"
    :subscribe-to-mailinglist "Subscribe to mailing list?" "Подписаться на рассылку?"
 
+   :update-profile "Update Profile" "Обновление профиля"
+
    ;; exhibits
    :open-competitions "Open Competitions" "Открытые конкурсы"
 

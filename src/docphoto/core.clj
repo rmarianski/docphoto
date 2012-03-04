@@ -275,7 +275,7 @@
 (defn login-logout-snippet [request]
   (let [user (session/get-user request)]
     (list
-     [:div.login-logout
+     [:div#login-logout
       (if user
         [:a {:href "/logout" :title (str (i18n/translate :logout) " " (:userName__c user))}
          (i18n/translate :logout)]
@@ -283,16 +283,19 @@
          [:a {:href "/login"} (i18n/translate :login)]
          " | "
          [:a {:href "/register"} (i18n/translate :register)]))]
-     (if user
-       (let [apps (query-applications (:id user))]
-         (if (not-empty apps)
-           [:div.applications
-            [:h2 (i18n/translate :applications)]
-            [:ul
-             (for [app (reverse (sort-by :lastModifiedDate apps))]
-               [:li
-                [:a {:href (application-submit-link (:id app))}
-                 (:title__c app)]])]]))))))
+     (when user
+       (list
+        [:div#update-profile
+         (ph/link-to (profile-update-link) (i18n/translate :update-profile))]
+        (let [apps (query-applications (:id user))]
+          (if (not-empty apps)
+            [:div#applications-list
+             [:h2 (i18n/translate :applications)]
+             [:ul
+              (for [app (reverse (sort-by :lastModifiedDate apps))]
+                [:li
+                 [:a {:href (application-submit-link (:id app))}
+                  (:title__c app)]])]])))))))
 
 (defmacro when-multiple-languages [& body]
   (cond
