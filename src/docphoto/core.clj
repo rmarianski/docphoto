@@ -435,6 +435,16 @@
 
 (defn logout-view [request] (logout request) (redirect "/login"))
 
+(defn not-found-view [request]
+  {:status 404
+   :headers {"Content-Type" "text/html; charset=utf-8"}
+   :body (layout
+          request
+          {:title "404 Page not found"}
+          [:div
+           [:h2 "Page not found"]
+           [:p "We could not find the page you are looking for."]])})
+
 (defn- user-update-mailinglist-value
   "ensure a :docPhoto_Mail_List__c key exists and is set to a boolean value"
   [m]
@@ -1128,16 +1138,6 @@
     "Note: The Documentary Photography Project does not support film. For information on grants for documentary filmmaking, please contact the "
     [:a {:href "http://www.sundance.org/"} "Sundance Institute"]
     ", an OSI grantee in Los Angeles, California."]])
-
-(defn not-found-view [request]
-  {:status 404
-   :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body (layout
-          request
-          {:title "404 Page not found"}
-          [:div
-           [:h2 "Page not found"]
-           [:p "We could not find the page you are looking for."]])})
 
 (defn cv-view [request application]
   (let [exhibit-slug (:slug__c (:exhibit__r application))]
