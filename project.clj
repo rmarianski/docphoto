@@ -7,6 +7,7 @@
                  [ring/ring-devel "1.0.1"]
                  [rmarianski/ring-jetty-servlet-adapter "0.0.2"]
                  [commons-codec "1.6"]
+                 [commons-lang "2.6"]
                  [com.salesforce/wsc "2.2"]
                  [org.soros/prod-salesforce-docphoto "0.0.1"]
                  ;; [org.soros/dev-salesforce-docphoto "0.0.1"]

@@ -3,7 +3,8 @@
   (:require [docphoto.config :as cfg]
             [ring.middleware.multipart-params :as multipart]
             [postal.core :as postal])
-  (:import [org.apache.commons.codec.digest DigestUtils]))
+  (:import [org.apache.commons.codec.digest DigestUtils]
+           [org.apache.commons.lang CharUtils]))
 
 ;; no longer in contrib
 (defn find-first
@@ -73,3 +74,7 @@
   `(if-let [~'user (session/get-user ~'request)]
      ~body
      (redirect (str "/login?came-from=" (:uri ~'request)))))
+
+(defn ascii? [^Character c] (CharUtils/isAscii c))
+
+(defn all-ascii? [s] (every? ascii? s))
