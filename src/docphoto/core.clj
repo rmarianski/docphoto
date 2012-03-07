@@ -503,23 +503,15 @@
   (let [{password1 :password__c password2 :password2
          username :userName__c} params]
     (if (not (= password1 password2))
-      (render-form params {:password__c "Passwords don't match"})
+      (render-form params {:password__c (i18n/translate :passwords-dont-match)})
       (if-let [user (query-user-by-username username)]
-        (render-form params {:userName__c "User already exists"})
+        (render-form params {:userName__c (i18n/translate :user-already-exists)})
         (do
           (register (-> (dissoc params :password2)
                         (update-in [:password__c] md5)
                         user-update-mailinglist-value))
           (login request (query-user-by-credentials username (md5 password1)))
           (redirect "/exhibit"))))))
-
-(defn reset-password-message [reset-link]
-  (str "Hi,
-
-If you did not initiate a docphoto password reset, then please ignore this message.
-
-To reset your password, please click on the following link:
-" reset-link))
 
 (defmacro send-email-reset [request email token]
   (let [reset-link-sym (gensym "resetlink__")]
@@ -530,65 +522,62 @@ To reset your password, please click on the following link:
           `(println "Password sent to:" ~email "with link:" ~reset-link-sym)
           `(send-message
             {:to ~email
-             :subject "Password reset"
-             :body (reset-password-message ~reset-link-sym)})))))
+             :subject (i18n/translate :password-reset)
+             :body ((i18n/translate :password-reset-email) ~reset-link-sym)})))))
 
 (let [generator (java.util.Random.)]
   (defn generate-reset-token [email]
     (str (.nextInt generator))))
 
 (defformpage forgot-password-view []
-  [(req-textfield :email "Email address")]
+  [(req-textfield :email :email)]
   (layout
    request
-   {:title "Reset password"}
+   {:title (i18n/translate :password-reset)}
    [:form.uniForm {:method :post :action (:uri request)}
-    [:h2 "Password Reset"]
-    [:p
-     "You will receive a link that will allow you to reset your password. You must use the same browser session in order to reset your password."]
+    [:h2 (i18n/translate :password-reset)]
+    [:p (i18n/translate :receive-link-to-reset)]
     (render-fields request params errors)
-    [:input {:type :submit :value "Reset"}]])
+    [:input {:type :submit :value (i18n/translate :reset)}]])
   (let [email (:email params)]
     (if-let [user (query-user-by-email email)]
       (let [reset-token (generate-reset-token email)]
         (session/save-token request reset-token (:id user))
         (send-email-reset request email reset-token)
-        (layout request {:title "Email sent"}
+        (layout request {:title (i18n/translate :email-sent)}
                 [:div
-                 [:p "An email has been sent to: " (:email params)]]))
-      (render-form params {:email "Email not found"}))))
+                 [:p (i18n/translate :email-sent-to) (:email params)]]))
+      (render-form params {:email (i18n/translate :email-not-found)}))))
 
 (defn reset-request-view [request token]
   (letfn [(reset-failure-page [msg]
-            (layout request {:title "Reset failure"}
+            (layout request {:title (i18n/translate :password-reset-failure)}
                     [:div
-                     [:h2 "Password reset failed"]
+                     [:h2 (i18n/translate :password-reset-failure)]
                      [:p msg]]))]
     (if-not token
-      (reset-failure-page "No token found. Please double check the link in your email.")
+      (reset-failure-page (i18n/translate :no-token-found))
       (if-let [session-token (session/get-token request)]
         (if (= (:token session-token) token)
           (do
             (session/allow-password-reset request (:userid session-token))
             (redirect (reset-password-link)))
-          (reset-failure-page "Invalid token. Please double check the link in your email."))
-        (reset-failure-page [:span "Token expired. Are you using the same browser session as when you requested a password reset? If so, you can "
-                             (ph/link-to (forgot-link) "resend")
-                             " a password reset email."])))))
+          (reset-failure-page (i18n/translate :invalid-token)))
+        (reset-failure-page ((i18n/translate :token-expired) (forgot-link)))))))
 
 (defformpage reset-password-view []
-  [(req-password :password1 "Password")
-   (req-password :password2 "Password Again")]
+  [(req-password :password1 :password)
+   (req-password :password2 :password-again)]
   (if-let [user (-?> (session/password-reset-userid request)
                      query-user-by-id)]
     (layout
      request
-     {:title "Reset password"}
+     {:title (i18n/translate :password-reset)}
      [:form.uniForm {:method :post :action (:uri request)}
-      [:h2 "Password Reset"]
-      [:p "Resetting password for user " (:userName__c user)]
+      [:h2 (i18n/translate :password-reset)]
+      [:p ((i18n/translate :reset-password-for) (:userName__c user))]
       (render-fields request params errors)
-      [:input {:type :submit :value "Reset"}]])
+      [:input {:type :submit :value (i18n/translate :reset)}]])
     (redirect (forgot-link)))
   (if-let [userid (session/password-reset-userid request)]
     (if (= (:password1 params) (:password2 params))
@@ -597,7 +586,7 @@ To reset your password, please click on the following link:
                               :password__c (md5 (:password1 params))})
         (session/remove-allow-password-reset request)
         (redirect "/login?came-from=/"))
-      (render-form params {:password1 "Passwords don't match"}))))
+      (render-form params {:password1 (i18n/translate :passwords-dont-match)}))))
 
 
 (defn delete-images-for-application [exhibit-slug application-id]

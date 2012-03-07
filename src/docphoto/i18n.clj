@@ -49,8 +49,56 @@
    :postal-code "Postal Code" "почтовый код"
    :country "Country" "страна"
    :subscribe-to-mailinglist "Subscribe to mailing list?" "Подписаться на рассылку?"
+   :passwords-dont-match "Passwords don't match" "Пароли не совпадают"
+   :user-already-exists "User already exists" "Пользователь уже существует"
 
    :update-profile "Update Profile" "Обновление профиля"
+
+   ;; password reset
+   :password-reset "Password Reset" "Сброс пароля"
+   :receive-link-to-reset
+   "You will receive a link that will allow you to reset your password. You must use the same browser session in order to reset your password."
+   "Вы получите ссылку, которая позволит вам сбросить пароль. Вы должны использовать ту же сессию браузера для того, чтобы сбросить пароль."
+   :reset "Reset" "сброс"
+   :email-sent "Email sent" "Письмо, отправленное"
+   :email-sent-to "An email has been sent to: " "Электронной почты было отправлено: "
+   :email-not-found "Email not found" "Отправить не найдено"
+   :password-reset-failure "Password reset failure" "Отказ Сброс пароля"
+   :no-token-found
+   "No token found. Please double check the link in your email."
+   "Нет маркеров найдено. Пожалуйста, проверьте ссылку на Вашу электронную почту."
+   :invalid-token
+   "Invalid token. Please double check the link in your email."
+   "Недопустимый маркер. Пожалуйста, проверьте ссылку на Вашу электронную почту."
+   :token-expired
+   (fn [link]
+     [:span "Token expired. Are you using the same browser session as when you requested a password reset? If so, you can "
+      (ph/link-to link "resend")
+      " a password reset email."])
+   (fn [link]
+     [:span "Маркер истек. Используете ли вы той же сессии браузера, когда вы просили сброса пароля? Если "
+      (ph/link-to link "это") " так, вы можете повторно электронной почты для сброса пароля."])
+
+   :reset-password-for
+   (fn [username] (str "Reset password for: " username))
+   (fn [username] (str "Сброс пароля для: " username))
+
+   :password-reset-email
+   (fn [reset-link]
+     (str "Hi,
+
+If you did not initiate a docphoto password reset, then please ignore this message.
+
+To reset your password, please click on the following link: 
+" reset-link))
+   (fn [reset-link]
+     (str
+      "Привет,
+
+Если вы не начать сброс пароля, то не обращайте внимания на это сообщение.
+
+Чтобы восстановить пароль, пожалуйста, перейдите по следующей ссылке:"
+      reset-link))
 
    ;; exhibits
    :open-competitions "Open Competitions" "Открытые конкурсы"
