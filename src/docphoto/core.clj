@@ -651,18 +651,20 @@
 
 (defmethod exhibit-apply-fields :mw20 [exhibit]
   [(req-textfield :title__c "Project Title")
-   {:field [:text-area#coverpage.editor {} :cover_Page__c
+   {:field [:text-area#coverpage.editor {:style "height: 50px"} :cover_Page__c
             {:label "Project Summary"
              :description "A one sentence description of the project, including title (if applicable) and main subject/content."}]
     :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#statement.editor {} :statementRich__c
+   {:field [:text-area#statement.editor {:style "height: 500px"} :statementRich__c
             {:label "Project Statement" :description "(600 words maximum) describing the project you would like to exhibit"}]
     :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#biography.editor {} :biography__c {:label "Short Narrative Bio"
-                                                          :description "(250 words maximum) summarizing your previous work and experience"}]
+   {:field [:text-area#biography.editor {:style "height: 250px"} :biography__c
+            {:label "Short Narrative Bio"
+             :description "(250 words maximum) summarizing your previous work and experience"}]
     :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#summaryEngagement.editor {} :narrative__c {:label "Summary of your engagement"
-                                                                  :description "(600 words maximum) Please comment on your relationship with the issue or community you photographed. How and why did you begin the project? How long have you  been working on the project? Are there particular methods you  use while working?   What do you hope a viewer will take away from your project?"}]
+   {:field [:text-area#summaryEngagement.editor {:style "height: 500px"} :narrative__c
+            {:label "Summary of your engagement"
+             :description "(600 words maximum) Please comment on your relationship with the issue or community you photographed. How and why did you begin the project? How long have you  been working on the project? Are there particular methods you  use while working?   What do you hope a viewer will take away from your project?"}]
     :validator {:fn not-empty :msg :required}}
    (common-application-fields :cv)
    (findout-field)
@@ -677,9 +679,11 @@
 (defmethod exhibit-apply-fields :prodgrant2012 [exhibit]
   [{:field [:text {} :title__c {:label :pg-project-title :description :pg-project-title-description}]
     :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#narrative.editor {} :narrative__c {:label :pg-proposal-narrative :description :pg-proposal-narrative-description}]
+   {:field [:text-area#narrative.editor {:style "height: 500px"} :narrative__c
+            {:label :pg-proposal-narrative :description :pg-proposal-narrative-description}]
     :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#personal-statement.editor {} :biography__c {:label :pg-personal-statement :description :pg-personal-statement-description}]
+   {:field [:text-area#personal-statement.editor {:style "height: 500px"} :biography__c
+            {:label :pg-personal-statement :description :pg-personal-statement-description}]
     :validator {:fn not-empty :msg :required}}
    (common-application-fields :cv)])
 
@@ -689,7 +693,7 @@
   "The cv field is optional when updating the application"
   [fields]
   (map (fn [field]
-         (or 
+         (or
           (when-let [fieldspec (:field field)]
             (when-let [field-name (nth fieldspec 2 nil)]
               (when (= field-name :cv)
