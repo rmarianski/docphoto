@@ -1178,7 +1178,7 @@
            (layout request "Password changed"
                    [:h1 (str "Password changed for: " (:username params))]))
          (render-form params {:username "User does not exist"}))
-       (render-form params {:password1 "Password don't match"})))))
+       (render-form params {:password1 "Passwords don't match"})))))
 
 (defn language-view [request language came-from]
   (when (#{"en" "ru"} language)
