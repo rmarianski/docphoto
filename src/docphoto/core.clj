@@ -227,10 +227,13 @@
                [:a {:href ~link} (i18n/translate ~text)]])])]))
 
 (defn absolute-link [request url]
-  (str (subs (str (:scheme request)) 1) "://" (:server-name request)
-       (if-not (= 80 (:server-port request))
-         (str ":" (:server-port request)))
-       url))
+  (let [[host port] (if cfg/proxied?
+                      [((:headers request) "x-forwarded-host") 80]
+                      [(:server-name request) (:server-port request)])]
+
+    (str (subs (str (:scheme request)) 1) "://" host
+         (when-not (= 80 port) (str ":" port))
+         url)))
 
 (defmacro deflink
   "Generate a string link from the parts. They are joined together with str"

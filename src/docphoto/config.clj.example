@@ -21,3 +21,6 @@
 ;; nil -> never show multiple language selector
 ;; "domain" -> show multiple language selector when this host matches
 (def multiple-languages "docphoto.soros.org")
+
+;; if proxied, use a different header to generate absolute links
+(def proxied? false)
