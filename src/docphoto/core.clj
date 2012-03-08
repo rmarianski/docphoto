@@ -846,7 +846,8 @@
    :include-upload-js true
    :js-script (format (str "new docphoto.Uploader('plupload', 'pick-files', "
                            "'upload', 'files-list', 'images-list', "
-                           "'images-description', {url: \"%s\"});")
+                           "'images-description', "
+                           "{url: \"%s\", captionRequiredText: '" (i18n/translate :caption-required) "'});")
                       (:uri request))}
   (list
    [:h2 (i18n/translate :upload-images)]

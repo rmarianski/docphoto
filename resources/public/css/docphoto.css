@@ -115,6 +115,9 @@ a#upload {
     font-weight: bold;
     margin: 1em 0;
 }
+#images p.error {
+    color: red;
+}
 .draggable {
     cursor: move;
     -moz-user-select: none;

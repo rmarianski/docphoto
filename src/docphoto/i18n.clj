@@ -140,6 +140,8 @@ To reset your password, please click on the following link:
    "Порядок изображений является важным фактором. Перетащите их на повторный заказ."
    :proceed-to-upload-images "Proceed to Upload Images" "Приступить к Загрузить изображения"
 
+   :caption-required "Caption required" "Заголовок необходимые"
+
    :application-review "Application Review" "Обзор приложений"
    :review-application-before-submitting
    "Review your application before submitting."

@@ -11,6 +11,8 @@ goog.require('goog.fx.DragListDirection');
 goog.require('goog.fx.DragListGroup');
 goog.require('goog.net.EventType');
 goog.require('goog.net.XhrIo');
+goog.require('goog.object');
+goog.require('goog.string');
 
 goog.require('goog.editor.Command');
 goog.require('goog.editor.Field');
@@ -70,10 +72,22 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
   goog.events.listen(this.images, goog.events.EventType.CLICK,
                      this.onImageDelete, false, this);
 
+  var submitButton = goog.dom.getNextElementSibling(this.images);
+  goog.events.listen(submitButton, goog.events.EventType.CLICK,
+                     this.onImagesSave, false, this);
+
   this.filesToUpload = 0;
+  this.captions = {};
+  this.captionRequiredText = options.captionRequiredText || 'Caption required';
 
   if (this.haveImages_()) {
     this.imagesDescription.style.display = 'block';
+    var elts = goog.dom.getElementsByTagNameAndClass(
+      goog.dom.TagName.TEXTAREA, undefined, this.images);
+    goog.array.forEach(elts, function(textarea) {
+      var id = goog.getUid(textarea);
+      this.captions[id] = textarea;
+    }, this);
   }
 
   this.dlg = null;
@@ -123,9 +137,12 @@ docphoto.Uploader.prototype.initializeDragDrop = function() {
  */
 docphoto.findDragElement = function(dragItem) {
   if (goog.isDefAndNotNull(dragItem)) {
-    var imageContainer = goog.dom.getFirstElementChild(dragItem);
-    var image = goog.dom.getFirstElementChild(imageContainer);
-    return image;
+    var imageContainer = goog.dom.getElementsByTagNameAndClass(
+      goog.dom.TagName.DIV, 'image-container', dragItem)[0];
+    if (goog.isDefAndNotNull(imageContainer)) {
+      var image = goog.dom.getFirstElementChild(imageContainer);
+      return image;
+    }
   }
   return null;
 }
@@ -213,6 +230,13 @@ docphoto.Uploader.prototype.onUploadDone = function(up, file, responseObject) {
   li.innerHTML = imageHtml;
   goog.dom.appendChild(this.images, li);
 
+  var textarea = goog.dom.getElementsByTagNameAndClass(
+    goog.dom.TagName.TEXTAREA, undefined, li)[0];
+  if (goog.isDefAndNotNull(textarea)) {
+    var id = goog.getUid(textarea);
+    this.captions[id] = textarea;
+  }
+
   this.updateFilePercentage(file, '100%');
 
   this.fileUploaded_();
@@ -247,6 +271,12 @@ docphoto.Uploader.prototype.onImageDelete = function(event) {
         var image = goog.dom.getFirstElementChild(el);
         if (goog.isDefAndNotNull(image)) {
           var li = el.parentNode;
+          var textarea = goog.dom.getElementsByTagNameAndClass(
+            goog.dom.TagName.TEXTAREA, undefined, li)[0];
+          if (goog.isDefAndNotNull(textarea)) {
+            var id = goog.getUid(textarea);
+            delete this.captions[id];
+          }
           goog.dom.removeNode(li);
         }
         break;
@@ -256,6 +286,35 @@ docphoto.Uploader.prototype.onImageDelete = function(event) {
   }
   if (!this.haveImages_()) {
     this.imagesDescription.style.display = 'none';
+  }
+};
+
+/**
+ * @param {!Event} event
+ */
+docphoto.Uploader.prototype.onImagesSave = function(event) {
+  // check to see that all captions have something set
+  // and if not, flag an error and prevent form submission
+
+  var errorClass = 'error';
+  var containsErrors = false;
+  goog.object.forEach(this.captions, function(textarea, id) {
+    var li = textarea.parentNode;
+    var error = goog.dom.getElementsByTagNameAndClass(
+      goog.dom.TagName.P, errorClass, li)[0];
+    if (goog.isDefAndNotNull(error)) {
+      goog.dom.removeNode(error);
+    }
+    if (goog.string.isEmpty(textarea.value)) {
+      var error = goog.dom.createDom(goog.dom.TagName.P,
+                                     errorClass,
+                                     this.captionRequiredText);
+      goog.dom.insertChildAt(li, error, 0);
+      containsErrors = true;
+    }
+  }, this);
+  if (containsErrors) {
+    event.preventDefault();
   }
 };
 
