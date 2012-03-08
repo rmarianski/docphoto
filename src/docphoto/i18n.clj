@@ -107,12 +107,14 @@ To reset your password, please click on the following link:
    :required "Required" "требуется"
 
    ;; applications
+   :apply-to "Apply to " "Применить "
    :cv "Curriculum Vitae" "Резюме"
    :cv-description
    "The preferred format for Curriculum Vitae is either Microsoft Word or PDF"
    "предпочтительный формат для резюме – либо документ Microsoft Word, либо PDF"
    :cv-download "Download CV" "Скачать резюме"
 
+   :required-english-only "Required and English Only" "Обязательно и только на английском языке"
    :pg-project-title "Project Title" "Название проекта"
    :pg-project-title-description "A one sentence summary of proposed body of work (English only)" "Это поле не принимает кирриллические буквы"
    :pg-proposal-narrative "Proposal Narrative" "Описание предложения"

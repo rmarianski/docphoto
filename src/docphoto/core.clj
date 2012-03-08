@@ -11,7 +11,8 @@
         [clojure.core.incubator :only (-?> -?>>)]
         [clojure.java.io :only (copy file input-stream output-stream)]
         [docphoto.utils :only (defn-debug-memo md5 multipart-form?
-                                send-message onpost when-logged-in dbg)]
+                                send-message onpost when-logged-in dbg
+                                all-ascii?)]
         [docphoto.form :only (defformpage came-from-field
                                req-textfield textfield req-password)])
   (:require [compojure.route :as route]
@@ -681,7 +682,7 @@
 
 (defmethod exhibit-apply-fields :prodgrant2012 [exhibit]
   [{:field [:text {} :title__c {:label :pg-project-title :description :pg-project-title-description}]
-    :validator {:fn not-empty :msg :required}}
+    :validator {:fn #(and (not-empty %) (all-ascii? %)) :msg :required-english-only}}
    {:field [:text-area#narrative.editor {:style "height: 500px"} :narrative__c
             {:label :pg-proposal-narrative :description :pg-proposal-narrative-description}]
     :validator {:fn not-empty :msg :required}}
