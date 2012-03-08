@@ -1257,15 +1257,17 @@
     (try
       (handler request)
       (catch Exception ex
-        {:status 500
-         :headers {"Content-Type" "text/html; charset=utf-8"}
-         :body
-         (layout request "Error"
-                 (list
-                  [:h1 "Error"]
-                  [:p
-                   "We're sorry. We ran into an error. If the problem continues, "
-                   "please contact docphoto."]))}))))
+        (do
+          (.printStackTrace ex)
+          {:status 500
+          :headers {"Content-Type" "text/html; charset=utf-8"}
+          :body
+          (layout request "Error"
+                  (list
+                   [:h1 "Error"]
+                   [:p
+                    "We're sorry. We ran into an error. If the problem continues, "
+                    "please contact docphoto."]))})))))
 
 (defn wrap-stacktrace
   "wrap the appropriate stack trace handler based on if debugging"
