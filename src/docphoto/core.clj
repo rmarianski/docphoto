@@ -723,7 +723,7 @@
                            :include-editor-css true
                            :js-script "docphoto.editor.triggerEditors();"}
                           [:div
-                           [:h2 (str "Apply to " (:name exhibit))]
+                           [:h2 (str (i18n/translate :apply-to) (:name exhibit))]
                            [:form.uniForm {:method :post :action (:uri request)
                                            :enctype "multipart/form-data"}
                             [:fieldset
