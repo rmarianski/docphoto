@@ -338,9 +338,9 @@
                  (ph/link-to
                   (switch-language-link lang came-from) text))]))]])]]
      [:div#page
-      [:div#content body]]
-     [:div#sidebar
-      (login-logout-snippet request)]]
+      [:div#content body]
+      [:div#sidebar
+       (login-logout-snippet request)]]]
     [:div#footer
      [:p "Copyright (c) 2012 Docphoto. All rights reserved. Design by "
       [:a {:href "http://www.freecsstemplates.org/"} "CSS Templates."]]]
@@ -835,7 +835,7 @@
    [:div.image-container.goog-inline-block
     (ph/image (image-link (:id image) "small"))]
    [:input {:type :hidden :name :imageids :value (:id image)}]
-   [:textarea {:name "captions"}
+   [:textarea {:name "captions" :class "image-caption"}
     (or (:caption__c image) "")]
    [:a {:href "#"
         :class "image-delete"} (i18n/translate :delete)]))

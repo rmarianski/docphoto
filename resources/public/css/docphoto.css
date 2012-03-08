@@ -69,6 +69,13 @@ h2,h3 {
     font-style: italic;
     font-size: 12px;
 }
+.uniForm .textInput,
+.uniForm .fileUpload,
+.uniForm .selectInput,
+.uniForm select,
+.uniForm textarea {
+    float: none;
+}
 
 /**
  * style specific
@@ -92,19 +99,17 @@ a#upload:hover {
     border: 2px solid red;
 }
 
-#images textarea {
+.image-caption {
+    width: 400px;
+}
+
+#images .image-caption {
     height: 100px;
-    width: 450px;
     padding: 5px;
 }
 .image-container {
     height: 100px;
     width: 125px;
-    display: inline-block;
-}
-.image-caption {
-    display: inline-block;
-    width: 400px;
 }
 #images a {
     position: relative;
@@ -150,6 +155,9 @@ a#upload:hover {
 .application-submit .submit-button {
     margin: 2em 0;
 }
+#sidebar {
+    text-align: right;
+}
 #sidebar #login-logout {
     margin: 0 0 1em 0;
 }
@@ -164,8 +172,13 @@ a#upload:hover {
 #sidebar h2 {
     padding: 0;
     margin-left: 0;
+    text-align: right;
 }
-
+.uniForm p.formHint {
+    display: block;
+    float: none;
+    width: 100%;
+}
 .editor {
     width: 650px;
 }
