@@ -856,7 +856,9 @@
     [:div#plupload
      [:div#files-list (i18n/translate :upload-no-support)]
      [:a#pick-files {:href "#"} (i18n/translate :upload-select-files)]
-     [:a#upload {:href "#"} (i18n/translate :upload)]]]
+     [:p#upload-container {:style "display: none"}
+      [:a#upload {:href "#"}
+       (i18n/translate :upload)]]]]
    [:div#images
     [:p (i18n/translate :upload-image-limit)]
     [:p#images-description {:style "display: none"}

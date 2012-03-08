@@ -9,6 +9,7 @@ goog.require('goog.events');
 goog.require('goog.events.EventType');
 goog.require('goog.fx.DragListDirection');
 goog.require('goog.fx.DragListGroup');
+goog.require('goog.fx.dom');
 goog.require('goog.net.EventType');
 goog.require('goog.net.XhrIo');
 goog.require('goog.object');
@@ -66,6 +67,7 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
   this.imagesDescription = goog.dom.getElement(imagesDescription);
 
   this.uploadLink = goog.dom.getElement(uploadId);
+  this.uploadContainer = this.uploadLink.parentNode;
   goog.events.listen(this.uploadLink, goog.events.EventType.CLICK,
                      this.onUpload, false, this);
 
@@ -178,7 +180,8 @@ docphoto.Uploader.prototype.onFilesAdded = function(up, files) {
     n += 1;
   });
   this.filesToUpload += n;
-  this.uploadLink.style.display = 'block';
+  this.uploadContainer.style.display = 'block';
+  docphoto.fadeIn(this.uploadContainer);
 };
 
 /**
@@ -207,8 +210,9 @@ docphoto.Uploader.prototype.fileUploaded_ = function() {
     this.initializeDragDrop();
     if (this.haveImages_()) {
       this.imagesDescription.style.display = 'block';
+      docphoto.fadeIn(this.imagesDescription);
     }
-    this.uploadLink.style.display = 'none';
+    this.uploadContainer.style.display = 'none';
   }
 };
 
@@ -220,6 +224,17 @@ docphoto.Uploader.prototype.haveImages_ = function() {
 };
 
 /**
+ * helper function to fade an element in
+ *
+ * @param {Element} el
+ * @param {Number} duration
+ */
+docphoto.fadeIn = function(el, duration) {
+  var anim = new goog.fx.dom.FadeInAndShow(el, duration || 1000);
+  anim.play();
+};
+
+/**
  * @param {Object} up
  * @param {Object} file
  * @param {Object} responseObject
@@ -228,7 +243,9 @@ docphoto.Uploader.prototype.onUploadDone = function(up, file, responseObject) {
   var imageHtml = responseObject.response;
   var li = goog.dom.createElement(goog.dom.TagName.LI);
   li.innerHTML = imageHtml;
+
   goog.dom.appendChild(this.images, li);
+  docphoto.fadeIn(li);
 
   var textarea = goog.dom.getElementsByTagNameAndClass(
     goog.dom.TagName.TEXTAREA, undefined, li)[0];
@@ -238,6 +255,7 @@ docphoto.Uploader.prototype.onUploadDone = function(up, file, responseObject) {
   }
 
   this.updateFilePercentage(file, '100%');
+
 
   this.fileUploaded_();
 };
