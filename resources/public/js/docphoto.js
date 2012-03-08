@@ -270,7 +270,7 @@ docphoto.Uploader.prototype.onImageDelete = function(event) {
       if (goog.dom.classes.has(el, 'image-container')) {
         var image = goog.dom.getFirstElementChild(el);
         if (goog.isDefAndNotNull(image)) {
-          var li = el.parentNode;
+          var li = /** @type {!Element} */ el.parentNode;
           var textarea = goog.dom.getElementsByTagNameAndClass(
             goog.dom.TagName.TEXTAREA, undefined, li)[0];
           if (goog.isDefAndNotNull(textarea)) {
@@ -298,17 +298,18 @@ docphoto.Uploader.prototype.onImagesSave = function(event) {
 
   var errorClass = 'error';
   var containsErrors = false;
+  var error = null;
   goog.object.forEach(this.captions, function(textarea, id) {
     var li = textarea.parentNode;
-    var error = goog.dom.getElementsByTagNameAndClass(
+    error = goog.dom.getElementsByTagNameAndClass(
       goog.dom.TagName.P, errorClass, li)[0];
     if (goog.isDefAndNotNull(error)) {
       goog.dom.removeNode(error);
     }
     if (goog.string.isEmpty(textarea.value)) {
-      var error = goog.dom.createDom(goog.dom.TagName.P,
-                                     errorClass,
-                                     this.captionRequiredText);
+      error = goog.dom.createDom(goog.dom.TagName.P,
+                                 errorClass,
+                                 this.captionRequiredText);
       goog.dom.insertChildAt(li, error, 0);
       containsErrors = true;
     }
