@@ -342,7 +342,7 @@
      [:div#sidebar
       (login-logout-snippet request)]]
     [:div#footer
-     [:p "Copyright (c) 2011 Docphoto. All rights reserved. Design by "
+     [:p "Copyright (c) 2012 Docphoto. All rights reserved. Design by "
       [:a {:href "http://www.freecsstemplates.org/"} "CSS Templates."]]]
     (theme-js (:include-upload-js options))
     (if-let [js (:js-script options)]
