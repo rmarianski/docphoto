@@ -67,7 +67,7 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
   this.imagesDescription = goog.dom.getElement(imagesDescription);
 
   this.uploadLink = goog.dom.getElement(uploadId);
-  this.uploadContainer = this.uploadLink.parentNode;
+  this.uploadContainer = /** @type {!Element} */ this.uploadLink.parentNode;
   goog.events.listen(this.uploadLink, goog.events.EventType.CLICK,
                      this.onUpload, false, this);
 
@@ -227,7 +227,7 @@ docphoto.Uploader.prototype.haveImages_ = function() {
  * helper function to fade an element in
  *
  * @param {Element} el
- * @param {Number} duration
+ * @param {number=} duration
  */
 docphoto.fadeIn = function(el, duration) {
   var anim = new goog.fx.dom.FadeInAndShow(el, duration || 1000);
@@ -317,6 +317,7 @@ docphoto.Uploader.prototype.onImagesSave = function(event) {
   var errorClass = 'error';
   var containsErrors = false;
   var error = null;
+  var focusElt = null; // focus in on this error element
   goog.object.forEach(this.captions, function(textarea, id) {
     var li = textarea.parentNode;
     error = goog.dom.getElementsByTagNameAndClass(
@@ -329,11 +330,15 @@ docphoto.Uploader.prototype.onImagesSave = function(event) {
                                  errorClass,
                                  this.captionRequiredText);
       goog.dom.insertChildAt(li, error, 0);
+      focusElt = textarea;
       containsErrors = true;
     }
   }, this);
   if (containsErrors) {
     event.preventDefault();
+    if (goog.isDefAndNotNull(focusElt)) {
+      focusElt.focus();
+    }
   }
 };
 
