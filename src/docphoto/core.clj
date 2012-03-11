@@ -676,8 +676,12 @@
             {:label "Multmedia Link"
              :description
              "Moving Walls has the capacity to exhibit multimedia in addition to (but not in place of) the print exhibition. A multimedia sample should be submitted only if it complements or enhances, rather than duplicates, the other submitted materials. The sample will be judged on its ability to present complex issues through compelling multimedia storytelling, and will not negatively impact the print submission. If you are submitting a multimedia piece for consideration, please post the piece on a free public site such as YouTube or Vimeo and include a link. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
-   {:custom (salesforce-picklist-field :focus_Region__c "Focus Region")}
-   {:custom (salesforce-picklist-field :focus_Country__c "Focus Country")}])
+   {:custom (salesforce-picklist-field :focus_Region__c "Focus Region")
+    ;; field added for application submit display logic
+    :field [nil nil :focus_Region__c {:label "Focus Region"}]
+    }
+   {:custom (salesforce-picklist-field :focus_Country__c "Focus Country")
+    :field [nil nil :focus_Country__c {:label "Focus Country"}]}])
 
 (defmethod exhibit-apply-fields :prodgrant2012 [exhibit]
   [{:field [:text {} :title__c {:label :pg-project-title :description :pg-project-title-description}]
@@ -995,25 +999,19 @@
         [:legend (i18n/translate :application)]
         [:h2 (:title__c application)]
         [:dl
-         (letfn [(display-if-set [k title]
-                    (let [x (k application)]
-                      (when-not (empty? x)
-                        (list
-                         [:dt (i18n/translate title)]
-                         [:dd x]))))]
-           (list
-            (display-if-set :cover_Page__c :summary)
-            (display-if-set :narrative__c :proposal-narrative)
-            (display-if-set :statementRich__c :statement)
-            (display-if-set :biography__c :biography)
-            (list
-             [:dt (i18n/translate :cv)]
-             [:dd [:a {:href (cv-link app-id)} (i18n/translate :cv-download)]])
-            (display-if-set :website__c "Website")
-            (display-if-set :multimedia_Link__c "Multimedia Link")
-            (display-if-set :focus_Region__c "Focus Region")
-            (display-if-set :focus_Country__c "Focus Country")
-            (display-if-set :referredby__c "Found out from")))]
+         (let [display-if-set (fn [k title]
+                                (let [x (k application)]
+                                  (when-not (empty? x)
+                                    (list
+                                     [:dt (i18n/translate title)]
+                                     [:dd
+                                      (if (= k :cv)
+                                        [:a {:href (cv-link app-id)}
+                                         (i18n/translate :cv-download)]
+                                        x)]))))
+               fields (application-update-fields application)]
+           (for [{[_ _ k {title :label}] :field} fields]
+             (display-if-set k title)))]
         [:a {:href (application-update-link app-id)} (i18n/translate :update)]]
       [:fieldset
        [:legend (i18n/translate :images)]
