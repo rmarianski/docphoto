@@ -1268,7 +1268,8 @@
                    [:h1 "Error"]
                    [:p
                     "We're sorry. We ran into an error. If the problem continues, "
-                    "please contact docphoto."]))})))))
+                    "please contact "
+                    (ph/link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org")]))})))))
 
 (defn wrap-stacktrace
   "wrap the appropriate stack trace handler based on if debugging"
