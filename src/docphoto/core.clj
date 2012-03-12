@@ -1255,6 +1255,7 @@
                (for [image images]
                  [:li
                   (ph/image (image-link (:id image) "small"))
+                  [:br]
                   (:caption__c image)])]
               [:h2 "Application Responses"]
               (for [field fields]
