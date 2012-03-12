@@ -1215,22 +1215,20 @@
   [(req-textfield :username "Username")
    (req-password :password1 "Password")
    (req-password :password2 "Password Again")]
-  (when-admin
-   (layout request "Reset Password"
-           [:form.uniForm {:method :post :action (:uri request)}
-            (render-fields request params errors)
-            [:input {:type :submit :value "Save"}]]))
-  (when-admin
-   (let [[pass1 pass2] ((juxt :password1 :password2) params)]
-     (if (= pass1 pass2)
-       (if-let [user (query-user-by-username (:username params))]
-         (do
-           (sf/update-user conn {:id (:id user)
-                                 :password__c (md5 pass1)})
-           (layout request "Password changed"
-                   [:h1 (str "Password changed for: " (:username params))]))
-         (render-form params {:username "User does not exist"}))
-       (render-form params {:password1 "Passwords don't match"})))))
+  (layout request "Reset Password"
+          [:form.uniForm {:method :post :action (:uri request)}
+           (render-fields request params errors)
+           [:input {:type :submit :value "Save"}]])
+  (let [[pass1 pass2] ((juxt :password1 :password2) params)]
+    (if (= pass1 pass2)
+      (if-let [user (query-user-by-username (:username params))]
+        (do
+          (sf/update-user conn {:id (:id user)
+                                :password__c (md5 pass1)})
+          (layout request "Password changed"
+                  [:h1 (str "Password changed for: " (:username params))]))
+        (render-form params {:username "User does not exist"}))
+      (render-form params {:password1 "Passwords don't match"}))))
 
 (defn language-view [request language came-from]
   (when (#{"en" "ru"} language)
@@ -1332,7 +1330,7 @@
   (GET "/user/applications/:username" [username :as request]
        (user-applications-view request username))
 
-  (ANY "/admin/password-reset" [] admin-password-reset)
+  (ANY "/admin/password-reset" request (when-admin (admin-password-reset request)))
 
   (ANY "/language/:language/" [language came-from :as request]
        (language-view request language came-from))
