@@ -60,8 +60,6 @@
   "expand out the radio button options to be able to specify multiple options under one group"
   [f]
   (fn [type attrs name opts value]
-    (when (= type :radio)
-      (println type attrs name opts value))
     (if (and (= type :radio)
              (not-empty (:options opts)))
       (for [[label opt-value] (:options opts)]
