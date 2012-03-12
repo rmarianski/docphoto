@@ -158,6 +158,17 @@
                                  (tweak-image-result %)))))
            ~form))))
 
+(defquery-single query-review-request [review-request-id]
+  (exhibit_review_request__c
+   [id exhibit_application__c reviewer__c review_stage__c]
+   [[id = review-request-id]]))
+
+(defquery query-review-requests [user-id application-id]
+  (exhibit_review_request__c
+   [id exhibit_application__c reviewer__c review_stage__c]
+   [[reviewer__c = user-id]
+    [exhibit_application__c = application-id]]))
+
 ;; picklist values for application
 (defn-debug-memo picklist-application-field-metadata [field-name]
   (sf/picklist-field-metadata conn :exhibit_application__c field-name))
@@ -274,7 +285,8 @@
   (images-update-link [application-id] "application" application-id "update-images")
   (image-delete-link [image-id] "image" image-id "delete")
   (admin-password-reset-link [] "admin" "password-reset")
-  (switch-language-link [lang came-from] "language" lang {:came-from came-from}))
+  (switch-language-link [lang came-from] "language" lang {:came-from came-from})
+  (review-request-link [review-request-id] "review-request" review-request-id))
 
 (defn login-logout-snippet [request]
   (let [user (session/get-user request)]
@@ -646,53 +658,73 @@
                    [:option "Website" "Website"]
                    [:option "Other" "Other"]]}]})
 
-(def common-application-fields
+(def application-fields
+
+  ;; common fields
   {:cv {:field [:file {} :cv {:label :cv :description :cv-description}]
-        :validator {:fn filesize-not-empty :msg :required}}})
+        :validator {:fn filesize-not-empty :msg :required}}
+   :focus-region {:custom (salesforce-picklist-field :focus_Region__c "Focus Region")
+                  ;; field added for application submit display logic
+                  :field [nil nil :focus_Region__c {:label "Focus Region"}]}
+   :focus-country {:custom (salesforce-picklist-field :focus_Country__c "Focus Country")
+                   :field [nil nil :focus_Country__c {:label "Focus Country"}]}
+
+   ;; these are listed here to prevent duplication with the fields
+   ;; listed for review
+
+   ;; mw20 fields
+   :mw20-project-title (req-textfield :title__c "Project Title")
+   :mw20-project-summary {:field [:text-area#coverpage.editor {:style "height: 50px"} :cover_Page__c
+                                  {:label "Project Summary"
+                                   :description "A one sentence description of the project, including title (if applicable) and main subject/content."}]
+                          :validator {:fn not-empty :msg :required}}
+   :mw20-project-statement {:field [:text-area#statement.editor {:style "height: 500px"} :statementRich__c
+                                    {:label "Project Statement" :description "(600 words maximum) describing the project you would like to exhibit"}]
+                            :validator {:fn not-empty :msg :required}}
+   :mw20-bio {:field [:text-area#biography.editor {:style "height: 250px"} :biography__c
+                      {:label "Short Narrative Bio"
+                       :description "(250 words maximum) summarizing your previous work and experience"}]
+              :validator {:fn not-empty :msg :required}}
+   :mw20-summary-of-engagement {:field [:text-area#summaryEngagement.editor {:style "height: 500px"} :narrative__c
+                                        {:label "Summary of your engagement"
+                                         :description "(600 words maximum) Please comment on your relationship with the issue or community you photographed. How and why did you begin the project? How long have you  been working on the project? Are there particular methods you  use while working?   What do you hope a viewer will take away from your project?"}]
+                                :validator {:fn not-empty :msg :required}}
+   
+   ;; prodgrant fields
+   :pg-project-title {:field [:text {} :title__c {:label :pg-project-title :description :pg-project-title-description}]
+                      :validator {:fn #(and (not-empty %) (all-ascii? %)) :msg :required-english-only}}
+   :pg-proposal-narrative {:field [:text-area#narrative.editor {:style "height: 500px"} :narrative__c
+                                   {:label :pg-proposal-narrative :description :pg-proposal-narrative-description}]
+                           :validator {:fn not-empty :msg :required}}
+   :pg-personal-statement {:field [:text-area#personal-statement.editor {:style "height: 500px"} :biography__c
+                                   {:label :pg-personal-statement :description :pg-personal-statement-description}]
+                           :validator {:fn not-empty :msg :required}}})
 
 (defmulti exhibit-apply-fields (comp keyword :slug__c))
 
 (defmethod exhibit-apply-fields :mw20 [exhibit]
-  [(req-textfield :title__c "Project Title")
-   {:field [:text-area#coverpage.editor {:style "height: 50px"} :cover_Page__c
-            {:label "Project Summary"
-             :description "A one sentence description of the project, including title (if applicable) and main subject/content."}]
-    :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#statement.editor {:style "height: 500px"} :statementRich__c
-            {:label "Project Statement" :description "(600 words maximum) describing the project you would like to exhibit"}]
-    :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#biography.editor {:style "height: 250px"} :biography__c
-            {:label "Short Narrative Bio"
-             :description "(250 words maximum) summarizing your previous work and experience"}]
-    :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#summaryEngagement.editor {:style "height: 500px"} :narrative__c
-            {:label "Summary of your engagement"
-             :description "(600 words maximum) Please comment on your relationship with the issue or community you photographed. How and why did you begin the project? How long have you  been working on the project? Are there particular methods you  use while working?   What do you hope a viewer will take away from your project?"}]
-    :validator {:fn not-empty :msg :required}}
-   (common-application-fields :cv)
+  [(application-fields :mw20-project-title)
+   (application-fields :mw20-project-summary)
+   (application-fields :mw20-project-statement)
+   (application-fields :mw20-bio)
+   (application-fields :mw20-summary-of-engagement)
+   (application-fields :cv)
    (findout-field)
    {:field [:text {} :website__c {:label "Website" :description "Personal Web Site (Optional)"}]}
    {:field [:text {} :multimedia_Link__c
             {:label "Multmedia Link"
              :description
              "Moving Walls has the capacity to exhibit multimedia in addition to (but not in place of) the print exhibition. A multimedia sample should be submitted only if it complements or enhances, rather than duplicates, the other submitted materials. The sample will be judged on its ability to present complex issues through compelling multimedia storytelling, and will not negatively impact the print submission. If you are submitting a multimedia piece for consideration, please post the piece on a free public site such as YouTube or Vimeo and include a link. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
-   {:custom (salesforce-picklist-field :focus_Region__c "Focus Region")
-    ;; field added for application submit display logic
-    :field [nil nil :focus_Region__c {:label "Focus Region"}]
-    }
-   {:custom (salesforce-picklist-field :focus_Country__c "Focus Country")
-    :field [nil nil :focus_Country__c {:label "Focus Country"}]}])
+   (application-fields :focus-region)
+   (application-fields :focus-country)])
 
 (defmethod exhibit-apply-fields :prodgrant2012 [exhibit]
-  [{:field [:text {} :title__c {:label :pg-project-title :description :pg-project-title-description}]
-    :validator {:fn #(and (not-empty %) (all-ascii? %)) :msg :required-english-only}}
-   {:field [:text-area#narrative.editor {:style "height: 500px"} :narrative__c
-            {:label :pg-proposal-narrative :description :pg-proposal-narrative-description}]
-    :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#personal-statement.editor {:style "height: 500px"} :biography__c
-            {:label :pg-personal-statement :description :pg-personal-statement-description}]
-    :validator {:fn not-empty :msg :required}}
-   (common-application-fields :cv)])
+  [(application-fields :pg-project-title)
+   (application-fields :pg-proposal-narrative)
+   (application-fields :pg-personal-statement)
+   (application-fields :cv)
+   (application-fields :focus-region)
+   (application-fields :focus-country)])
 
 (defmulti application-update-fields (comp keyword :slug__c :exhibit__r))
 
@@ -713,6 +745,17 @@
 
 (defmethod application-update-fields :prodgrant2012 [application]
   (make-cv-field-optional (exhibit-apply-fields (:exhibit__r application))))
+
+(defmulti application-review-fields (comp keyword :slug__c :exhibit__r))
+
+(defmethod application-review-fields :mw20 [application]
+  (map application-fields
+       [:mw20-project-title :mw20-project-summary :mw20-project-statement
+        :mw20-bio :mw20-summary-of-engagement]))
+
+(defmethod application-review-fields :prodgrant2012 [application]
+  (map application-fields
+       [:pg-project-title :pg-proposal-narrative :pg-personal-statement]))
 
 (defn exhibit-apply-view [request exhibit]
   (when-logged-in
@@ -1049,14 +1092,20 @@
            [:h2 "Forbidden"]
            [:p "You don't have access to view this page"]))})
 
-(defmacro reviewer? [user]
-  (if cfg/debug true false))
-
 (defn application-owner? [user application]
   (= (:id user) (:contact__c application)))
 
 (defn can-view-application? [user application]
   (or (admin? user) (application-owner? user application)))
+
+(defn can-review-request? [user review-request]
+  (or (admin? user)
+      (= (:id user) (:reviewer__c review-request))))
+
+(defn can-review-application? [user application]
+  (or (admin? user)
+      (not-empty (query-review-requests (:id user)
+                                        (:id application)))))
 
 (defmacro when-admin
   "Checks that a user is an admin before proceeding. Returns appropriate error codes if not. Uses anaphora. Injects 'user' and depends on 'request' in scope."
@@ -1074,14 +1123,16 @@
        (when-logged-in
          (if (can-view-application? ~'user ~'application)
            (routing ~'request ~@app-routes)
-           (forbidden ~'request))))))
+           (forbidden ~'request)))
+       (not-found-view ~'request))))
 
 (defmacro prepare-exhibit-routes
   "Fetch exhibit, and inject 'exhibit' through anaphora. Expects 'exhibit-id' to exist in scope."
   [& exhibit-routes]
   `(fn [~'request]
      (if-let [~'exhibit (query-exhibit ~'exhibit-id)]
-       (routing ~'request ~@exhibit-routes))))
+       (routing ~'request ~@exhibit-routes)
+       (not-found-view ~'request))))
 
 (defmacro prepare-image-routes
   "Fetch image, user, verify user can view application associated with image. Expects 'image-id' to be in scope. Injects 'user' and 'image'."
@@ -1090,8 +1141,11 @@
      (if-let [~'image (query-image ~'image-id)]
        (when-logged-in
         (let [~'application (:exhibit_application__r ~'image)]
-          (if (can-view-application? ~'user ~'application)
-            (routing ~'request ~@image-routes)))))))
+          (if (or
+               (can-view-application? ~'user ~'application)
+               (can-review-application? ~'user ~'application))
+            (routing ~'request ~@image-routes)
+            (forbidden ~'request)))))))
 
 (defn user-applications-view [request username]
   (when-logged-in
@@ -1183,6 +1237,49 @@
     (session/save-language request (keyword language)))
   (redirect (or came-from "/")))
 
+(defformpage review-request-view [review-request-id]
+  [{:field [:radio {} :rating__c {:label "Rating"
+                                  :description "From 1-5 (1 being lowest, 5 being highest)"
+                                  :opts {:options (map #(vector % %) (range 1 6))}}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:text-area {:style "height: 300px; width: 650px"} :comments__c
+            {:label "Comments"
+             :description "Your comments are important, and we pay particular attention to your feedback. In some instances, your comments are more valuable than the average rating."}]
+    :validator {:fn not-empty :msg :required}}]
+  (if-let [review-request (query-review-request review-request-id)]
+    (when-logged-in
+     (if (can-review-request? user review-request)
+       (layout request "Review"
+               [:div#review
+                (let [application (query-application (:exhibit_Application__c review-request))
+                      images (query-images (:id application))
+                      fields (application-review-fields application)]
+                  [:div
+                   [:h2 "Images"]
+                   [:ul
+                    (for [image images]
+                      [:li
+                       (ph/image (image-link (:id image) "small"))
+                       (:caption__c image)])]
+                   [:h2 "Application Responses"]
+                   (for [field fields]
+                     (let [{[_ _ field-key {title :label}] :field} field]
+                       [:dl
+                        [:dt title]
+                        [:dd (application field-key)]]))
+                   [:h2 "Review"]
+                   [:form.uniForm {:method :post :action (review-request-link review-request-id)}
+                    (render-fields request params errors)
+                    [:input {:type "submit" :value "Save"}]]])])
+       (forbidden request)))
+    (not-found-view request))
+  (layout request "Review"
+    [:div
+     [:h2 "form input"]
+     [:dl
+      (for [[k v] params]
+        (list [:dt k] [:dd v]))]]))
+
 (defroutes main-routes
   (GET "/" request home-view)
   (GET "/about" [] about-view)
@@ -1224,6 +1321,9 @@
     ;; re-using application macro for setup logic
     (prepare-application-routes
      (ANY "*" [] (cv-view request application))))
+
+  (ANY "/review-request/:review-request-id" [review-request-id :as request]
+       (review-request-view request review-request-id))
 
   (GET "/user/applications" [] current-user-applications-view)
   (GET "/user/applications/:username" [username :as request]

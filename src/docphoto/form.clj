@@ -54,8 +54,21 @@
       (f type attrs name "on" (if value "on"))
       (f type attrs name opts value))))
 
+(defn wrap-radio-group
+  "expand out the radio button options to be able to specify multiple options under one group"
+  [f]
+  (fn [type attrs name opts value]
+    (when (= type :radio)
+      (println type attrs name opts value))
+    (if (and (= type :radio)
+             (not-empty (:options opts)))
+      (for [[label opt-value] (:options opts)]
+        [:div label (f type attrs name opt-value value) [:br]])
+      (f type attrs name opts value))))
+
 (def base-field-render-fn
   (-> html4-fields
+      wrap-radio-group
       wrap-checkbox-opts-normalize
       wrap-form-field
       wrap-textinput-classes
