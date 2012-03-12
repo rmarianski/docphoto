@@ -1243,7 +1243,8 @@
    {:field [:text-area {:style "height: 300px; width: 650px"} :comments__c
             {:label "Comments"
              :description "Your comments are important, and we pay particular attention to your feedback. In some instances, your comments are more valuable than the average rating."}]
-    :validator {:fn not-empty :msg :required}}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:hidden {} :review_Stage__c {}]}]
   (layout request "Review"
           [:div#review
            (let [application (query-application (:exhibit_Application__c review-request))
@@ -1264,8 +1265,15 @@
                    [:dt title]
                    [:dd (application field-key)]]))
               [:h2 "Review"]
+              [:dl
+               (for [[k v] review-request]
+                 (list [:dt k] [:dd v]))]
               [:form.uniForm {:method :post :action (review-request-link review-request-id)}
-               (render-fields request params errors)
+               (render-fields
+                request
+                (merge {:review_Stage__c (or (:review_Stage__c review-request) "Internal Review")}
+                       params)
+                errors)
                [:input {:type "submit" :value "Save"}]]])])
   (layout request "Review"
     [:div

@@ -25,15 +25,17 @@
   go under the :opts key"
   [f]
   (fn [type attrs field-name opts value]
-    [:div.ctrlHolder
-     (list
-      [:label {:required (:required opts)}
-       (or (i18n/translate (:label opts)) (string/capitalize (name field-name)))]
-      (when-let [desc (:description opts)]
-        [:p.formHint (i18n/translate desc)])
-      (f type attrs field-name (:opts opts) value)
-      (when-let [error (:error opts)]
-        [:div.error (i18n/translate error)]))]))
+    (if (= type :hidden)
+      (f type attrs field-name opts value)
+      [:div.ctrlHolder
+      (list
+       [:label {:required (:required opts)}
+        (or (i18n/translate (:label opts)) (string/capitalize (name field-name)))]
+       (when-let [desc (:description opts)]
+         [:p.formHint (i18n/translate desc)])
+       (f type attrs field-name (:opts opts) value)
+       (when-let [error (:error opts)]
+         [:div.error (i18n/translate error)]))])))
 
 (defn wrap-textinput-classes
   "add a textInput class to text inputs"
