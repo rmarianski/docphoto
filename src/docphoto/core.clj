@@ -1237,7 +1237,7 @@
     (session/save-language request (keyword language)))
   (redirect (or came-from "/")))
 
-(defformpage review-request-view [review-request-id]
+(defformpage review-request-view [review-request-id review-request]
   [{:field [:radio {} :rating__c {:label "Rating"
                                   :description "From 1-5 (1 being lowest, 5 being highest)"
                                   :opts {:options (map #(vector % %) (range 1 6))}}]
@@ -1246,39 +1246,42 @@
             {:label "Comments"
              :description "Your comments are important, and we pay particular attention to your feedback. In some instances, your comments are more valuable than the average rating."}]
     :validator {:fn not-empty :msg :required}}]
-  (if-let [review-request (query-review-request review-request-id)]
-    (when-logged-in
-     (if (can-review-request? user review-request)
-       (layout request "Review"
-               [:div#review
-                (let [application (query-application (:exhibit_Application__c review-request))
-                      images (query-images (:id application))
-                      fields (application-review-fields application)]
-                  [:div
-                   [:h2 "Images"]
-                   [:ul
-                    (for [image images]
-                      [:li
-                       (ph/image (image-link (:id image) "small"))
-                       (:caption__c image)])]
-                   [:h2 "Application Responses"]
-                   (for [field fields]
-                     (let [{[_ _ field-key {title :label}] :field} field]
-                       [:dl
-                        [:dt title]
-                        [:dd (application field-key)]]))
-                   [:h2 "Review"]
-                   [:form.uniForm {:method :post :action (review-request-link review-request-id)}
-                    (render-fields request params errors)
-                    [:input {:type "submit" :value "Save"}]]])])
-       (forbidden request)))
-    (not-found-view request))
+  (layout request "Review"
+          [:div#review
+           (let [application (query-application (:exhibit_Application__c review-request))
+                 images (query-images (:id application))
+                 fields (application-review-fields application)]
+             [:div
+              [:h2 "Images"]
+              [:ul
+               (for [image images]
+                 [:li
+                  (ph/image (image-link (:id image) "small"))
+                  (:caption__c image)])]
+              [:h2 "Application Responses"]
+              (for [field fields]
+                (let [{[_ _ field-key {title :label}] :field} field]
+                  [:dl
+                   [:dt title]
+                   [:dd (application field-key)]]))
+              [:h2 "Review"]
+              [:form.uniForm {:method :post :action (review-request-link review-request-id)}
+               (render-fields request params errors)
+               [:input {:type "submit" :value "Save"}]]])])
   (layout request "Review"
     [:div
      [:h2 "form input"]
      [:dl
       (for [[k v] params]
         (list [:dt k] [:dd v]))]]))
+
+(defn can-view-review-request [request review-request-id f]
+  (if-let [review-request (query-review-request review-request-id)]
+    (when-logged-in
+     (if (can-review-request? user review-request)
+       (f request review-request-id review-request)
+       (forbidden request)))
+    (not-found-view request)))
 
 (defroutes main-routes
   (GET "/" request home-view)
@@ -1323,7 +1326,7 @@
      (ANY "*" [] (cv-view request application))))
 
   (ANY "/review-request/:review-request-id" [review-request-id :as request]
-       (review-request-view request review-request-id))
+       (can-view-review-request request review-request-id review-request-view))
 
   (GET "/user/applications" [] current-user-applications-view)
   (GET "/user/applications/:username" [username :as request]
