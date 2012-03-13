@@ -248,6 +248,11 @@
                (.substring s 0 n))))]
     (update-in image-map [:caption__c] limit-string 255)))
 
+(defn update-images [conn image-maps]
+  (update conn Image__c
+          (map #(select-keys % [:id :order__c :caption__c])
+               (map normalize-image-map image-maps))))
+
 (defn update-review [conn review-map]
   (update conn Exhibit_Application_Review__c
           (select-keys review-map (conj review-fields :id))))
