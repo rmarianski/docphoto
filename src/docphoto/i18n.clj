@@ -117,7 +117,7 @@ To reset your password, please click on the following link:
    :focus-country "Focus Country" "Фокус страны"
 
    :required-english-only "Required and English Only" "Обязательно и только на английском языке"
-   :pg-project-title "Project Title" "Название проекта"
+   :pg-project-title "Project Summary" "Краткое описание проекта"
    :pg-project-title-description "A one sentence summary of proposed body of work (English only)" "Это поле не принимает кирриллические буквы"
    :pg-proposal-narrative "Proposal Narrative" "Описание предложения"
    :pg-proposal-narrative-description
