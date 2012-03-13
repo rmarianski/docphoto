@@ -179,7 +179,7 @@
      (let [field-values# (picklist-application-field-metadata ~field-name)]
        (field#
         :select {} ~field-name
-        {:label ~field-label
+        {:label (i18n/translate ~field-label)
          :opts (cons [:option ""]
                      (for [[label# value#] field-values#]
                        [:option label# value#]))}))))
@@ -663,11 +663,11 @@
   ;; common fields
   {:cv {:field [:file {} :cv {:label :cv :description :cv-description}]
         :validator {:fn filesize-not-empty :msg :required}}
-   :focus-region {:custom (salesforce-picklist-field :focus_Region__c "Focus Region")
+   :focus-region {:custom (salesforce-picklist-field :focus_Region__c :focus-region)
                   ;; field added for application submit display logic
-                  :field [nil nil :focus_Region__c {:label "Focus Region"}]}
-   :focus-country {:custom (salesforce-picklist-field :focus_Country__c "Focus Country")
-                   :field [nil nil :focus_Country__c {:label "Focus Country"}]}
+                  :field [nil nil :focus_Region__c {:label :focus-region}]}
+   :focus-country {:custom (salesforce-picklist-field :focus_Country__c :focus-country)
+                   :field [nil nil :focus_Country__c {:label :focus-country}]}
 
    ;; these are listed here to prevent duplication with the fields
    ;; listed for review

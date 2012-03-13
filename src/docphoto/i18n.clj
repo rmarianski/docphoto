@@ -113,6 +113,8 @@ To reset your password, please click on the following link:
    "The preferred format for Curriculum Vitae is either Microsoft Word or PDF"
    "предпочтительный формат для резюме – либо документ Microsoft Word, либо PDF"
    :cv-download "Download CV" "Скачать резюме"
+   :focus-region "Focus Region" "Фокус области"
+   :focus-country "Focus Country" "Фокус страны"
 
    :required-english-only "Required and English Only" "Обязательно и только на английском языке"
    :pg-project-title "Project Title" "Название проекта"
