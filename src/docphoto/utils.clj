@@ -78,3 +78,7 @@
 (defn ascii? [^Character c] (CharUtils/isAscii c))
 
 (defn all-ascii? [s] (every? ascii? s))
+
+(defn not-empty-and-ascii? [s]
+  (and (not-empty s) (all-ascii? s)))
+

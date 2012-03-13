@@ -12,9 +12,10 @@
         [clojure.java.io :only (copy file input-stream output-stream)]
         [docphoto.utils :only (defn-debug-memo md5 multipart-form?
                                 send-message onpost when-logged-in dbg
-                                all-ascii?)]
+                                not-empty-and-ascii?)]
         [docphoto.form :only (defformpage came-from-field
-                               req-textfield textfield req-password)])
+                               req-textfield textfield req-password
+                               english-only-textfield)])
   (:require [compojure.route :as route]
             [docphoto.salesforce :as sf]
             [docphoto.persist :as persist]
@@ -504,18 +505,18 @@
                                 (redirect (or (:came-from params) "/")))))
 
 (defformpage register-view []
-  [(req-textfield :userName__c :username)
+  [(english-only-textfield :userName__c :username)
    (req-password :password__c :password)
    (req-password :password2 :password-again)
-   (req-textfield :firstName :first-name)
-   (req-textfield :lastName :last-name)
-   (req-textfield :email :email)
-   (req-textfield :phone :phone)
-   (req-textfield :mailingStreet :address)
-   (req-textfield :mailingCity :city)
-   (req-textfield :mailingState :state)
-   (req-textfield :mailingPostalCode :postal-code)
-   (req-textfield :mailingCountry :country)
+   (english-only-textfield :firstName :first-name)
+   (english-only-textfield :lastName :last-name)
+   (english-only-textfield :email :email)
+   (english-only-textfield :phone :phone)
+   (english-only-textfield :mailingStreet :address)
+   (english-only-textfield :mailingCity :city)
+   (english-only-textfield :mailingState :state)
+   (english-only-textfield :mailingPostalCode :postal-code)
+   (english-only-textfield :mailingCountry :country)
    {:field [:checkbox {} :docPhoto_Mail_List__c
             {:label :subscribe-to-mailinglist}]}]
   (layout
@@ -692,7 +693,7 @@
    
    ;; prodgrant fields
    :pg-project-title {:field [:text {} :title__c {:label :pg-project-title :description :pg-project-title-description}]
-                      :validator {:fn #(and (not-empty %) (all-ascii? %)) :msg :required-english-only}}
+                      :validator {:fn not-empty-and-ascii? :msg :required-english-only}}
    :pg-proposal-narrative {:field [:text-area#narrative.editor {:style "height: 500px"} :narrative__c
                                    {:label :pg-proposal-narrative :description :pg-proposal-narrative-description}]
                            :validator {:fn not-empty :msg :required}}

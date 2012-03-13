@@ -1,5 +1,5 @@
 (ns docphoto.form
-  (:use [docphoto.utils :only (with-gensyms onpost)]
+  (:use [docphoto.utils :only (with-gensyms onpost not-empty-and-ascii?)]
         [flutter.html4 :only (html4-fields)]
         [flutter.shortcuts :only (wrap-shortcuts)]
         [flutter.params :only (wrap-params)]
@@ -137,14 +137,22 @@
 
 (defmacro textfield
   "helper to simplify generating optional text fields"
-  [fieldname label]
-  {:field [:text {} fieldname {:label label}]})
+  [fieldname label & [description]]
+  {:field [:text {} fieldname
+           (merge (when description {:description description})
+                  {:label label})]})
 
 (defmacro req-textfield
   "helper to simplify generating required text fields"
-  [fieldname label]
-  (assoc (textfield fieldname label)
+  [fieldname label & description]
+  (assoc (textfield fieldname label description)
     :validator {:fn not-empty :msg :required}))
+
+(defmacro english-only-textfield
+  "helper to generate english only required text fields"
+  [fieldname label & description]
+  (assoc (textfield fieldname label description)
+    :validator {:fn not-empty-and-ascii? :msg :required-english-only}))
 
 (defmacro req-password
   "helper to simplify generating password fields"
