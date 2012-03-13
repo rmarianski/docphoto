@@ -5,7 +5,8 @@
   (:import [com.sforce.ws ConnectorConfig]
            [com.sforce.soap.enterprise Connector]
            [com.sforce.soap.enterprise.sobject
-            Contact SObject Exhibit_Application__c Image__c]
+            Contact SObject Exhibit_Application__c Image__c
+            Exhibit_Application_Review__c]
            [com.sforce.soap.enterprise.fault UnexpectedErrorFault]
            [org.apache.commons.codec.digest DigestUtils]))
 
@@ -166,6 +167,9 @@
 
 (def user-fields (conj contact-fields :id :name))
 
+(def review-fields [:contact__c :exhibit_Application__c
+                    :comments__c :rating__c :review_Stage__c])
+
 (defmacro defcreate [fn-name bindings class-instance-form key-form]
   `(defn ~fn-name [conn# ~@bindings]
      (-?>
@@ -199,6 +203,10 @@
    image-map
    [:caption__c :exhibit_application__c :filename__c
     :mime_type__c :order__c :url__c]))
+
+(defcreate create-review [review-map]
+  (Exhibit_Application_Review__c.)
+  (select-keys review-map review-fields))
 
 (defn delete-ids [conn ids]
   "delete passed in ids"
@@ -240,7 +248,6 @@
                (.substring s 0 n))))]
     (update-in image-map [:caption__c] limit-string 255)))
 
-(defn update-images [conn image-maps]
-  (update conn Image__c
-          (map #(select-keys % [:id :order__c :caption__c])
-               (map normalize-image-map image-maps))))
+(defn update-review [conn review-map]
+  (update conn Exhibit_Application_Review__c
+          (select-keys review-map (conj review-fields :id))))

@@ -170,6 +170,13 @@
    [[reviewer__c = user-id]
     [exhibit_application__c = application-id]]))
 
+(defquery-single query-review [user-id application-id]
+  (exhibit_application_review__c
+   [id exhibit_application__c contact__c
+    comments__c rating__c review_stage__c]
+   [[contact__c = user-id]
+    [exhibit_application__c = application-id]]))
+
 ;; picklist values for application
 (defn-debug-memo picklist-application-field-metadata [field-name]
   (sf/picklist-field-metadata conn :exhibit_application__c field-name))
@@ -1239,6 +1246,20 @@
     (session/save-language request (keyword language)))
   (redirect (or came-from "/")))
 
+(defn translate-double-rating-to-string [d]
+  (condp = d
+    1.0 "1"
+    2.0 "2"
+    3.0 "3"
+    4.0 "4"
+    5.0 "5"
+    (str d)))
+
+(defn normalize-review [review]
+  (and review
+       (update-in review [:rating__c]
+                  (fnil translate-double-rating-to-string 1.0))))
+
 (defformpage review-request-view [review-request-id review-request]
   [{:field [:radio {} :rating__c {:label "Rating"
                                   :description "From 1-5 (1 being lowest, 5 being highest)"
@@ -1269,22 +1290,28 @@
                    [:dt title]
                    [:dd (application field-key)]]))
               [:h2 "Review"]
-              [:dl
-               (for [[k v] review-request]
-                 (list [:dt k] [:dd v]))]
               [:form.uniForm {:method :post :action (review-request-link review-request-id)}
                (render-fields
                 request
-                (merge {:review_Stage__c (or (:review_Stage__c review-request) "Internal Review")}
-                       params)
+                (merge
+                 {:review_Stage__c (or (:review_Stage__c review-request) "Internal Review")}
+                 (normalize-review (query-review (:reviewer__c review-request) (:id application)))
+                 params)
                 errors)
                [:input {:type "submit" :value "Save"}]]])])
-  (layout request "Review"
-    [:div
-     [:h2 "form input"]
-     [:dl
-      (for [[k v] params]
-        (list [:dt k] [:dd v]))]]))
+  (let [{user-id :reviewer__c application-id :exhibit_Application__c} review-request
+        application (query-application (:exhibit_Application__c review-request))
+        updated-params (update-in params [:rating__c] #(Double/valueOf %))]
+    (if-let [review (query-review user-id application-id)]
+      (sf/update-review conn (merge review updated-params))
+      (sf/create-review conn (assoc updated-params
+                               :exhibit_Application__c application-id
+                               :contact__c user-id)))
+    (layout request "Thank you for your review"
+            [:div
+             [:p "Thank you for your review. You may "
+              (ph/link-to (:uri request) "update")
+              " it at any time."]])))
 
 (defn can-view-review-request [request review-request-id f]
   (if-let [review-request (query-review-request review-request-id)]
