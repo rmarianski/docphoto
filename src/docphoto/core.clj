@@ -638,8 +638,11 @@
 (defview exhibit-list-view [] "Exhibits"
   (exhibits-html request))
 
+(defn guidelines-keyword [exhibit-slug]
+  (keyword (str "guidelines-" exhibit-slug)))
+
 (defn exhibit-guidelines [request exhibit]
-  (or (guidelines/guidelines (keyword (:slug__c exhibit)))
+  (or (i18n/translate (guidelines-keyword (:slug__c exhibit)))
       (:description__c exhibit)))
 
 (defview exhibit-view [exhibit]

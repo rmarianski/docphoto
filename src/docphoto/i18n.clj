@@ -1,5 +1,6 @@
 (ns docphoto.i18n
-  (:require [hiccup.page-helpers :as ph]))
+  (:require [hiccup.page-helpers :as ph]
+            [docphoto.guidelines :as guidelines]))
 
 (def ^:dynamic *language* :en)
 
@@ -184,6 +185,15 @@ To reset your password, please click on the following link:
    :view-all-applications "You can view all your " "Вы можете просмотреть все "
 
    :submitted "Submitted" "представленный"
+
+   :guidelines-prodgrant2012
+   (:en (guidelines/guidelines :prodgrant2012))
+   (:ru (guidelines/guidelines :prodgrant2012))
+
+   :guidelines-mw20
+   (:en (guidelines/guidelines :mw20))
+   ;; only need english guidelines for mw20
+   (:en (guidelines/guidelines :mw20))
 
    ))
 
