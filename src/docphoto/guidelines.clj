@@ -26,7 +26,7 @@
     (list
      [:p "The Open Society Foundations invite photographers to submit a body of work for consideration in the Moving Walls 20 group exhibition, scheduled to open in New York in early 2013."]
      [:p "The Moving Walls exhibition series showcases documentary photography that highlights human rights and social issues that coincide with the Open Society Foundations' mission. Moving Walls is exhibited at our offices in New York and Washington, D.C. "]
-     [:p "For more details and the application instructions, please visit: " (link "http://www.soros.org/initiatives/photography/movingwalls/20")]
+     [:p "For more details and the application instructions, please visit: " (link "http://www.soros.org/initiatives/photography/focus_areas/mw/guidelines")]
      [:p "To apply, please visit: " (link "http://apply.movingwalls.org/exhibit/mw20/apply")])}
 
    :prodgrant2012
