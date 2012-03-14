@@ -1260,7 +1260,7 @@
        (update-in review [:rating__c]
                   (fnil translate-double-rating-to-string 1.0))))
 
-(defformpage review-request-view [review-request-id review-request]
+(defformpage review-view [user-id application review-stage]
   [{:field [:radio {} :rating__c {:label "Rating"
                                   :description "From 1-5 (1 being lowest, 5 being highest)"
                                   :opts (map #(vector % %) (map str (range 1 6)))}]
@@ -1272,8 +1272,7 @@
    {:field [:hidden {} :review_Stage__c {}]}]
   (layout request "Review"
           [:div#review
-           (let [application (query-application (:exhibit_Application__c review-request))
-                 images (query-images (:id application))
+           (let [images (query-images (:id application))
                  fields (application-review-fields application)]
              [:div
               [:h2 "Images"]
@@ -1290,18 +1289,17 @@
                    [:dt title]
                    [:dd (application field-key)]]))
               [:h2 "Review"]
-              [:form.uniForm {:method :post :action (review-request-link review-request-id)}
+              [:form.uniForm {:method :post :action (:uri request)}
                (render-fields
                 request
                 (merge
-                 {:review_Stage__c (or (:review_Stage__c review-request) "Internal Review")}
-                 (normalize-review (query-review (:reviewer__c review-request) (:id application)))
+                 {:review_Stage__c (or review-stage "Internal Review")}
+                 (normalize-review (query-review user-id (:id application)))
                  params)
                 errors)
                [:input {:type "submit" :value "Save"}]]])])
-  (let [{user-id :reviewer__c application-id :exhibit_Application__c} review-request
-        application (query-application (:exhibit_Application__c review-request))
-        updated-params (update-in params [:rating__c] #(Double/valueOf %))]
+  (let [updated-params (update-in params [:rating__c] #(Double/valueOf %))
+        application-id (:id application)]
     (if-let [review (query-review user-id application-id)]
       (sf/update-review conn (merge review updated-params))
       (sf/create-review conn (assoc updated-params
@@ -1320,6 +1318,12 @@
        (f request review-request-id review-request)
        (forbidden request)))
     (not-found-view request)))
+
+(defn review-request-view [request review-request-id review-request]
+  (let [{application-id :exhibit_Application__c
+         user-id :reviewer__c review-stage :review_Stage__c} review-request
+         application (query-application application-id)]
+    (review-view request user-id application review-stage)))
 
 (defroutes main-routes
   (GET "/" request home-view)
