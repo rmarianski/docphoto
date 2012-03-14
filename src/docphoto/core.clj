@@ -1263,7 +1263,7 @@
 (defformpage review-request-view [review-request-id review-request]
   [{:field [:radio {} :rating__c {:label "Rating"
                                   :description "From 1-5 (1 being lowest, 5 being highest)"
-                                  :opts {:options (map #(vector % %) (range 1 6))}}]
+                                  :opts (map #(vector % %) (map str (range 1 6)))}]
     :validator {:fn not-empty :msg :required}}
    {:field [:text-area {:style "height: 300px; width: 650px"} :comments__c
             {:label "Comments"

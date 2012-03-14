@@ -61,8 +61,8 @@
   [f]
   (fn [type attrs name opts value]
     (if (and (= type :radio)
-             (not-empty (:options opts)))
-      (for [[label opt-value] (:options opts)]
+             (not-empty opts))
+      (for [[label opt-value] opts]
         [:div label (f type attrs name opt-value value) [:br]])
       (f type attrs name opts value))))
 

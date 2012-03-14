@@ -167,8 +167,7 @@
 
 (def user-fields (conj contact-fields :id :name))
 
-(def review-fields [:contact__c :exhibit_Application__c
-                    :comments__c :rating__c :review_Stage__c])
+(def review-fields [:comments__c :rating__c :review_Stage__c])
 
 (defmacro defcreate [fn-name bindings class-instance-form key-form]
   `(defn ~fn-name [conn# ~@bindings]
@@ -206,7 +205,7 @@
 
 (defcreate create-review [review-map]
   (Exhibit_Application_Review__c.)
-  (select-keys review-map review-fields))
+  (select-keys review-map (conj review-fields :contact__c :exhibit_Application__c)))
 
 (defn delete-ids [conn ids]
   "delete passed in ids"
@@ -255,4 +254,4 @@
 
 (defn update-review [conn review-map]
   (update conn Exhibit_Application_Review__c
-          (select-keys review-map (conj review-fields :id))))
+          [(select-keys review-map (conj review-fields :id))]))
