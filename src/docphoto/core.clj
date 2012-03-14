@@ -1260,7 +1260,7 @@
        (update-in review [:rating__c]
                   (fnil translate-double-rating-to-string 1.0))))
 
-(defformpage review-view [user-id application review-stage]
+(defformpage review-view [user-id application & [review-stage]]
   [{:field [:radio {} :rating__c {:label "Rating"
                                   :description "From 1-5 (1 being lowest, 5 being highest)"
                                   :opts (map #(vector % %) (map str (range 1 6)))}]
@@ -1325,6 +1325,10 @@
          application (query-application application-id)]
     (review-view request user-id application review-stage)))
 
+(defn application-review-view [request application]
+  (when-admin
+   (review-view request (:id user) application)))
+
 (defroutes main-routes
   (GET "/" request home-view)
   (GET "/about" [] about-view)
@@ -1347,6 +1351,7 @@
      (GET "/success" [] (application-success-view request application))
      (ANY "/update" [] (application-update-view request application))
      (GET "/debug" [] (app-debug-view request application))
+     (ANY "/review" [] (application-review-view request application))
      (GET "/" [] (app-view request application))))
 
   (GET "/exhibit" [] exhibit-list-view)
