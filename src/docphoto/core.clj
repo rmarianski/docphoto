@@ -69,6 +69,11 @@
    (update-in image [:exhibit_application__r] sf/sobject->map)
    (update-in [:exhibit_application__r :exhibit__r] sf/sobject->map)))
 
+(defn- tweak-review-request-result
+  "convert review requests responses to have an application map"
+  [review-request]
+  (update-in review-request [:exhibit_Application__r] sf/sobject->map))
+
 (defmacro defquery
   "Generate a call to sf/query returning multiple results."
   [fn-name args query-params & [alter-query-fn]]
@@ -169,6 +174,13 @@
    [id exhibit_application__c reviewer__c review_stage__c]
    [[reviewer__c = user-id]
     [exhibit_application__c = application-id]]))
+
+(defquery query-review-requests-for-user [user-id]
+  (exhibit_review_request__c
+   [id exhibit_application__c reviewer__c review_stage__c
+    exhibit_application__r.title__c]
+   [[reviewer__c = user-id]])
+  (fn [form] `(map tweak-review-request-result ~form)))
 
 (defquery-single query-review [user-id application-id]
   (exhibit_application_review__c
@@ -312,14 +324,23 @@
         [:div#update-profile
          (ph/link-to (profile-update-link (:id user)) (i18n/translate :update-profile))]
         (let [apps (query-applications (:id user))]
-          (if (not-empty apps)
+          (when (not-empty apps)
             [:div#applications-list
              [:h2 (i18n/translate :applications)]
              [:ul
               (for [app (reverse (sort-by :lastModifiedDate apps))]
                 [:li
                  [:a {:href (application-submit-link (:id app))}
-                  (:title__c app)]])]])))))))
+                  (:title__c app)]])]]))
+        (let [review-requests (query-review-requests-for-user (:id user))]
+          (when (not-empty review-requests)
+            [:div#reviews-list
+            [:h2 "Reviews"]
+            [:ul
+             (for [review-request (reverse (sort-by :createdDate review-requests))]
+               [:li
+                [:a {:href (review-request-link (:id review-request))}
+                 (:title__c (:exhibit_Application__r review-request))]])]])))))))
 
 (defmacro when-multiple-languages [& body]
   (cond
