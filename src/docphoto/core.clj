@@ -296,7 +296,7 @@
   (switch-language-link [lang came-from] "language" lang {:came-from came-from})
   (review-request-link [review-request-id] "review-request" review-request-id))
 
-(defn login-logout-snippet [request]
+(defn sidebar-snippet [request]
   (let [user (session/get-user request)]
     (list
      [:div#login-logout
@@ -359,7 +359,7 @@
      [:div#page
       [:div#content body]
       [:div#sidebar
-       (login-logout-snippet request)]]]
+       (sidebar-snippet request)]]]
     [:div#footer
      [:p "Copyright (c) 2012 Docphoto. All rights reserved. Design by "
       [:a {:href "http://www.freecsstemplates.org/"} "CSS Templates."]]]
