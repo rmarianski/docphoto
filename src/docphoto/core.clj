@@ -1326,7 +1326,7 @@
               (for [field fields]
                 (let [{[_ _ field-key {title :label}] :field} field]
                   [:dl
-                   [:dt title]
+                   [:dt (i18n/translate title)]
                    [:dd (application field-key)]]))
               [:h2 "Images"]
               [:ul
