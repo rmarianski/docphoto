@@ -1,7 +1,8 @@
 (ns docphoto.salesforce
   (:use [clojure.core.incubator :only (-?>)]
         [docphoto.utils :only (find-first)])
-  (:require [clojure.string :as string])
+  (:require [clojure.string :as string]
+            [docphoto.config :as cfg])
   (:import [com.sforce.ws ConnectorConfig]
            [com.sforce.soap.enterprise Connector]
            [com.sforce.soap.enterprise.sobject
@@ -177,7 +178,10 @@
        (sobject-array
         [(create-sf-object
           ~class-instance-form
-          ~key-form)]))
+          ~(if cfg/owner-id
+             `(merge {:ownerId ~cfg/owner-id}
+                     ~key-form)
+             key-form))]))
       first
       .getId)))
 

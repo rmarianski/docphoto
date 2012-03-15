@@ -24,3 +24,6 @@
 
 ;; if proxied, use a different header to generate absolute links
 (def proxied? false)
+
+;; objects created will use this owner id
+(def owner-id nil)
