@@ -119,9 +119,11 @@
 (defquery query-applications [userid]
   (exhibit_application__c
    [id title__c exhibit__r.name exhibit__r.slug__c
-    lastModifiedDate submission_Status__c referredby__c]
+    createdDate lastModifiedDate
+    submission_Status__c referredby__c]
    [[exhibit_application__c.exhibit__r.closed__c = false noquote]
-    [exhibit_application__c.contact__r.id = userid]])
+    [exhibit_application__c.contact__r.id = userid]]
+   :append "order by lastModifiedDate desc")
   (fn [form] `(map tweak-application-result ~form)))
 
 (defquery-single query-exhibit [exhibit-slug]
@@ -184,7 +186,8 @@
   (exhibit_review_request__c
    [id exhibit_application__c reviewer__c review_stage__c
     exhibit_application__r.title__c]
-   [[reviewer__c = user-id]])
+   [[reviewer__c = user-id]]
+   :append "order by createdDate")
   (fn [form] `(map tweak-review-request-result ~form)))
 
 (defquery-single query-review [user-id application-id]
@@ -336,7 +339,7 @@
             [:div#applications-list
              [:h2 (i18n/translate :applications)]
              [:ul
-              (for [app (reverse (sort-by :lastModifiedDate apps))]
+              (for [app apps]
                 [:li
                  [:a {:href (application-submit-link (:id app))}
                   (:title__c app)]])]]))
@@ -1250,7 +1253,7 @@
               [:div
                [:h2 exhibit-name]
                [:ul
-                (for [app (sort-by :lastModifiedDate apps)]
+                (for [app apps]
                   [:li
                    [:a {:href (application-submit-link (:id app))} (:title__c app)]
                    (if (= (:submission_Status__c app) "Final")
