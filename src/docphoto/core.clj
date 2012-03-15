@@ -723,11 +723,15 @@
 
 (defmacro findout-field []
   {:field [:select {} :referredby__c
-           {:label "How did you find out about Moving Walls 20?"
-            :opts [[:option ""]
-                   [:option "Friend" "Friend"]
-                   [:option "Website" "Website"]
-                   [:option "Other" "Other"]]}]})
+           {:label :how-did-you-find-out
+            :opts [[""]
+                   [:findout-website "Open Society Foundations website"]
+                   [:findout-newsletter "Doc Photo Project newsletter"]
+                   [:findout-facebook "Facebook"]
+                   [:findout-twitter "Twitter"]
+                   [:findout-article "Article"]
+                   [:findout-friend "Friend"]
+                   [:findout-other "Other"]]}]})
 
 (def application-fields
 

@@ -66,10 +66,22 @@
         [:div label (f type attrs name opt-value value) [:br]])
       (f type attrs name opts value))))
 
+(defn wrap-select
+  "translate the options"
+  [f]
+  (fn [type attrs name opts value]
+    (if (= type :select)
+      (let [translated-opts (for [[label opt-value] opts]
+                              [:option (or opt-value label)
+                               (i18n/translate label)])]
+        (f type attrs name translated-opts value))
+      (f type attrs name opts value))))
+
 (def base-field-render-fn
   (-> html4-fields
       wrap-radio-group
       wrap-checkbox-opts-normalize
+      wrap-select
       wrap-form-field
       wrap-textinput-classes
       wrap-shortcuts

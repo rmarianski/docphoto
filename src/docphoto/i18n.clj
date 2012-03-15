@@ -131,6 +131,16 @@ To reset your password, please click on the following link:
    :focus-region "Focus Region" "Фокус области"
    :focus-country "Focus Country" "Фокус страны"
 
+   ;; referred by drop down
+   :how-did-you-find-out "How did you find out about this competition?"  "Как Вы узнали о конкурсе?"
+   :findout-website "Open Society Foundations website" "Open Society Foundations веб-сайт"
+   :findout-newsletter "Doc Photo Project newsletter" "Проект бюллетеня"
+   :findout-facebook "Facebook" "Facebook"
+   :findout-twitter "Twitter" "Twitter"
+   :findout-article "Article" "статья"
+   :findout-friend "Friend" "друг"
+   :findout-other "Other" "другой"
+
    :required-english-only "Required and English Only" "Обязательно и только на английском языке"
    :pg-project-title "Project Title" "Название проекта"
    :pg-project-summary "Project Summary" "Краткое описание проекта"
