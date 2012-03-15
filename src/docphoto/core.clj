@@ -1312,6 +1312,12 @@
            (let [images (query-images (:id application))
                  fields (application-review-fields application)]
              [:div
+              [:h2 "Application Responses"]
+              (for [field fields]
+                (let [{[_ _ field-key {title :label}] :field} field]
+                  [:dl
+                   [:dt title]
+                   [:dd (application field-key)]]))
               [:h2 "Images"]
               [:ul
                (for [image images]
@@ -1319,12 +1325,7 @@
                   (ph/image (image-link (:id image) "small"))
                   [:br]
                   (:caption__c image)])]
-              [:h2 "Application Responses"]
-              (for [field fields]
-                (let [{[_ _ field-key {title :label}] :field} field]
-                  [:dl
-                   [:dt title]
-                   [:dd (application field-key)]]))
+              
               [:h2 "Review"]
               [:form.uniForm {:method :post :action (:uri request)}
                (render-fields
