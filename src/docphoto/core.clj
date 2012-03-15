@@ -190,6 +190,13 @@
    :append "order by createdDate")
   (fn [form] `(map tweak-review-request-result ~form)))
 
+(defquery query-reviews-for-user-that-are-final [user-id]
+  (exhibit_application_review__c
+   [id exhibit_application__c contact__c
+    comments__c rating__c review_stage__c status__c]
+   [[contact__c = user-id]
+    [status__c = "Final"]]))
+
 (defquery-single query-review [user-id application-id]
   (exhibit_application_review__c
    [id exhibit_application__c contact__c
@@ -319,6 +326,10 @@
   (register-link [] "register")
   (profile-reset-password-link [user-id] "profile" user-id "password"))
 
+(defn find-remaining-review-requests [review-requests final-reviews]
+  (let [s (set (map :exhibit_Application__c final-reviews))]
+    (remove #(s (:exhibit_Application__c %)) review-requests)))
+
 (defn sidebar-snippet [request]
   (let [user (session/get-user request)]
     (list
@@ -343,12 +354,15 @@
                 [:li
                  [:a {:href (application-submit-link (:id app))}
                   (:title__c app)]])]]))
-        (let [review-requests (query-review-requests-for-user (:id user))]
-          (when (not-empty review-requests)
+        (let [review-requests (query-review-requests-for-user (:id user))
+              final-reviews (query-reviews-for-user-that-are-final (:id user))
+              remaining-review-requests (find-remaining-review-requests
+                                         review-requests final-reviews)]
+          (when (not-empty remaining-review-requests)
             [:div#reviews-list
             [:h2 "Reviews"]
             [:ul
-             (for [review-request (reverse (sort-by :createdDate review-requests))]
+             (for [review-request remaining-review-requests]
                [:li
                 [:a {:href (review-request-link (:id review-request))}
                  (:title__c (:exhibit_Application__r review-request))]])]]))
