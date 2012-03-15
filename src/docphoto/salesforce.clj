@@ -28,10 +28,11 @@
   (into-array SObject coll))
 
 (defn sobject->map [sobj]
-  (-?> sobj
-       bean
-       (dissoc :fieldsToNull)
-       non-nills))
+  (when-let [result-map (-?> sobj
+                             bean
+                             (dissoc :fieldsToNull)
+                             non-nills)]
+    (with-meta result-map {:sobject sobj})))
 
 ;; automatically reconnect on session invalidation
 ;; salesforce connection must be first binding
