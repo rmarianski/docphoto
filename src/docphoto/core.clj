@@ -727,8 +727,11 @@
                                 :validator {:fn not-empty :msg :required}}
    
    ;; prodgrant fields
-   :pg-project-title {:field [:text {} :title__c {:label :pg-project-title :description :pg-project-title-description}]
+   :pg-project-title {:field [:text {} :title__c {:label :pg-project-title}]
                       :validator {:fn not-empty-and-ascii? :msg :required-english-only}}
+   :pg-project-summary {:field [:text-area#coverpage.editor {:style "height: 50px"} :cover_Page__c
+                                {:label :pg-project-summary :description :pg-project-summary-description}]
+                        :validator {:fn not-empty-and-ascii? :msg :required-english-only}}
    :pg-proposal-narrative {:field [:text-area#narrative.editor {:style "height: 500px"} :narrative__c
                                    {:label :pg-proposal-narrative :description :pg-proposal-narrative-description}]
                            :validator {:fn not-empty :msg :required}}
@@ -756,6 +759,7 @@
 
 (defmethod exhibit-apply-fields :prodgrant2012 [exhibit]
   [(application-fields :pg-project-title)
+   (application-fields :pg-project-summary)
    (application-fields :pg-proposal-narrative)
    (application-fields :pg-personal-statement)
    (application-fields :cv)

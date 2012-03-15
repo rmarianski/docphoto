@@ -125,8 +125,9 @@ To reset your password, please click on the following link:
    :focus-country "Focus Country" "Фокус страны"
 
    :required-english-only "Required and English Only" "Обязательно и только на английском языке"
-   :pg-project-title "Project Summary" "Краткое описание проекта"
-   :pg-project-title-description "A one sentence summary of proposed body of work (English only)" "Это поле не принимает кирриллические буквы"
+   :pg-project-title "Project Title" "Название проекта"
+   :pg-project-summary "Project Summary" "Краткое описание проекта"
+   :pg-project-summary-description "A one sentence summary of proposed body of work (English only)" "Это поле не принимает кирриллические буквы"
    :pg-proposal-narrative "Proposal Narrative" "Описание предложения"
    :pg-proposal-narrative-description
    "Please provide a three-page description of the proposed project, a summary of the issue and its importance, a description of the plan for producing the work, a description of sources and contacts for the project, and thoughts on how the finished product might be distributed."
