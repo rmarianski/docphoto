@@ -92,6 +92,11 @@
   (contact sf/user-fields [[username__c = username]
                            [password__c = password]]))
 
+;; the password passed in should be the hash
+(defquery-single query-user-by-credentials-with-userid [user-id password]
+  (contact sf/user-fields [[id = user-id]
+                           [password__c = password]]))
+
 (defquery-single query-user-by-email [email]
   (contact [id] [[email = email]]))
 
@@ -308,7 +313,8 @@
   (review-request-link [review-request-id] "review-request" review-request-id)
   (login-link [& [came-from]] "login" (when came-from {:came-from came-from}))
   (logout-link [] "logout")
-  (register-link [] "register"))
+  (register-link [] "register")
+  (profile-reset-password-link [user-id] "profile" user-id "password"))
 
 (defn sidebar-snippet [request]
   (let [user (session/get-user request)]
@@ -477,7 +483,8 @@
   (if-let [user (query-user-by-credentials (:userName__c params) (md5 (:password__c params)))]
     (do (login request user)
         (redirect (if-let [came-from (:came-from params)]
-                    (if (.endsWith came-from "/login") "/" came-from)
+                    (if (or (.endsWith came-from "/login")
+                            (.endsWith came-from "/login/")) "/" came-from)
                     "/")))
     (render-form params {:userName__c (i18n/translate :invalid-credentials)})))
 
@@ -517,24 +524,47 @@
    {:field [:checkbox {} :docPhoto_Mail_List__c
             {:label :subscribe-to-mailinglist}]}
    {:custom came-from-field}]
-  (when-profile-update-access
-   user-id
-   (if-let [user (query-user-by-id user-id)]
-     (layout
-      request
-      {}
+  (if-let [user (query-user-by-id user-id)]
+    (layout
+     request
+     {}
+     [:div
+      [:h2 (i18n/translate :update-profile)]
+      [:p ((i18n/translate :reset-password-text)
+           (profile-reset-password-link user-id))]
       [:form.uniForm {:method :post :action (profile-update-link user-id)}
-       [:h2 (i18n/translate :update-profile)]
        (render-fields request (user-update-mailinglist-value
                                (merge user params)) errors)
-       [:input {:type :submit :value (i18n/translate :update)}]])
-     (not-found-view)))
-  (when-profile-update-access user-id
-                              (let [user-params (user-update-mailinglist-value
-                                                 (select-keys params sf/contact-fields))]
-                                (sf/update-user conn (merge {:id (:id user)} user-params))
-                                (session/save-user request (merge user user-params))
-                                (redirect (or (:came-from params) "/")))))
+       [:input {:type :submit :value (i18n/translate :update)}]]])
+    (not-found-view))
+  (let [user-params (user-update-mailinglist-value
+                     (select-keys params sf/contact-fields))
+        user-params (merge {:id user-id} user-params)]
+    (sf/update-user conn user-params)
+    (when (= user-id (:id (session/get-user request)))
+      (session/save-user request user-params))
+    (redirect (or (:came-from params) "/"))))
+
+(defformpage profile-password-view [user-id]
+  [(req-password :old-password :old-password)
+   (req-password :new-password :new-password)
+   (req-password :new-password2 :new-password)]
+  (layout
+   request (i18n/translate :update-password)
+   [:form.uniForm {:method :post :action (:uri request)}
+    [:h2 (i18n/translate :update-password)]
+    (render-fields request params errors)
+    [:input {:type :submit :value (i18n/translate :update-password)}]])
+  (let [{:keys [old-password new-password new-password2]} params]
+    (if (not= new-password new-password2)
+      (render-form
+       params
+       {:new-password (i18n/translate :passwords-dont-match)})
+      (if (query-user-by-credentials-with-userid user-id (md5 old-password))
+        (do
+          (sf/update-user conn {:id user-id :password__c (md5 new-password)})
+          (redirect "/"))
+        (render-form params {:old-password (i18n/translate :invalid-credentials)})))))
 
 (defformpage register-view []
   [(english-only-textfield :userName__c :username)
@@ -1337,7 +1367,12 @@
   (ANY "/login" [] login-view)
   (ANY "/login/" [] login-view)
   (GET "/logout" [] logout-view)
-  (ANY "/profile/:user-id" [user-id :as request] (profile-view request user-id))
+  (ANY "/profile/:user-id" [user-id :as request]
+       (when-profile-update-access user-id
+        (profile-view request user-id)))
+  (ANY "/profile/:user-id/password" [user-id :as request]
+       (when-profile-update-access user-id
+        (profile-password-view request user-id)))
   (ANY "/register" [] register-view)
   (ANY "/password/forgot" [] forgot-password-view)
   (ANY "/password/request-reset" [token :as request]

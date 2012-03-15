@@ -31,6 +31,13 @@
    :username "Username" "Имя пользователя"
    :password "Password" "пароль"
    :password-again "Password Again" "Пароль еще раз"
+   :old-password "Old Password" "Старый пароль"
+   :new-password "New Password" "Новый пароль"
+   :update-password "Update Password" "Обновление пароля"
+   :reset-password-text
+   (fn [reset-link] (list (ph/link-to reset-link "Reset") " your password instead."))
+   (fn [reset-link] (list (ph/link-to reset-link "Сбросить ") " пароль вместо."))
+
    :already-logged-in (fn [username] (str "Already logged in as: " username))
                       (fn [username] (str "Уже вошли как: " username))
    :invalid-credentials "Invalid Credentials" "Неверное Полномочия"
