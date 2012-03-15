@@ -157,7 +157,8 @@
 (defmacro req-password
   "helper to simplify generating password fields"
   [fieldname label]
-  {:field [:password {} fieldname {:label label}]})
+  {:field [:password {} fieldname {:label label}]
+   :validator {:fn not-empty :msg :required}})
 
 (defn came-from-field
   "a hidden input that passes came from information"
