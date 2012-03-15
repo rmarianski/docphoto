@@ -802,6 +802,7 @@
    (application-fields :pg-proposal-narrative)
    (application-fields :pg-personal-statement)
    (application-fields :cv)
+   (findout-field)
    (application-fields :focus-region)
    (application-fields :focus-country)])
 
