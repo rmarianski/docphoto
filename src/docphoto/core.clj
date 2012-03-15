@@ -348,7 +348,12 @@
              (for [review-request (reverse (sort-by :createdDate review-requests))]
                [:li
                 [:a {:href (review-request-link (:id review-request))}
-                 (:title__c (:exhibit_Application__r review-request))]])]])))))))
+                 (:title__c (:exhibit_Application__r review-request))]])]]))
+        (when (admin? user)
+          [:div#admin
+           [:h2 "Admin"]
+           [:ul
+            [:li (ph/link-to (admin-password-reset-link) "Reset user password")]]]))))))
 
 (defmacro when-multiple-languages [& body]
   (cond
