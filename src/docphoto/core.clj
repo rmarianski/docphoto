@@ -249,8 +249,7 @@
         [:ul
          ~@(for [[link text active-link-fn]
                  [["/" :home]
-                  ["/exhibit" :exhibits :starts-with]
-                  ["/about" :about]]]
+                  ["/exhibit" :exhibits :starts-with]]]
              `[:li (if ~(if (= :starts-with active-link-fn)
                           `(.startsWith ~uri-sym ~link)
                           `(= ~uri-sym ~link))
@@ -1206,33 +1205,6 @@
 (defn current-user-applications-view [request]
   (when-logged-in (redirect (user-applications-link (:userName__c user)))))
 
-(defview about-view "About the Documentary Photography Project"
-  [:div
-   [:h2 "About Documentary Photography"]
-   [:p "The Documentary Photography Project uses exhibits, workshops, grantmaking, and public programs to explore how photography can shape public perception and effect social change. The project supports photographers whose work addresses social justice and human rights issues that coincide with OSI's mission of promoting and expanding open society."]
-   [:p
-    "The project's longest-running activity is "
-    [:a {:href "http://www.soros.org/initiatives/photography/focus_areas/mw"} "Moving Walls"]
-    ", a group photography exhibition series that features in-depth and nuanced explorations of human rights and social issues.  Moving Walls is shown at OSI offices in New York City and Washington, D.C."]
-   [:p
-    "The project also sponsors individual photographers through the annual "
-    [:a {:href "http://www.soros.org/initiatives/photography/focus_areas/engagement"} "Audience Engagement Grant"]
-    " (formerly called the Distribution Grant) and "
-    [:a {:href "http://www.soros.org/initiatives/photography/focus_areas/production-individual"} "Production Grants"]
-    ". Audience Engagement Grants support photographers who work with an NGO or advocacy organization to use photography as a tool for advocacy, education, or civic engagement. Recent distribution grants supported a traveling exhibit and digital archive addressing statelessness of Nubians in Kenya; a public billboard campaign and website on energy production and consumption in America; an educational campaign on HIV-positive senior citizens; and a publication and series of workshops addressing the socioeconomic realities of young women in Troy, NY."]
-   [:p "Production grants help photographers from Central Asia, the Caucasus, Afghanistan, Mongolia, and Pakistan produce work on a social justice or human rights issue in their home country. Production grants are combined with mentorship and training by internationally recognized photographers."]
-   [:p
-    "The project also provides "
-    [:a {:href "http://www.soros.org/initiatives/photography/focus_areas/production"} "grants to organizations"]
-    " and projects that: have a broad impact in the photographic community; support photographers from regions that lack advanced-level training or professional opportunities; and respond to changes in the media environment by proposing new models for producing work."]
-   [:p "In addition to organizing Moving Walls, the project's recent activities and grantmaking have included an "
-    [:a {:href "http://www.soros.org/initiatives/photography/movingwalls/international"} "international tour"]
-    " of past Moving Walls photographers in the Middle East and North Africa that included exhibits and trainings for local photographers and young people."]
-   [:p.note
-    "Note: The Documentary Photography Project does not support film. For information on grants for documentary filmmaking, please contact the "
-    [:a {:href "http://www.sundance.org/"} "Sundance Institute"]
-    ", an OSI grantee in Los Angeles, California."]])
-
 (defn cv-view [request application]
   (let [exhibit-slug (:slug__c (:exhibit__r application))]
     (if-let [cv (persist/cv-file-path exhibit-slug (:id application))]
@@ -1352,7 +1324,6 @@
 
 (defroutes main-routes
   (GET "/" request home-view)
-  (GET "/about" [] about-view)
   (GET "/userinfo" [] userinfo-view)
   (ANY "/login" [] login-view)
   (GET "/logout" [] logout-view)
