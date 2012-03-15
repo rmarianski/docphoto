@@ -167,7 +167,7 @@
 
 (def user-fields (conj contact-fields :id :name))
 
-(def review-fields [:comments__c :rating__c :review_Stage__c])
+(def review-fields [:comments__c :rating__c :review_Stage__c :status__c])
 
 (defmacro defcreate [fn-name bindings class-instance-form key-form]
   `(defn ~fn-name [conn# ~@bindings]

@@ -193,6 +193,9 @@ a#upload:hover {
     font-size: 0.9em;
     line-height: 1.5em;
 }
+#review .uniForm p.note {
+    margin: 1em 0;
+}
 
 #login-notes p {
     margin: 1em 0;

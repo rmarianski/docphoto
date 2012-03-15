@@ -367,7 +367,7 @@
    [:head
     [:meta {:http-equiv "content-type" :content "text/html; charset=utf-8"}]
     [:meta {:charset "utf-8"}]
-    [:title (:title options "Docphoto")]
+    [:title (if (string? options) options (:title options "Docphoto"))]
     (apply include-css (theme-css (:include-editor-css options)))]
    [:body
     [:div#wrapper
@@ -1335,9 +1335,18 @@
                  (normalize-review (query-review user-id (:id application)))
                  params)
                 errors)
-               [:input {:type "submit" :value "Save"}]]])])
+               [:p.note
+                "Save will allow you to save your comments and come back to them later."]
+               [:input {:type "submit" :name :submit :value "Save"}]
+               [:p.note
+                "Submit means your review is final."]
+               [:input {:type "submit" :name :submit :value "Submit"}]]])])
   (let [updated-params (update-in params [:rating__c] #(Double/valueOf %))
-        application-id (:id application)]
+        final? (= (:submit params) "Submit")
+        updated-params (merge updated-params
+                              {:status__c (if final? "Final" "Draft")})
+        application-id (:id application)
+        ]
     (if-let [review (query-review user-id application-id)]
       (sf/update-review conn (merge review updated-params))
       (sf/create-review conn (assoc updated-params
@@ -1345,9 +1354,11 @@
                                :contact__c user-id)))
     (layout request "Thank you for your review"
             [:div
-             [:p "Thank you for your review. You may "
-              (ph/link-to (:uri request) "update")
-              " it at any time."]])))
+             [:p "Thank you for your review. "
+              (when-not final?
+                (list "You may "
+                      (ph/link-to (:uri request) "update")
+                      " it at any time."))]])))
 
 (defn can-view-review-request [request review-request-id f]
   (if-let [review-request (query-review-request review-request-id)]
