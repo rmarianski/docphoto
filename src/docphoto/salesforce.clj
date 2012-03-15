@@ -171,7 +171,10 @@
 
 (def review-fields [:comments__c :rating__c :review_Stage__c :status__c])
 
-(defmacro defcreate [fn-name bindings class-instance-form key-form]
+(defmacro defcreate
+  "Helper to create salesforce object creation functions. Some functions need to automatically add an owner, others don't. the add-owner? symbol distinguishes the 2."
+  [fn-name add-owner? bindings class-instance-form key-form]
+  (assert (symbol? add-owner?))
   `(defn ~fn-name [conn# ~@bindings]
      (-?>
       (create
@@ -179,20 +182,21 @@
        (sobject-array
         [(create-sf-object
           ~class-instance-form
-          ~(if cfg/owner-id
+          ~(if (and (= add-owner? 'add-owner)
+                    cfg/owner-id)
              `(merge {:ownerId ~cfg/owner-id}
                      ~key-form)
              key-form))]))
       first
       .getId)))
 
-(defcreate create-contact [contact-data-map]
+(defcreate create-contact add-owner [contact-data-map]
   (Contact.)
   (select-keys
    contact-data-map
    contact-fields))
 
-(defcreate create-application [application-map]
+(defcreate create-application add-owner [application-map]
   (Exhibit_Application__c.)
   (select-keys
    application-map
@@ -201,14 +205,14 @@
     :multimedia_Link__c :cover_Page__c
     :focus_Region__c :focus_Country__c]))
 
-(defcreate create-image [image-map]
+(defcreate create-image no-owner [image-map]
   (Image__c.)
   (select-keys
    image-map
    [:caption__c :exhibit_application__c :filename__c
     :mime_type__c :order__c :url__c]))
 
-(defcreate create-review [review-map]
+(defcreate create-review no-owner [review-map]
   (Exhibit_Application_Review__c.)
   (select-keys review-map (conj review-fields :contact__c :exhibit_Application__c)))
 
