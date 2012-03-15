@@ -190,7 +190,7 @@
 (defquery-single query-review [user-id application-id]
   (exhibit_application_review__c
    [id exhibit_application__c contact__c
-    comments__c rating__c review_stage__c]
+    comments__c rating__c review_stage__c status__c]
    [[contact__c = user-id]
     [exhibit_application__c = application-id]]))
 
@@ -1180,7 +1180,12 @@
 
 (defn can-review-request? [user review-request]
   (or (admin? user)
-      (= (:id user) (:reviewer__c review-request))))
+      (and
+       (= (:id user) (:reviewer__c review-request))
+       (if-let [review (query-review
+                        (:id user) (:exhibit_Application__c review-request))]
+         (not= (:status__c review) "Final")
+         true))))
 
 (defn can-review-application? [user application]
   (or (admin? user)
