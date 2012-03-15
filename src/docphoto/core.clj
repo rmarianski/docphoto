@@ -305,19 +305,22 @@
   (image-delete-link [image-id] "image" image-id "delete")
   (admin-password-reset-link [] "admin" "password-reset")
   (switch-language-link [lang came-from] "language" lang {:came-from came-from})
-  (review-request-link [review-request-id] "review-request" review-request-id))
+  (review-request-link [review-request-id] "review-request" review-request-id)
+  (login-link [& [came-from]] "login" (when came-from {:came-from came-from}))
+  (logout-link [] "logout")
+  (register-link [] "register"))
 
 (defn sidebar-snippet [request]
   (let [user (session/get-user request)]
     (list
      [:div#login-logout
       (if user
-        [:a {:href "/logout" :title (str (i18n/translate :logout) " " (:userName__c user))}
+        [:a {:href (logout-link) :title (str (i18n/translate :logout) " " (:userName__c user))}
          (i18n/translate :logout)]
         (list
-         [:a {:href "/login"} (i18n/translate :login)]
+         [:a {:href (login-link)} (i18n/translate :login)]
          " | "
-         [:a {:href "/register"} (i18n/translate :register)]))]
+         [:a {:href (register-link)} (i18n/translate :register)]))]
      (when user
        (list
         [:div#update-profile
@@ -460,14 +463,16 @@
    {}
    (list
     [:h2 (i18n/translate :login)]
-    [:form.uniForm {:method :post :action "/login"}
+    [:form.uniForm {:method :post :action (login-link)}
      [:fieldset
       (when-let [user (session/get-user request)]
         [:p ((i18n/translate :already-logged-in) (:name user))])
       (render-fields request params errors)
       [:input {:type :submit :value (i18n/translate :login)}]]]
-    [:div
-     [:p#forgot-password.note
+    [:div#login-notes
+     [:p.note
+      ((i18n/translate :no-account-register) (register-link))]
+     [:p.note
       ((i18n/translate :forgot-your-password-reset) (forgot-link))]]))
   (if-let [user (query-user-by-credentials (:userName__c params) (md5 (:password__c params)))]
     (do (login request user)
@@ -476,7 +481,7 @@
                     "/")))
     (render-form params {:userName__c (i18n/translate :invalid-credentials)})))
 
-(defn logout-view [request] (logout request) (redirect "/login"))
+(defn logout-view [request] (logout request) (redirect (login-link)))
 
 (defn not-found-view [request]
   {:status 404
@@ -549,7 +554,7 @@
   (layout
    request
    {}
-   [:form.uniForm {:method :post :action "/register"}
+   [:form.uniForm {:method :post :action (register-link)}
     [:h2 (i18n/translate :register)]
     (render-fields request params errors)
     [:input {:type :submit :value (i18n/translate :register)}]])
@@ -638,7 +643,7 @@
         (sf/update-user conn {:id userid
                               :password__c (md5 (:password1 params))})
         (session/remove-allow-password-reset request)
-        (redirect "/login?came-from=/"))
+        (redirect (login-link "/")))
       (render-form params {:password1 (i18n/translate :passwords-dont-match)}))))
 
 
@@ -1326,6 +1331,7 @@
   (GET "/" request home-view)
   (GET "/userinfo" [] userinfo-view)
   (ANY "/login" [] login-view)
+  (ANY "/login/" [] login-view)
   (GET "/logout" [] logout-view)
   (ANY "/profile/:user-id" [user-id :as request] (profile-view request user-id))
   (ANY "/register" [] register-view)

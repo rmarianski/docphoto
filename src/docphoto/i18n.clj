@@ -40,6 +40,13 @@
                                (fn [forgot-link]
                                  (list "Забыли пароль? "
                                        (ph/link-to forgot-link "Сброс") " этого."))
+
+   :no-account-register
+   (fn [register-link]
+     (list "Don't have an account? " (ph/link-to register-link "Register") "."))
+   (fn [register-link]
+     (list "Вы не имеете учетной записи? " (ph/link-to register-link "регистрировать") "."))
+
    :first-name "First Name" "имя"
    :last-name "Last Name" "Фамилия"
    :email "Email" "Электронная почта"
