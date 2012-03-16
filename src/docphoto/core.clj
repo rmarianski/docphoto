@@ -303,7 +303,7 @@
   `(do ~@(for [slug application-slugs]
            `(defapplink ~slug))))
 
-(defapplinks upload submit success update)
+(defapplinks upload submit success update review)
 
 (deflinks
   (application-link [application-id] "application" application-id)
@@ -981,7 +981,15 @@
             [:dd v]))]))
 
 (defn app-view [request application]
-  (redirect (application-submit-link (:id application))))
+  (let [app-id (:id application)
+        app-link (application-submit-link app-id)]
+    (if (admin? user)
+      (layout
+       request "Application"
+       [:ul
+        [:li (ph/link-to app-link "Application summary")]
+        [:li (ph/link-to (application-review-link app-id) "Review application")]])
+      (redirect app-link))))
 
 (defn render-image [request image]
   (list
