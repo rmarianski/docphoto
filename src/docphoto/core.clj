@@ -136,7 +136,7 @@
    [id biography__c title__c website__c statementRich__c contact__c
     submission_Status__c exhibit__r.name exhibit__r.slug__c
     narrative__c multimedia_Link__c cover_Page__c
-    focus_Country__c focus_Region__c
+    focus_Country_Single_Select__c focus_Region__c
     referredby__c]
    [[id = app-id]])
   (fn [form] `(-?> ~form first tweak-application-result)))
@@ -763,8 +763,8 @@
                                    "Former Soviet Union / Central Eurasia"
                                    "Latin America" "Middle East / North Africa"
                                    "North America" "Oceana" "Other"])}]}
-   :focus-country {:custom (salesforce-picklist-field :focus_Country__c :focus-country)
-                   :field [nil nil :focus_Country__c {:label :focus-country}]}
+   :focus-country {:custom (salesforce-picklist-field :focus_Country_Single_Select__c :focus-country)
+                   :field [nil nil :focus_Country_Single_Select__c {:label :focus-country}]}
 
    ;; these are listed here to prevent duplication with the fields
    ;; listed for review
@@ -947,7 +947,7 @@
                                    (dissoc :cv :app-id)
                                    (merge {:id app-id})
                                    (normalize-empty-value :focus_Region__c)
-                                   (normalize-empty-value :focus_Country__c)
+                                   (normalize-empty-value :focus_Country_Single_Select__c)
                                    (normalize-empty-value :referredby__c)
                                    (normalize-empty-value :website__c)
                                    (normalize-empty-value :multimedia_Link__c))]

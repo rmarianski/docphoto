@@ -203,7 +203,7 @@
    [:statementRich__c :title__c :biography__c :website__c :narrative__c
     :contact__c :exhibit__c :submission_Status__c :referredby__c
     :multimedia_Link__c :cover_Page__c
-    :focus_Region__c :focus_Country__c]))
+    :focus_Region__c :focus_Country_Single_Select__c]))
 
 (defcreate create-image no-owner [image-map]
   (Image__c.)
