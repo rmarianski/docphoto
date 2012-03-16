@@ -30,7 +30,8 @@
             [hiccup.page-helpers :as ph]
             [ring.middleware.stacktrace :as stacktrace]
             [decline.core :as decline])
-  (:import [java.io File]))
+  (:import [java.io File PipedInputStream PipedOutputStream]
+           [java.util.zip ZipOutputStream ZipEntry]))
 
 ;; global salesforce connection
 (defonce conn nil)
@@ -319,6 +320,7 @@
   (images-update-link [application-id] "application" application-id "update-images")
   (image-delete-link [image-id] "image" image-id "delete")
   (admin-password-reset-link [] "admin" "password-reset")
+  (admin-download-link [] "admin" "download")
   (switch-language-link [lang came-from] "language" lang {:came-from came-from})
   (review-request-link [review-request-id] "review-request" review-request-id)
   (login-link [& [came-from]] "login" (when came-from {:came-from came-from}))
@@ -370,7 +372,8 @@
           [:div#admin
            [:h2 "Admin"]
            [:ul
-            [:li (ph/link-to (admin-password-reset-link) "Reset user password")]]]))))))
+            [:li (ph/link-to (admin-password-reset-link) "Reset user password")]
+            [:li (ph/link-to (admin-download-link) "Download application images")]]]))))))
 
 (defmacro when-multiple-languages [& body]
   (cond
@@ -1217,16 +1220,22 @@
       ~body
       (forbidden ~'request))))
 
+(defmacro when-application
+  "If an application exists, proceed. Otherwise return not found. Anaphora for 'application'. Expects 'request' symbol in scope"
+  [application-id body]
+  `(if-let [~'application (query-application ~application-id)]
+     ~body
+     (not-found-view ~'request)))
+
 (defmacro prepare-application-routes
-  "Take care of fetching the application, and checking security. Anaphora: depends on having 'app-id' in context matching and injects 'application' into scope."
+  "Take care of fetching the application, and checking security. Anaphora: depends on having 'app-id' in context matching and injects 'application' into scope. Expects 'request' symbol in scope."
   [& app-routes]
   `(fn [~'request]
-     (if-let [~'application (query-application ~'app-id)]
+     (when-application ~'app-id
        (when-logged-in
          (if (can-view-application? ~'user ~'application)
            (routing ~'request ~@app-routes)
-           (forbidden ~'request)))
-       (not-found-view ~'request))))
+           (forbidden ~'request))))))
 
 (defmacro prepare-exhibit-routes
   "Fetch exhibit, and inject 'exhibit' through anaphora. Expects 'exhibit-id' to exist in scope."
@@ -1405,6 +1414,67 @@
   (when-admin
    (review-view request (:id user) application)))
 
+(defmacro admin-routes
+  "common checks for all admin routes"
+  [& routes]
+  `(fn [~'request]
+     (when-admin (routing ~'request ~@routes))))
+
+(defn create-images-zipper [image-files]
+  (fn [outputstream]
+    (;with-open [out (ZipOutputStream. outputstream)]
+     let [out (ZipOutputStream. outputstream)]
+      (doseq [image image-files]
+        (.putNextEntry out (ZipEntry. (dbg (-> image (.getParent) file (.getName)))))
+        (println "copying image:" (.getPath image))
+        (copy image out)
+        (println "done copying")
+        (println "closing entry")
+        ;(.closeEntry out)
+        (println "entry closed")
+        (.close image)
+        (println "closed image")))
+;    (.finish out)
+;    (.close outputstream)
+    ))
+
+(defn create-input-stream-from-output
+  "Generic function that uses piped input/output streams to generate an input stream from an output stream. Passed in function should take an output stream."
+  [f]
+  (let [in (PipedInputStream.)
+        out (PipedOutputStream. in)]
+    (.run (Thread. (f out)))
+;    (future (f out))
+    in))
+
+(defn download-images-response [application]
+  (let [exhibit-slug (:slug__c (:exhibit__r application))
+        application-id (:id application)
+        image-files (persist/application-image-files exhibit-slug
+                                                     application-id)]
+    {:headers
+     {;"Content-Type" "application/zip"
+      "Content-Disposition" (str
+                             "attachment; filename=" application-id ".zip")}
+     :status 200
+     :body (create-input-stream-from-output (create-images-zipper image-files))}))
+
+(defn admin-download-view [request]
+  (println "wtf")
+  (if-let [application-id (:application-id (:params request))]
+    (when-application
+     application-id
+     (download-images-response application))
+    (layout
+     request "Download Images for Application"
+     (list
+      [:h2 "Download Images"]
+      [:p "Select the application id (found from the salesforce url)"]
+      [:form {:method :get :action (admin-download-link)}
+       [:input {:type :text :name :application-id}]
+       [:br]
+       [:input {:type :submit :value "Download"}]]))))
+
 (defroutes main-routes
   (GET "/" request home-view)
   (GET "/userinfo" [] userinfo-view)
@@ -1460,7 +1530,11 @@
   (GET "/user/applications/:username" [username :as request]
        (user-applications-view request username))
 
-  (ANY "/admin/password-reset" request (when-admin (admin-password-reset request)))
+  (context
+   "/admin" []
+   (admin-routes
+    (ANY "/download" [] admin-download-view)
+    (ANY "/password-reset" [] admin-password-reset)))
 
   (ANY "/language/:language/" [language came-from :as request]
        (language-view request language came-from))
