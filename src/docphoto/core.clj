@@ -1422,28 +1422,22 @@
 
 (defn create-images-zipper [image-files]
   (fn [outputstream]
-    (;with-open [out (ZipOutputStream. outputstream)]
-     let [out (ZipOutputStream. outputstream)]
-      (doseq [image image-files]
-        (.putNextEntry out (ZipEntry. (dbg (-> image (.getParent) file (.getName)))))
-        (println "copying image:" (.getPath image))
-        (copy image out)
-        (println "done copying")
-        (println "closing entry")
-        ;(.closeEntry out)
-        (println "entry closed")
-        (.close image)
-        (println "closed image")))
-;    (.finish out)
-;    (.close outputstream)
-    ))
+    (fn []
+      (with-open [out (ZipOutputStream. outputstream)]
+        (doseq [image image-files]
+          (.putNextEntry out (ZipEntry. (dbg (-> image (.getParent) file (.getName)))))
+          (copy image out)
+          (.closeEntry out))
+        (.finish out))
+      (.close outputstream))))
 
 (defn create-input-stream-from-output
   "Generic function that uses piped input/output streams to generate an input stream from an output stream. Passed in function should take an output stream."
   [f]
   (let [in (PipedInputStream.)
-        out (PipedOutputStream. in)]
-    (.run (Thread. (f out)))
+        out (PipedOutputStream. in)
+        runnable (f out)]
+    (.start (Thread. runnable))
 ;    (future (f out))
     in))
 
@@ -1453,14 +1447,13 @@
         image-files (persist/application-image-files exhibit-slug
                                                      application-id)]
     {:headers
-     {;"Content-Type" "application/zip"
+     {"Content-Type" "application/zip"
       "Content-Disposition" (str
                              "attachment; filename=" application-id ".zip")}
      :status 200
      :body (create-input-stream-from-output (create-images-zipper image-files))}))
 
 (defn admin-download-view [request]
-  (println "wtf")
   (if-let [application-id (:application-id (:params request))]
     (when-application
      application-id
