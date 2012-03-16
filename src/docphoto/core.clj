@@ -1422,23 +1422,20 @@
 
 (defn create-images-zipper [image-files]
   (fn [outputstream]
-    (fn []
-      (with-open [out (ZipOutputStream. outputstream)]
-        (doseq [image image-files]
-          (.putNextEntry out (ZipEntry. (-> image (.getParent) file (.getName))))
-          (copy image out)
-          (.closeEntry out))
-        (.finish out))
-      (.close outputstream))))
+    (with-open [out (ZipOutputStream. outputstream)]
+      (doseq [image image-files]
+        (.putNextEntry out (ZipEntry. (-> image (.getParent) file (.getName))))
+        (copy image out)
+        (.closeEntry out))
+      (.finish out))
+    (.close outputstream)))
 
 (defn create-input-stream-from-output
   "Generic function that uses piped input/output streams to generate an input stream from an output stream. Passed in function should take an output stream."
   [f]
   (let [in (PipedInputStream.)
-        out (PipedOutputStream. in)
-        runnable (f out)]
-    (.start (Thread. runnable))
-;    (future (f out))
+        out (PipedOutputStream. in)]
+    (future (f out))
     in))
 
 (defn download-images-response [application]
