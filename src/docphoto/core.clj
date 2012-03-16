@@ -1425,7 +1425,7 @@
     (fn []
       (with-open [out (ZipOutputStream. outputstream)]
         (doseq [image image-files]
-          (.putNextEntry out (ZipEntry. (dbg (-> image (.getParent) file (.getName)))))
+          (.putNextEntry out (ZipEntry. (-> image (.getParent) file (.getName))))
           (copy image out)
           (.closeEntry out))
         (.finish out))
