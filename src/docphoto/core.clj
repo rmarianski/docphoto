@@ -982,7 +982,8 @@
 
 (defn app-view [request application]
   (let [app-id (:id application)
-        app-link (application-submit-link app-id)]
+        app-link (application-submit-link app-id)
+        user (session/get-user request)]
     (if (admin? user)
       (layout
        request "Application"
