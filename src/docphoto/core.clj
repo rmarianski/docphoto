@@ -151,7 +151,7 @@
   (fn [form] `(-?> ~form first tweak-image-result)))
 
 (defquery query-images [application-id]
-  (image__c [id caption__c order__c]
+  (image__c [id caption__c order__c filename__c]
             [[exhibit_application__c = application-id]]
             :append "order by order__c"))
 
@@ -309,7 +309,7 @@
   (user-applications-link [username] "user" "applications" username)
   (cv-link [application-id] "cv" application-id)
   (profile-update-link [user-id] "profile" user-id)
-  (image-link [image-id & [scale]] "image" image-id scale)
+  (image-link [image-id scale filename] "image" image-id scale filename)
   (exhibits-link [] "exhibit/")
   (exhibit-link [exhibit-slug] "exhibit" exhibit-slug)
   (exhibit-apply-link [exhibit-slug] "exhibit" exhibit-slug "apply")
@@ -976,7 +976,7 @@
 (defn render-image [request image]
   (list
    [:div.image-container.goog-inline-block
-    (ph/image (image-link (:id image) "small"))]
+    (ph/image (image-link (:id image) "small" (:filename__c image)))]
    [:input {:type :hidden :name :imageids :value (:id image)}]
    [:textarea {:name "captions" :class "image-caption"}
     (or (:caption__c image) "")]
@@ -1159,7 +1159,7 @@
         (for [image (query-images app-id)]
           [:li
            [:div.image-container.goog-inline-block
-            (ph/image (image-link (:id image) "small"))]
+            (ph/image (image-link (:id image) "small" (:filename__c image)))]
            [:div.goog-inline-block.image-caption (:caption__c image)]])]
        [:a {:href (application-upload-link app-id)} (i18n/translate :update)]]
       [:form {:method :post :action (application-submit-link app-id)}
@@ -1349,7 +1349,7 @@
               [:ul
                (for [image images]
                  [:li
-                  (ph/image (image-link (:id image) "small"))
+                  (ph/image (image-link (:id image) "small" (:filename__c image)))
                   [:br]
                   (:caption__c image)])]
               
@@ -1443,10 +1443,10 @@
   
   (context "/image/:image-id" [image-id]
     (prepare-image-routes
-     (GET "/small" [] (image-view request image "small"))
-     (GET "/large" [] (image-view request image "large"))
-     (GET "/original" [] (image-view request image "original"))
-     (GET "/" [] (image-view request image "original"))))
+     (GET "/small/*" [] (image-view request image "small"))
+     (GET "/large/*" [] (image-view request image "large"))
+     (GET "/original/*" [] (image-view request image "original"))
+     (GET "/*" [] (image-view request image "original"))))
 
   (GET "/cv/:app-id" [app-id :as request]
     ;; re-using application macro for setup logic
