@@ -321,6 +321,7 @@
   (image-delete-link [image-id] "image" image-id "delete")
   (admin-password-reset-link [] "admin" "password-reset")
   (admin-download-link [] "admin" "download")
+  (admin-create-vetter-link [] "admin" "create-vetter-account")
   (switch-language-link [lang came-from] "language" lang {:came-from came-from})
   (review-request-link [review-request-id] "review-request" review-request-id)
   (login-link [& [came-from]] "login" (when came-from {:came-from came-from}))
@@ -373,6 +374,7 @@
            [:h2 "Admin"]
            [:ul
             [:li (ph/link-to (admin-password-reset-link) "Reset user password")]
+            [:li (ph/link-to (admin-create-vetter-link) "Create Vetter Account")]
             [:li (ph/link-to (admin-download-link) "Download application images")]]]))))))
 
 (defmacro when-multiple-languages [& body]
@@ -1485,6 +1487,36 @@
        [:br]
        [:input {:type :submit :value "Download"}]]))))
 
+;; if time permits, can try to eliminate the duplication between this
+;; and the register view
+(defformpage admin-create-vetter-view []
+  [(english-only-textfield :userName__c :username)
+   (req-password :password__c :password)
+   (req-password :password2 :password-again)
+   (english-only-textfield :firstName :first-name)
+   (english-only-textfield :lastName :last-name)
+   (english-only-textfield :email :email)]
+  (layout
+   request "Create Vetter Account"
+   (list
+    [:h1 "Create Vetter Account"]
+    [:p "Use this form to create a new vetter account. These are simply trimmed down user accounts (contacts in salesforce) that can be given to vetters that don't already exist."]
+    [:form.uniForm {:method :post :action (:uri request)}
+     (render-fields request params errors)
+     [:input {:type :submit :value "Create"}]]))
+  (let [{password1 :password__c password2 :password2
+         username :userName__c} params]
+    (if (not (= password1 password2))
+      (render-form params {:password__c (i18n/translate :passwords-dont-match)})
+      (if-let [user (query-user-by-username username)]
+        (render-form params {:userName__c (i18n/translate :user-already-exists)})
+        (do
+          (register (-> (dissoc params :password2)
+                        (update-in [:password__c] md5)))
+          (layout request "User created"
+                  (list
+                   [:h1 "User '" username "' successfully created"])))))))
+
 (defroutes main-routes
   (GET "/" request home-view)
   (GET "/userinfo" [] userinfo-view)
@@ -1544,7 +1576,8 @@
    "/admin" []
    (admin-routes
     (ANY "/download" [] admin-download-view)
-    (ANY "/password-reset" [] admin-password-reset)))
+    (ANY "/password-reset" [] admin-password-reset)
+    (ANY "/create-vetter-account" [] admin-create-vetter-view)))
 
   (ANY "/language/:language/" [language came-from :as request]
        (language-view request language came-from))
