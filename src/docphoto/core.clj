@@ -1420,14 +1420,15 @@
   `(fn [~'request]
      (when-admin (routing ~'request ~@routes))))
 
-(defn create-images-zipper [image-files]
+(defn create-images-zipper [images-with-files]
   (fn [outputstream]
-    (with-open [out (ZipOutputStream. outputstream)]
-      (doseq [image image-files]
-        (.putNextEntry out (ZipEntry. (-> image (.getParent) file (.getName))))
-        (copy image out)
-        (.closeEntry out))
-      (.finish out))
+    (when (seq images-with-files)
+      (with-open [out (ZipOutputStream. outputstream)]
+        (doseq [{:keys [filename image-file]} images-with-files]
+          (.putNextEntry out (ZipEntry. filename))
+          (copy image-file out)
+          (.closeEntry out))
+        (.finish out)))
     (.close outputstream)))
 
 (defn create-input-stream-from-output
@@ -1438,17 +1439,31 @@
     (future (f out))
     in))
 
+(defn weave-images-with-files [image-objects image-files]
+  (let [parse-app-id (comp (memfn getName) file (memfn getParent))
+        file-id-image-map (into {} (map
+                                    (fn [image-file] [(parse-app-id image-file) image-file])
+                                    image-files))]
+    (keep (fn [image]
+            (let [image-id (:id image)]
+              (when-let [[_ image-file] (find file-id-image-map image-id)]
+                {:filename (:filename__c image)
+                 :image-file image-file})))
+          image-objects)))
+
 (defn download-images-response [application]
   (let [exhibit-slug (:slug__c (:exhibit__r application))
         application-id (:id application)
         image-files (persist/application-image-files exhibit-slug
-                                                     application-id)]
+                                                     application-id)
+        image-objects (query-images application-id)
+        images-with-files (weave-images-with-files image-objects image-files)]
     {:headers
      {"Content-Type" "application/zip"
       "Content-Disposition" (str
                              "attachment; filename=" application-id ".zip")}
      :status 200
-     :body (create-input-stream-from-output (create-images-zipper image-files))}))
+     :body (create-input-stream-from-output (create-images-zipper images-with-files))}))
 
 (defn admin-download-view [request]
   (if-let [application-id (:application-id (:params request))]
