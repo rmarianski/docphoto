@@ -215,9 +215,9 @@
        (field#
         :select {} ~field-name
         {:label (i18n/translate ~field-label)
-         :opts (cons [:option ""]
+         :opts (cons [""]
                      (for [[label# value#] field-values#]
-                       [:option label# value#]))}))))
+                       [label# value#]))}))))
 
 (defn- list-all-editor-css-files []
   "convenience function to list all google editor css files to include"
