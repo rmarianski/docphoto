@@ -1390,7 +1390,9 @@
                 "Save will allow you to save your comments and come back to them later."]
                [:input {:type "submit" :name :submit :value "Save"}]
                [:p.note
-                "Submit means your review is final."]
+                "Submit means your review is final. You will have to contact: "
+                (ph/link-to "mailto:docphoto@sorosny.org" "docphoto")
+                " if you need to update your review."]
                [:input {:type "submit" :name :submit :value "Submit"}]]])])
   (let [updated-params (update-in params [:rating__c] #(Double/valueOf %))
         final? (= (:submit params) "Submit")
