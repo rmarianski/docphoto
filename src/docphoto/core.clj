@@ -755,9 +755,14 @@
   ;; common fields
   {:cv {:field [:file {} :cv {:label :cv :description :cv-description}]
         :validator {:fn filesize-not-empty :msg :required}}
-   :focus-region {:custom (salesforce-picklist-field :focus_Region__c :focus-region)
-                  ;; field added for application submit display logic
-                  :field [nil nil :focus_Region__c {:label :focus-region}]}
+   :focus-region {:field [:select {} :focus_Region__c
+                          {:label :focus-region
+                           :opts (map
+                                  vector
+                                  ["" "Africa, Sub-Saharan" "Asia" "Europe"
+                                   "Former Soviet Union / Central Eurasia"
+                                   "Latin America" "Middle East / North Africa"
+                                   "North America" "Oceana" "Other"])}]}
    :focus-country {:custom (salesforce-picklist-field :focus_Country__c :focus-country)
                    :field [nil nil :focus_Country__c {:label :focus-country}]}
 
