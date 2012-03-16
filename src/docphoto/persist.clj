@@ -15,6 +15,9 @@
   (if filename
     (.getName (file filename))))
 
+(defn images-file-path [exhibit-slug app-id]
+  (file *base-storage-path* exhibit-slug app-id "images"))
+
 (defn image-file-path [exhibit-slug app-id image-id & [scale-type]]
   (apply
    file *base-storage-path* exhibit-slug app-id "images" image-id
@@ -74,3 +77,19 @@
 (defn delete-image [exhibit-slug application-id image-id]
   (FileUtils/deleteDirectory
    (file *base-storage-path* exhibit-slug application-id "images" image-id)))
+
+(defn existing-images-scale
+  "return the file object representing the appropriate scale if it exists"
+  [images-path scale]
+  (fn [image-dir-string]
+    (let [f (file images-path image-dir-string scale)]
+      (when (.exists f)
+        f))))
+
+(defn application-image-files
+  "return a seq of file objects"
+  [exhibit-slug application-id]
+  (let [images-path (images-file-path exhibit-slug application-id)]
+    (when (.exists images-path)
+      (keep (existing-images-scale images-path "original")
+            (.list images-path)))))
