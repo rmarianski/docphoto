@@ -1655,3 +1655,9 @@
 
 (defn run-server []
   (run-jetty #'app {:port 8080 :join? false}))
+
+(defn run!
+  "convenience function to get started"
+  []
+  (connect-to-prod)
+  (def server (run-server)))
