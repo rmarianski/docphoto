@@ -27,3 +27,7 @@
 
 ;; objects created will use this owner id
 (def owner-id nil)
+
+;; where image will be saved
+;; override for production deployments
+(def base-storage-path nil)

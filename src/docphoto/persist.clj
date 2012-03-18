@@ -3,12 +3,14 @@
 (ns docphoto.persist
   (:use [clojure.java.io :only (file input-stream output-stream copy)]
         [clojure.core.incubator :only (-?>)])
+  (:require [docphoto.config :as cfg])
   (:import [java.io File]
            [org.apache.commons.io FileUtils]))
 
 ;; this is the root where data will be persisted
 (def ^{:dynamic true} *base-storage-path*
-  (file (System/getProperty "user.dir") "store"))
+  (or cfg/base-storage-path
+      (file (System/getProperty "user.dir") "store")))
 
 (defn safe-filename [filename]
   "make the filename trustable for filesystem use"

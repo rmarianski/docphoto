@@ -1682,3 +1682,7 @@
   []
   (connect-to-prod)
   (def server (run-server)))
+
+;; used for war file init/destroy
+(defn servlet-init [] (connect-to-prod))
+(defn servlet-destroy [] (.logout conn))
