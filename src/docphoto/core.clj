@@ -25,7 +25,7 @@
             [docphoto.form :as form]
             [docphoto.i18n :as i18n]
             [clojure.string :as string]
-            [clojure.walk]
+            [clojure.set]
             [docphoto.guidelines :as guidelines]
             [hiccup.page-helpers :as ph]
             [ring.middleware.stacktrace :as stacktrace]
@@ -126,6 +126,12 @@
     [exhibit_application__c.contact__r.id = userid]]
    :append "order by lastModifiedDate desc")
   (fn [form] `(map tweak-application-result ~form)))
+
+;; used for cleaning up local disk, so only app ids are returned
+(defquery query-applications-for-exhibit [exhibit-slug]
+  (exhibit_application__c
+   [id]
+   [[exhibit__r.slug__c = exhibit-slug]]))
 
 (defquery-single query-exhibit [exhibit-slug]
   (exhibit__c [id name description__c slug__c]
@@ -1652,6 +1658,21 @@
    wrap-multipart-convert-params
    wrap-multipart-params
    api))
+
+(defn find-applications-on-disk-not-in-salesforce
+  "When applications are removed from salesforce through the ui, the images/cv remain on disk. This lists the extraneous applications."
+  [exhibit-slug]
+  (let [applications-on-disk (persist/list-applications exhibit-slug)
+        applications-in-salesforce (query-applications-for-exhibit exhibit-slug)
+        s-disk-apps (set applications-on-disk)
+        s-sf-apps (set (map :id applications-in-salesforce))]
+    (clojure.set/difference s-disk-apps s-sf-apps)))
+
+(defn delete-applications-on-disk-not-in-salesforce
+  "Remove local applications on disk that are not in salesforce"
+  [exhibit-slug]
+  (doseq [application-id (find-applications-on-disk-not-in-salesforce exhibit-slug)]
+    (persist/delete-application exhibit-slug application-id)))
 
 (defn run-server []
   (run-jetty #'app {:port 8080 :join? false}))

@@ -15,6 +15,9 @@
   (if filename
     (.getName (file filename))))
 
+(defn exhibit-file-path [exhibit-slug]
+  (file *base-storage-path* exhibit-slug))
+
 (defn images-file-path [exhibit-slug app-id]
   (file *base-storage-path* exhibit-slug app-id "images"))
 
@@ -93,3 +96,8 @@
     (when (.exists images-path)
       (keep (existing-images-scale images-path "original")
             (.list images-path)))))
+
+(defn list-applications
+  "given an exhibit-slug, list all applications"
+  [exhibit-slug]
+  (-> (exhibit-file-path exhibit-slug) (.list)))
