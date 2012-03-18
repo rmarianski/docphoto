@@ -162,6 +162,7 @@ docphoto.Uploader.prototype.onInit = function(up, params) {
  */
 docphoto.Uploader.prototype.onUpload = function(event) {
   event.preventDefault();
+  this.uploadContainer.style.display = 'none';
   this.uploader.start();
 };
 
@@ -212,7 +213,6 @@ docphoto.Uploader.prototype.fileUploaded_ = function() {
       this.imagesDescription.style.display = 'block';
       docphoto.fadeIn(this.imagesDescription);
     }
-    this.uploadContainer.style.display = 'none';
   }
 };
 
