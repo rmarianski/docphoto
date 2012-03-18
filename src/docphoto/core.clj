@@ -797,6 +797,11 @@
                                         {:label "Summary of your engagement"
                                          :description "(600 words maximum) Please comment on your relationship with the issue or community you photographed. How and why did you begin the project? How long have you  been working on the project? Are there particular methods you  use while working?   What do you hope a viewer will take away from your project?"}]
                                 :validator {:fn not-empty :msg :required}}
+   :website {:field [:text {} :website__c {:label "Website" :description "Personal Web Site (Optional)"}]}
+   :multimedia {:field [:text {} :multimedia_Link__c
+                        {:label "Multmedia Link"
+                         :description
+                         "Moving Walls has the capacity to exhibit multimedia in addition to (but not in place of) the print exhibition. A multimedia sample should be submitted only if it complements or enhances, rather than duplicates, the other submitted materials. The sample will be judged on its ability to present complex issues through compelling multimedia storytelling, and will not negatively impact the print submission. If you are submitting a multimedia piece for consideration, please post the piece on a free public site such as YouTube or Vimeo and include a link. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
    
    ;; prodgrant fields
    :pg-project-title {:field [:text {} :title__c {:label :pg-project-title}]
@@ -821,11 +826,8 @@
    (application-fields :mw20-summary-of-engagement)
    (application-fields :cv)
    (findout-field)
-   {:field [:text {} :website__c {:label "Website" :description "Personal Web Site (Optional)"}]}
-   {:field [:text {} :multimedia_Link__c
-            {:label "Multmedia Link"
-             :description
-             "Moving Walls has the capacity to exhibit multimedia in addition to (but not in place of) the print exhibition. A multimedia sample should be submitted only if it complements or enhances, rather than duplicates, the other submitted materials. The sample will be judged on its ability to present complex issues through compelling multimedia storytelling, and will not negatively impact the print submission. If you are submitting a multimedia piece for consideration, please post the piece on a free public site such as YouTube or Vimeo and include a link. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
+   (application-fields :website)
+   (application-fields :multimedia)
    (application-fields :focus-region)
    (application-fields :focus-country)])
 
@@ -864,11 +866,13 @@
 (defmethod application-review-fields :mw20 [application]
   (map application-fields
        [:mw20-project-title :mw20-project-summary :mw20-project-statement
-        :mw20-bio :mw20-summary-of-engagement]))
+        :mw20-bio :mw20-summary-of-engagement
+        :website :multimedia]))
 
 (defmethod application-review-fields :prodgrant2012 [application]
   (map application-fields
-       [:pg-project-title :pg-proposal-narrative :pg-personal-statement]))
+       [:pg-project-title :pg-project-summary
+        :pg-proposal-narrative :pg-personal-statement]))
 
 (defn exhibit-apply-view [request exhibit]
   (when-logged-in
