@@ -1,34 +1,51 @@
-/**
- * theme overrides
- */
-#footer {
-    clear: both;
+body {
+    background: #FFFFFF;
+    font-family: Arial, Helvetica, sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    color: #3C3D3F;
 }
-#logo h1 {
-    text-transform: inherit;
+
+h1, h2, h3 {
+    font-weight: normal;
+    color: #FF3000;
+    margin: 0 0 0.25em 0;
 }
-#logo {
-    width: 270px;
+
+h1 { font-size: 2em; }
+h2 { font-size: 2.8em; }
+h3 { font-size: 1.6em; }
+
+p, ul, ol {
+    line-height: 1.5em;
 }
-#menu {
-    width: 500px;
+
+a {
+    text-decoration: underline;
+    color: #EB1D1D;
 }
+a:hover {
+    text-decoration: none;
+}
+
+#wrapper {
+    margin: 0 auto;
+    padding: 0;
+    width: 1000px;
+}
+
 #header {
     background: none;
-    height: 95px;
+    height: 70px;
+    margin-bottom: 30px;
+    padding: 0 0 10px 0;
+    border-bottom: 2px solid #BBB;
 }
 #osf-logo {
     float: left;
-    position: relative;
-    top: 10px;
 }
 #language {
-    clear: both;
-    position: relative;
-    top: -25px;
-    right: -25px;
     float: right;
-    width: 200px;
 }
 #language ul,
 #language li {
@@ -40,12 +57,80 @@
 #language li {
     margin: 0 5px;
 }
+#heading-section {
+    clear: both;
+    margin-top: 1em;
+}
+#heading {
+    text-transform: uppercase;
+}
+#contact {
+    float: right;
+}
+#header h1 {
+    font-weight: bold;
+}
+#header a {
+    text-decoration: none;
+}
+#header a:hover {
+    text-decoration: underline;
+}
 #content {
-    margin-bottom: 2em;
+    float: left;
+    width: 760px;
+    background: #FFF;
+    margin: 0 0 2em 0;
 }
-h2,h3 {
-    margin-bottom: 0.25em;
+#sidebar {
+    float: right;
+    width: 200px;
+    text-align: right;
 }
+#sidebar h2 {
+    color: #414141;
+    font-size: 2em;
+    margin: 0.5em 0;
+}
+#sidebar #login-logout {
+    margin: 0 0 1em 0;
+}
+#sidebar #update-profile {
+    margin: 1em 0;
+}
+#sidebar #applications-list {
+    margin-top: 1em;
+}
+#sidebar ul,
+#sidebar li {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+#sidebar a {
+    text-decoration: none;
+}
+#sidebar a:hover {
+    text-decoration: underline;
+}
+#sidebar #admin {
+    margin-top: 1em;
+}
+
+#footer {
+    border-top: 2px solid #BBB;
+    clear: both;
+}
+#footer p {
+    margin: 1em 0 2em 0;
+    color: #777;
+}
+
+.uniForm {
+    background-color: #E8F3FC;
+    padding: 20px;
+}
+
 .uniForm legend {
     display: none;
 }
@@ -154,28 +239,6 @@ a#upload:hover {
 }
 .application-submit .submit-button {
     margin: 2em 0;
-}
-#sidebar {
-    text-align: right;
-}
-#sidebar #login-logout {
-    margin: 0 0 1em 0;
-}
-#sidebar #update-profile {
-    margin: 1em 0;
-}
-#sidebar #applications-list {
-    margin-top: 1em;
-}
-#sidebar #applications-list ul,
-#sidebar #applications-list li,
-#sidebar h2 {
-    padding: 0;
-    margin-left: 0;
-    text-align: right;
-}
-#sidebar #admin {
-    margin-top: 1em;
 }
 
 .uniForm p.formHint {

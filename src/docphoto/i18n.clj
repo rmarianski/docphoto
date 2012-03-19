@@ -123,6 +123,7 @@ To reset your password, please click on the following link:
 
    ;; applications
    :apply-to "Apply to " "Применить "
+   :apply-online "Apply Online" "подать заявку онлайн"
    :cv "Curriculum Vitae" "Резюме"
    :cv-description
    "The preferred format for Curriculum Vitae is either Microsoft Word or PDF"

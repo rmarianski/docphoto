@@ -244,7 +244,7 @@
 (defmacro theme-css [editor-css?]
   (if cfg/debug
     (let [debug-css-files ["/public/css/google/common.css"
-                           "/public/css/theme/style.css"
+;                           "/public/css/theme/style.css"
                            "/public/css/uni-form.css"
                            "/public/css/docphoto.css"]]
       `(if ~editor-css?
@@ -277,6 +277,13 @@
                           `(= ~uri-sym ~link))
                      {:class "current_page_item"})
                [:a {:href ~link} (i18n/translate ~text)]])])]))
+
+(defn host-header
+  "parse the host header differently based on whether we are proxied to or not"
+  [request]
+  (if cfg/proxied?
+    ((:headers request) "x-forwarded-host")
+    (:server-name request)))
 
 (defn absolute-link [request url]
   (let [[host port] (if cfg/proxied?
@@ -390,6 +397,14 @@
    :else `(when (= ((:headers ~'request) "x-forwarded-host") ~cfg/multiple-languages)
             ~@body)))
 
+(defn heading-apply-text
+  "Display the appropriate heading text based on the domain. This is hard coded here."
+  [request]
+  (let [host (host-header request)]
+    (if (= host "docphoto.soros.org")
+      "Production Grant 2012"
+      "Moving Walls 20")))
+
 (defn layout [request options body]
   (xhtml
    [:head
@@ -399,32 +414,29 @@
     (apply include-css (theme-css (:include-editor-css options)))]
    [:body
     [:div#wrapper
-     [:div#header-wrapper
-      [:div#header
-       [:div#logo
-        [:h1
-         [:a {:href "/"} [:span "Documentary"] " Photography"]]]
-       (theme-menu (:uri request))
-       [:div#osf-logo (ph/image "/public/osf-logo.png"
-                                "Open Society Foundations")]
-       (when-multiple-languages
-        [:div#language
-         [:ul
-          (let [came-from (:uri request)
-                current-language (or (session/get-language request) :en)]
-            (for [[text lang] [["English" "en"] ["Русский" "ru"]]]
-              [:li
-               (if (= (keyword lang) current-language)
-                 text
-                 (ph/link-to
-                  (switch-language-link lang came-from) text))]))]])]]
+     [:div#header
+      [:div#osf-logo (ph/image "/public/osf-logo.png"
+                               "Open Society Foundations")]
+      (when-multiple-languages
+       [:div#language
+        [:ul
+         (let [came-from (:uri request)
+               current-language (or (session/get-language request) :en)]
+           (for [[text lang] [["English" "en"] ["Русский" "ru"]]]
+             [:li
+              (if (= (keyword lang) current-language)
+                text
+                (ph/link-to
+                 (switch-language-link lang came-from) text))]))]])
+      [:div#heading-section
+       [:div#contact (ph/link-to "mailto:docphoto@sorosny.org" "Contact Us")]
+       [:h1#heading (str (heading-apply-text request) ": " (i18n/translate :apply-online))]]]
      [:div#page
       [:div#content body]
       [:div#sidebar
-       (sidebar-snippet request)]]]
-    [:div#footer
-     [:p "Copyright (c) 2012 Docphoto. All rights reserved. Design by "
-      [:a {:href "http://www.freecsstemplates.org/"} "CSS Templates."]]]
+       (sidebar-snippet request)]]
+     [:div#footer
+      [:p "&copy; 2012 Open Society Foundations. All rights reserved."]]]
     (theme-js (:include-upload-js options))
     (if-let [js (:js-script options)]
       (javascript-tag js))]))
@@ -501,8 +513,8 @@
    request
    {}
    (list
-    [:h2 (i18n/translate :login)]
     [:form.uniForm {:method :post :action (login-link)}
+     [:h2 (i18n/translate :login)]
      [:fieldset
       (when-let [user (session/get-user request)]
         [:p ((i18n/translate :already-logged-in) (:name user))])
@@ -562,10 +574,10 @@
      request
      {}
      [:div
-      [:h2 (i18n/translate :update-profile)]
-      [:p ((i18n/translate :reset-password-text)
-           (profile-reset-password-link user-id))]
       [:form.uniForm {:method :post :action (profile-update-link user-id)}
+       [:h2 (i18n/translate :update-profile)]
+       [:p ((i18n/translate :reset-password-text)
+            (profile-reset-password-link user-id))]
        (render-fields request (user-update-mailinglist-value
                                (merge user params)) errors)
        [:input {:type :submit :value (i18n/translate :update)}]]])
@@ -886,9 +898,9 @@
                            :include-editor-css true
                            :js-script "docphoto.editor.triggerEditors();"}
                           [:div
-                           [:h2 (str (i18n/translate :apply-to) (:name exhibit))]
                            [:form.uniForm {:method :post :action (:uri request)
                                            :enctype "multipart/form-data"}
+                            [:h2 (str (i18n/translate :apply-to) (:name exhibit))]
                             [:fieldset
                              [:legend "Apply"]
                              (letfn [(render-field [field-stanza]
@@ -1026,9 +1038,9 @@
                            "{url: \"%s\", captionRequiredText: '" (i18n/translate :caption-required) "'});")
                       (:uri request))}
   (list
-   [:h2 (i18n/translate :upload-images)]
-   [:p (i18n/translate :upload-image-amount )]
    [:form.uniForm {:method :post :action (:uri request)}
+    [:h2 (i18n/translate :upload-images)]
+    [:p (i18n/translate :upload-image-amount)]
     [:div#plupload
      [:div#files-list (i18n/translate :upload-no-support)]
      [:a#pick-files {:href "#"} (i18n/translate :upload-select-files)]
@@ -1327,6 +1339,7 @@
    (req-password :password2 "Password Again")]
   (layout request "Reset Password"
           [:form.uniForm {:method :post :action (:uri request)}
+           [:h2 "Reset User Password"]
            (render-fields request params errors)
            [:input {:type :submit :value "Save"}]])
   (let [[pass1 pass2] ((juxt :password1 :password2) params)]
@@ -1388,8 +1401,8 @@
                   [:br]
                   (:caption__c image)])]
               
-              [:h2 "Review"]
               [:form.uniForm {:method :post :action (:uri request)}
+               [:h2 "Review"]
                (render-fields
                 request
                 (merge
@@ -1520,9 +1533,9 @@
   (layout
    request "Create Vetter Account"
    (list
-    [:h1 "Create Vetter Account"]
-    [:p "Use this form to create a new vetter account. These are simply trimmed down user accounts (contacts in salesforce) that can be given to vetters that don't already exist."]
     [:form.uniForm {:method :post :action (:uri request)}
+     [:h1 "Create Vetter Account"]
+     [:p "Use this form to create a new vetter account. These are simply trimmed down user accounts (contacts in salesforce) that can be given to vetters that don't already exist."]
      (render-fields request params errors)
      [:input {:type :submit :value "Create"}]]))
   (let [{password1 :password__c password2 :password2

@@ -409,7 +409,8 @@ docphoto.editor.makeEditor = function(textarea) {
   ];
 
   var toolbarElement = goog.dom.createDom(goog.dom.TagName.DIV,
-                                          {"id": id + '-toolbar'});
+                                          {"id": id + '-toolbar',
+                                           "class": "editor"});
   goog.dom.insertSiblingBefore(toolbarElement, textarea);
   var toolbar = goog.ui.editor.DefaultToolbar.makeToolbar(buttons,
                                                           toolbarElement);
