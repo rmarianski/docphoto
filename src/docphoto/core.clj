@@ -426,7 +426,7 @@
      [:p "Copyright (c) 2012 Docphoto. All rights reserved. Design by "
       [:a {:href "http://www.freecsstemplates.org/"} "CSS Templates."]]]
     (theme-js (:include-upload-js options))
-    (if-let [js (:js-script options)]
+    (when-let [js (:js-script options)]
       (javascript-tag js))]))
 
 (defn- layout-form
@@ -1369,7 +1369,8 @@
              :description "Your comments are important, and we pay particular attention to your feedback. In some instances, your comments are more valuable than the average rating."}]
     :validator {:fn not-empty :msg :required}}
    {:field [:hidden {} :review_Stage__c {}]}]
-  (layout request "Review"
+  (layout request {:title "Review"
+                   :js-script "new docphoto.Review('review-images', 'main-image-container');"}
           [:div#review
            (let [images (query-images (:id application))
                  fields (application-review-fields application)]
@@ -1380,14 +1381,17 @@
                   [:dl
                    [:dt (i18n/translate title)]
                    [:dd (application field-key)]]))
-              [:h2 "Images"]
-              [:ul
-               (for [image images]
-                 [:li
-                  (ph/image (image-link (:id image) "small" (:filename__c image)))
-                  [:br]
-                  (:caption__c image)])]
-              
+              [:div#review-images
+               [:h2 "Images"]
+               [:div#main-image-container]
+               [:ul
+                (for [image-group (partition 5 5 nil images)]
+                  [:li
+                   (for [image image-group]
+                     [:div.image-container
+                      [:a {:href "#"}
+                       [:img.image-thumbnail {:src (image-link (:id image) "small" (:filename__c image))}]]
+                      [:span (:caption__c image)]])])]]
               [:h2 "Review"]
               [:form.uniForm {:method :post :action (:uri request)}
                (render-fields

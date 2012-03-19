@@ -473,9 +473,108 @@ docphoto.DragListGroup.prototype.cloneNode_ = function(sourceEl) {
   return el.cloneNode(false);
 };
 
+// review section
+
+/**
+ * @param {!string} reviewImagesId container id
+ * @constructor
+ */
+docphoto.Review = function(reviewImagesId, mainImageContainerId) {
+  this.reviewContainer = goog.dom.getElement(reviewImagesId);
+  // mapping for click handlers
+  this.nodeToMap = {};
+  // this is the big image that is currently highlighted
+  // will change as users click through
+  this.mainImage = null;
+  // where the main image will be located
+  this.mainImageContainer = goog.dom.getElement(mainImageContainerId);
+
+  // parse the image data from the page
+  var ul = goog.dom.getElementsByTagNameAndClass(
+    goog.dom.TagName.UL, undefined, this.reviewContainer)[0];
+  var imageContainers = goog.dom.getElementsByTagNameAndClass(
+    goog.dom.TagName.DIV, 'image-container', ul);
+  var images = goog.array.map(imageContainers, function(imageContainer) {
+    var img = goog.dom.getElementsByTagNameAndClass(
+      goog.dom.TagName.IMG, undefined, imageContainer)[0];
+    var smallUrl = img.getAttribute('src');
+    var largeUrl = smallUrl.replace('small', 'large');
+
+    var span = goog.dom.getLastElementChild(imageContainer);
+    var caption = span.innerHTML;
+
+    var imageMap = {'thumbnail': smallUrl, 'large': largeUrl, 'caption': caption,
+                    'imageNode': img};
+
+    // Tie the anchor, which is the image's parent, with the node
+    // itself. This is useful for the click handler.
+    // XXX might want to do this separately since it's a side effect
+    var id = goog.getUid(img);
+    this.nodeToMap[id] = imageMap;
+
+    return imageMap;
+  }, this);
+
+  // remove all captions, which can be targetted as the spans
+  // the rest of the markup can remain
+  var spans = goog.dom.getElementsByTagNameAndClass(
+    goog.dom.TagName.SPAN, undefined, ul);
+  goog.array.forEach(spans, function(span) {
+    goog.dom.removeNode(span)});
+
+  // set the main image as the first image
+  var firstImageMap = images[0];
+  if (goog.isDefAndNotNull(firstImageMap)) {
+    this.mainImage = goog.dom.createDom(
+      goog.dom.TagName.IMG, {'src': firstImageMap['large']});
+    this.mainCaption = goog.dom.createDom(
+      goog.dom.TagName.P, undefined, firstImageMap['caption']);
+    var imageNode = firstImageMap['imageNode'];
+    // XXX the selection logic is split between here and the click handler
+    var container = imageNode.parentNode.parentNode;
+    goog.dom.classes.add(container, 'selected');
+    this.prevSelectedThumbnail = container;
+
+    goog.dom.appendChild(this.mainImageContainer, this.mainImage);
+    goog.dom.appendChild(this.mainImageContainer, this.mainCaption);
+  }
+
+  goog.events.listen(ul, goog.events.EventType.CLICK,
+                     this.onImageClick, false, this);
+};
+
+/**
+ * @param {!Event} event
+ */
+docphoto.Review.prototype.onImageClick = function(event) {
+  var target = /** @type {!Element} */ event.target;
+  if (goog.dom.classes.has(target, 'image-thumbnail')) {
+    event.preventDefault();
+    var image = goog.dom.getFirstElementChild(target);
+    // parent is anchor, anchor's parent is div container
+    var container = target.parentNode.parentNode;
+
+    // move the selected class to the correct element
+    goog.dom.classes.add(container, 'selected');
+    if (goog.isDefAndNotNull(this.prevSelectedThumbnail)) {
+      goog.dom.classes.remove(this.prevSelectedThumbnail, 'selected');
+    }
+    this.prevSelectedThumbnail = container;
+
+    // update the main image
+    var id = goog.getUid(target);
+    var imageMap = this.nodeToMap[id];
+    if (goog.isDefAndNotNull(imageMap)) {
+      this.mainImage.setAttribute('src', imageMap['large']);
+      this.mainCaption.innerHTML = imageMap['caption'];
+    }
+  }
+};
+
 
 goog.exportSymbol('docphoto.Uploader', docphoto.Uploader);
 goog.exportSymbol('docphoto.editor.triggerEditors',
                   docphoto.editor.triggerEditors);
 goog.exportSymbol('docphoto.removeAnchorTargets',
                   docphoto.removeAnchorTargets);
+goog.exportSymbol('docphoto.Review', docphoto.Review);
