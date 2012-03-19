@@ -526,7 +526,8 @@ docphoto.Review = function(reviewImagesId, mainImageContainerId) {
   var firstImageMap = images[0];
   if (goog.isDefAndNotNull(firstImageMap)) {
     this.mainImage = goog.dom.createDom(
-      goog.dom.TagName.IMG, {'src': firstImageMap['large']});
+      goog.dom.TagName.IMG, {'src': firstImageMap['large'],
+                             'id': 'main-image'});
     this.mainCaption = goog.dom.createDom(
       goog.dom.TagName.P, undefined, firstImageMap['caption']);
     var imageNode = firstImageMap['imageNode'];
@@ -536,7 +537,7 @@ docphoto.Review = function(reviewImagesId, mainImageContainerId) {
     this.prevSelectedThumbnail = container;
 
     goog.dom.appendChild(this.mainImageContainer, this.mainImage);
-    goog.dom.appendChild(this.mainImageContainer, this.mainCaption);
+    goog.dom.insertSiblingAfter(this.mainCaption, this.mainImageContainer);
   }
 
   goog.events.listen(ul, goog.events.EventType.CLICK,

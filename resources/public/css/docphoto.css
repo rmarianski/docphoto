@@ -197,6 +197,25 @@ a#upload:hover {
     margin: 1em 0;
 }
 
+#review-images {
+    text-align: center;
+}
+#review-images h2 {
+    text-align: left;
+}
+
+#review-images ul,
+#review-images li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+#main-image-container {
+    width: 600px;
+    height: 600px;
+}
+
 #login-notes p {
     margin: 1em 0;
 }

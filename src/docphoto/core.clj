@@ -1388,10 +1388,11 @@
                 (for [image-group (partition 5 5 nil images)]
                   [:li
                    (for [image image-group]
-                     [:div.image-container
-                      [:a {:href "#"}
-                       [:img.image-thumbnail {:src (image-link (:id image) "small" (:filename__c image))}]]
-                      [:span (:caption__c image)]])])]]
+                     (when image
+                       [:div.image-container.goog-inline-block
+                       [:a {:href "#"}
+                        [:img.image-thumbnail {:src (image-link (:id image) "small" (:filename__c image))}]]
+                       [:span (:caption__c image)]]))])]]
               [:h2 "Review"]
               [:form.uniForm {:method :post :action (:uri request)}
                (render-fields
