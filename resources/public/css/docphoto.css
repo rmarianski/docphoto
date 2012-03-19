@@ -196,6 +196,10 @@ a#upload:hover {
 #review .uniForm p.note {
     margin: 1em 0;
 }
+#review dt {
+    font-weight: bold;
+    font-size: 1.2em;
+}
 
 #login-notes p {
     margin: 1em 0;
