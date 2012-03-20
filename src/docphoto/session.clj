@@ -1,4 +1,6 @@
-(ns docphoto.session)
+(ns docphoto.session
+  (:import [javax.servlet.http
+            HttpServletRequest HttpSession]))
 
 (defn wrap-servlet-session
   "takes the servlet container provided session,
@@ -6,16 +8,17 @@
   [handler]
   (fn [request]
     (handler
-     (if-let [servlet-request (:servlet-request request)]
+     (if-let [^HttpServletRequest servlet-request (:servlet-request request)]
        (assoc request :session (.getSession servlet-request true))
        request))))
 
 (defmacro defsession
   "generate an anaphoric function that pulls the session out of the request"
   [fn-name args body]
-  `(defn ~fn-name [~'request ~@args]
-     (if-let [~'session (:session ~'request)]
-       ~body)))
+  (let [^HttpSession session 'session]
+    `(defn ~fn-name [~'request ~@args]
+       (if-let [~(with-meta session {:tag 'HttpSession}) (:session ~'request)]
+         ~body))))
 
 (defmacro defsession-getter
   "generate a session fn getter"
