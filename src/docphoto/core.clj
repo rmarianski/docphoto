@@ -264,20 +264,6 @@
           [~debug-js-file])))
     `(include-js "/public/js/docphoto-min.js")))
 
-(defmacro theme-menu [uri]
-  (let [uri-sym (gensym "uri_")]
-    [:div#menu
-     `(let [~uri-sym ~uri]
-        [:ul
-         ~@(for [[link text active-link-fn]
-                 [["/" :home]
-                  ["/exhibit" :exhibits :starts-with]]]
-             `[:li (if ~(if (= :starts-with active-link-fn)
-                          `(.startsWith ~uri-sym ~link)
-                          `(= ~uri-sym ~link))
-                     {:class "current_page_item"})
-               [:a {:href ~link} (i18n/translate ~text)]])])]))
-
 (defn host-header
   "parse the host header differently based on whether we are proxied to or not"
   [request]
