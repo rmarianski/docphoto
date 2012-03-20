@@ -5,7 +5,6 @@
   java -jar plovr.jar build config.js >> docphoto-min.js)
 
 cat `find resources/public/css/google -name '*.css'` \
-  `find resources/public/css/theme -name '*.css'` \
   resources/public/css/uni-form.css \
   resources/public/css/docphoto.css \
   > css-input.css

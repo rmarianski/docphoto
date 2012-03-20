@@ -244,7 +244,6 @@
 (defmacro theme-css [editor-css?]
   (if cfg/debug
     (let [debug-css-files ["/public/css/google/common.css"
-;                           "/public/css/theme/style.css"
                            "/public/css/uni-form.css"
                            "/public/css/docphoto.css"]]
       `(if ~editor-css?
