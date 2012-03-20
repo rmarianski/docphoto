@@ -18,9 +18,11 @@
     (.setUsername username)
     (.setPassword password)))
 
-(defn connector
+(defn ^EnterpriseConnection connector
   ([config] (Connector/newConnection config))
   ([username password] (connector (connector-config username password))))
+
+(defn disconnect [^EnterpriseConnection conn] (.logout conn))
 
 (defn non-nills [m]
   (select-keys m

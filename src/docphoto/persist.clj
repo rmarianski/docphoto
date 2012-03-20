@@ -17,18 +17,18 @@
   (if filename
     (.getName (file filename))))
 
-(defn exhibit-file-path [exhibit-slug]
+(defn ^File exhibit-file-path [exhibit-slug]
   (file *base-storage-path* exhibit-slug))
 
-(defn images-file-path [exhibit-slug app-id]
+(defn ^File images-file-path [exhibit-slug app-id]
   (file *base-storage-path* exhibit-slug app-id "images"))
 
-(defn image-file-path [exhibit-slug app-id image-id & [scale-type]]
+(defn ^File image-file-path [exhibit-slug app-id image-id & [scale-type]]
   (apply
    file *base-storage-path* exhibit-slug app-id "images" image-id
    (if scale-type [scale-type] [])))
 
-(defn cv-file-path
+(defn ^File cv-file-path
   ([exhibit-slug app-id]
      (if-let [cv-name (-?> (file *base-storage-path* exhibit-slug app-id "cv")
                            (.list) first)]
@@ -36,7 +36,7 @@
   ([exhibit-slug app-id filename]
      (file *base-storage-path* exhibit-slug app-id "cv" filename)))
 
-(defn- ensure-dir-exists [& paths] (.mkdirs (apply file paths)))
+(defn- ensure-dir-exists [& paths] (.mkdirs ^File (apply file paths)))
 
 (defn ensure-image-path [exhibit-slug app-id image-id]
   (ensure-dir-exists *base-storage-path* exhibit-slug app-id "images" image-id))

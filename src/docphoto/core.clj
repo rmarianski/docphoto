@@ -30,8 +30,9 @@
             [hiccup.page-helpers :as ph]
             [ring.middleware.stacktrace :as stacktrace]
             [decline.core :as decline])
-  (:import [java.io File PipedInputStream PipedOutputStream]
-           [java.util.zip ZipOutputStream ZipEntry]))
+  (:import [java.io File PipedInputStream PipedOutputStream OutputStream]
+           [java.util.zip ZipOutputStream ZipEntry]
+           [javax.servlet.http HttpSession]))
 
 ;; global salesforce connection
 (defonce conn nil)
@@ -228,10 +229,10 @@
 
 (defn- list-all-editor-css-files []
   "convenience function to list all google editor css files to include"
-  (letfn [(css? [filename] (.endsWith filename ".css"))
+  (letfn [(css? [^String filename] (.endsWith filename ".css"))
           (files-in [path]
             (filter css?
-             (map #(str "/public/css/" path "/" (.getName %))
+             (map #(str "/public/css/" path "/" (.getName ^File %))
                   (.listFiles
                    (file "./resources/public/css/" path)))))]
     (concat (files-in "google")
@@ -464,7 +465,7 @@
 
 (defview userinfo-view {:title "User Info View" :logged-in true}
   [:dl
-   (for [[k v] (.getAttribute (:session request) "user")]
+   (for [[k v] (.getAttribute ^HttpSession (:session request) "user")]
      (list [:dt k] [:dd v]))])
 
 (defn register [register-map]
@@ -512,7 +513,7 @@
       ((i18n/translate :forgot-your-password-reset) (forgot-link))]]))
   (if-let [user (query-user-by-credentials (:userName__c params) (md5 (:password__c params)))]
     (do (login request user)
-        (redirect (if-let [came-from (:came-from params)]
+        (redirect (if-let [^String came-from (:came-from params)]
                     (if (or (.endsWith came-from "/login")
                             (.endsWith came-from "/login/")) "/" came-from)
                     "/")))
@@ -1403,7 +1404,7 @@
                 (ph/link-to "mailto:docphoto@sorosny.org" "docphoto")
                 " if you need to update your review."]
                [:input {:type "submit" :name :submit :value "Submit"}]]])])
-  (let [updated-params (update-in params [:rating__c] #(Double/valueOf %))
+  (let [updated-params (update-in params [:rating__c] #(Double/valueOf ^String %))
         final? (= (:submit params) "Submit")
         updated-params (merge updated-params
                               {:status__c (if final? "Final" "Draft")})
@@ -1447,11 +1448,11 @@
      (when-admin (routing ~'request ~@routes))))
 
 (defn create-images-zipper [images-with-files]
-  (fn [outputstream]
+  (fn [^OutputStream outputstream]
     (when (seq images-with-files)
       (with-open [out (ZipOutputStream. outputstream)]
         (doseq [{:keys [filename image-file]} images-with-files]
-          (.putNextEntry out (ZipEntry. filename))
+          (.putNextEntry out (ZipEntry. ^String filename))
           (copy image-file out)
           (.closeEntry out))
         (.finish out)))
@@ -1466,7 +1467,9 @@
     in))
 
 (defn weave-images-with-files [image-objects image-files]
-  (let [parse-app-id (comp (memfn getName) file (memfn getParent))
+  (let [parse-app-id (fn [^File f] (-> (.getParent f)
+                                      file
+                                      .getName))
         file-id-image-map (into {} (map
                                     (fn [image-file] [(parse-app-id image-file) image-file])
                                     image-files))]
@@ -1687,4 +1690,4 @@
 
 ;; used for war file init/destroy
 (defn servlet-init [] (connect-to-prod))
-(defn servlet-destroy [] (.logout conn))
+(defn servlet-destroy [] (sf/disconnect conn))
