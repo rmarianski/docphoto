@@ -5,7 +5,8 @@
             [docphoto.config :as cfg])
   (:import [com.sforce.ws ConnectorConfig]
            [com.sforce.soap.enterprise
-            Connector EnterpriseConnection SaveResult
+            Connector EnterpriseConnection
+            SaveResult DeleteResult
             Field PicklistEntry]
            [com.sforce.soap.enterprise.sobject
             Contact SObject Exhibit_Application__c Image__c
@@ -51,7 +52,7 @@
   ([fname bindings body] `(defsfcommand ~fname no-check ~bindings ~body))
   ([fname check-results bindings body]
      `(defn ~fname ~bindings
-        (let [^EnterpriseConnection conn# ~(first bindings)]
+        (let [conn# ~(first bindings)]
           (try
             ~(if (= check-results 'check-results)
                `(let [results# ~body]
@@ -214,9 +215,9 @@
 (defn delete-ids [^EnterpriseConnection conn ids]
   "delete passed in ids"
   (let [delete-results (.delete conn (into-array String ids))]
-    (if (not-every? #(.isSuccess ^SaveResult %) delete-results)
+    (if (not-every? #(.isSuccess ^DeleteResult %) delete-results)
       (throw (IllegalStateException.
-              (str (find-first #(not (.isSuccess ^SaveResult %)) delete-results))))
+              (str (find-first #(not (.isSuccess ^DeleteResult %)) delete-results))))
       delete-results)))
 
 (defn delete-images-for-application [conn application-id]
