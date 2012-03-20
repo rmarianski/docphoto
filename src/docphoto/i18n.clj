@@ -43,10 +43,10 @@
    :invalid-credentials "Invalid Credentials" "Неверное Полномочия"
    :forgot-your-password-reset (fn [forgot-link]
                                  (list "Forgot your password? "
-                                       (ph/link-to forgot-link "Reset") " it."))
+                                       (ph/link-to forgot-link "Reset it") "."))
                                (fn [forgot-link]
                                  (list "Забыли пароль? "
-                                       (ph/link-to forgot-link "Сброс") " этого."))
+                                       (ph/link-to forgot-link "Сброс этого") "."))
 
    :no-account-register
    (fn [register-link]
