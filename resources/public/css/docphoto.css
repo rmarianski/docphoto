@@ -76,6 +76,12 @@ a:hover {
 #header a:hover {
     text-decoration: underline;
 }
+#heading a {
+    color: #FF3000;
+}
+#heading a:hover {
+    text-decoration: none;
+}
 #content {
     float: left;
     width: 760px;

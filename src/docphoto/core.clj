@@ -417,7 +417,9 @@
                  (switch-language-link lang came-from) text))]))]])
       [:div#heading-section
        [:div#contact (ph/link-to "mailto:docphoto@sorosny.org" "Contact Us")]
-       [:h1#heading (str (heading-apply-text request) ": " (i18n/translate :apply-online))]]]
+       [:h1#heading (ph/link-to
+                     "/"
+                     (str (heading-apply-text request) ": " (i18n/translate :apply-online)))]]]
      [:div#page
       [:div#content body]
       [:div#sidebar
