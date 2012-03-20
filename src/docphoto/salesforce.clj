@@ -4,7 +4,9 @@
   (:require [clojure.string :as string]
             [docphoto.config :as cfg])
   (:import [com.sforce.ws ConnectorConfig]
-           [com.sforce.soap.enterprise Connector]
+           [com.sforce.soap.enterprise
+            Connector EnterpriseConnection SaveResult
+            Field PicklistEntry]
            [com.sforce.soap.enterprise.sobject
             Contact SObject Exhibit_Application__c Image__c
             Exhibit_Application_Review__c]
@@ -24,7 +26,7 @@
   (select-keys m
                (for [[k v] m :when (not (nil? v))] k)))
 
-(defn sobject-array [coll]
+(defn ^"[Lcom.sforce.soap.enterprise.sobject.SObject;" sobject-array [coll]
   (into-array SObject coll))
 
 (defn sobject->map [sobj]
@@ -40,20 +42,20 @@
   ([fname bindings body] `(defsfcommand ~fname no-check ~bindings ~body))
   ([fname check-results bindings body]
      `(defn ~fname ~bindings
-        (let [conn# ~(first bindings)]
+        (let [^EnterpriseConnection conn# ~(first bindings)]
           (try
             ~(if (= check-results 'check-results)
                `(let [results# ~body]
-                  (if (not-every? #(.isSuccess %) results#)
+                  (if (not-every? #(.isSuccess ^SaveResult %) results#)
                     (throw (IllegalStateException.
-                            (str (find-first #(not (.isSuccess %)) results#))))
+                            (str (find-first #(not (.isSuccess ^SaveResult %)) results#))))
                     results#))
                body)
             (catch Exception e#
               (if-let [cause# (.getCause e#)]
                 (if (and (instance? UnexpectedErrorFault cause#)
                          (= "INVALID_SESSION_ID"
-                            (.getLocalPart (.getFaultCode cause#))))
+                            (.getLocalPart (.getFaultCode ^UnexpectedErrorFault cause#))))
                   (let [cfg# (.getConfig conn#)
                         login-result# (.login conn#
                                               (.getUsername cfg#)
@@ -64,7 +66,7 @@
                   (throw e#))
                 (throw e#))))))))
 
-(defsfcommand query-records [conn query]
+(defsfcommand query-records [^EnterpriseConnection conn ^String query]
   (->
    (.query conn query)
    .getRecords))
@@ -105,7 +107,7 @@
         ~(if-let [to-append (:append options)]
            (str " " to-append)))))))
 
-(defsfcommand update-records check-results [conn sobjects]
+(defsfcommand update-records check-results [^EnterpriseConnection conn sobjects]
   (.update conn sobjects))
 
 (defmacro update [conn class update-maps]
@@ -114,35 +116,20 @@
     (sobject-array
      (map #(create-sf-object (new ~class) %) ~update-maps))))
 
-(defsfcommand create check-results [conn sobjects]
+(defsfcommand create check-results [^EnterpriseConnection conn sobjects]
   (.create conn sobjects))
-
-(defsfcommand describe-sobject [conn object-name]
-  (when-let [description (.describeSObject conn object-name)]
-    {:name (.getName description)
-     :activate? (.isActivateable description)
-     :fields
-     (for [field (.getFields description)]
-       {:name (.getName field)
-        :nillable? (.isNillable field)
-        :unique? (.isUnique field)
-        :type (.getType field)
-        :label (.getLabel field)})}))
-
-(defn describe-sobject-names [conn object-name]
-  (->> object-name (describe-sobject conn) :fields (map :name)))
 
 (defn picklist-field-metadata
   "Given the name of an object and field, return a seq of [label value] from the picklist"
-  [conn object-name field-name]
+  [^EnterpriseConnection conn object-name field-name]
   (when-let [object-description (.describeSObject conn (name object-name))]
     (let [fields (.getFields object-description)
           field-name (string/lower-case (name field-name))]
-      (when-let [field-entries (seq (filter #(= (string/lower-case (.getName %)) field-name)
+      (when-let [field-entries (seq (filter #(= (string/lower-case (.getName ^Field %)) field-name)
                                             fields))]
-        (let [field (first field-entries)]
+        (let [^Field field (first field-entries)]
           (when-let [picklist-entries (.getPicklistValues field)]
-            (for [picklist-entry picklist-entries]
+            (for [^PicklistEntry picklist-entry picklist-entries]
               [(.getLabel picklist-entry) (.getValue picklist-entry)])))))))
 
 (defn create-sf-object [obj data-map]
@@ -158,7 +145,7 @@
     (let [fields-to-null (keep (fn [[k v]]
                                  (when (nil? v) (field-name k))) data-map)]
       (when (seq fields-to-null)
-        (.setFieldsToNull obj (into-array String fields-to-null))))
+        (.setFieldsToNull ^SObject obj (into-array String fields-to-null))))
     obj))
 
 (def contact-fields
@@ -176,19 +163,19 @@
   [fn-name add-owner? bindings class-instance-form key-form]
   (assert (symbol? add-owner?))
   `(defn ~fn-name [conn# ~@bindings]
-     (-?>
-      (create
-       conn#
-       (sobject-array
-        [(create-sf-object
-          ~class-instance-form
-          ~(if (and (= add-owner? 'add-owner)
-                    cfg/owner-id)
-             `(merge {:ownerId ~cfg/owner-id}
-                     ~key-form)
-             key-form))]))
-      first
-      .getId)))
+     (when-let [result# (-?>
+                         (create
+                          conn#
+                          (sobject-array
+                           [(create-sf-object
+                             ~class-instance-form
+                             ~(if (and (= add-owner? 'add-owner)
+                                       cfg/owner-id)
+                                `(merge {:ownerId ~cfg/owner-id}
+                                        ~key-form)
+                                key-form))]))
+                         first)]
+       (.getId ^SaveResult result#))))
 
 (defcreate create-contact add-owner [contact-data-map]
   (Contact.)
@@ -216,12 +203,12 @@
   (Exhibit_Application_Review__c.)
   (select-keys review-map (conj review-fields :contact__c :exhibit_Application__c)))
 
-(defn delete-ids [conn ids]
+(defn delete-ids [^EnterpriseConnection conn ids]
   "delete passed in ids"
   (let [delete-results (.delete conn (into-array String ids))]
-    (if (not-every? #(.isSuccess %) delete-results)
+    (if (not-every? #(.isSuccess ^SaveResult %) delete-results)
       (throw (IllegalStateException.
-              (str (find-first #(not (.isSuccess %)) delete-results))))
+              (str (find-first #(not (.isSuccess ^SaveResult %)) delete-results))))
       delete-results)))
 
 (defn delete-images-for-application [conn application-id]
@@ -249,7 +236,7 @@
 (defn normalize-image-map
   "update image map to allow for salesforce update, ie ensure length of captions is valid"
   [image-map]
-  (letfn [(limit-string [s n]
+  (letfn [(limit-string [^String s n]
             (when s
               (if (< (count s) n)
                s
