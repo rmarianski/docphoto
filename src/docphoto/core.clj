@@ -459,10 +459,14 @@
           [:a {:href (exhibit-link (:slug__c exhibit))}
            (:name exhibit)]])])))
 
-(defview home-view "Documentary Photography Project"
-  [:div
-   [:h2 (i18n/translate :open-competitions)]
-   (exhibits-html request)])
+(defn home-view
+  "Redirect to the appropriate competition landing page. Host logic hard coded here too."
+  [request]
+  (redirect
+   (str "/exhibit/"
+        (if (= (host-header request) "docphoto.soros.org")
+          "prodgrant2012"
+          "mw20"))))
 
 (defview userinfo-view {:title "User Info View" :logged-in true}
   [:dl

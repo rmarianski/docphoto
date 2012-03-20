@@ -115,9 +115,6 @@ To reset your password, please click on the following link:
 Чтобы восстановить пароль, пожалуйста, перейдите по следующей ссылке:"
       reset-link))
 
-   ;; exhibits
-   :open-competitions "Open Competitions" "Открытые конкурсы"
-
    ;; form related
    :required "Required" "требуется"
 
