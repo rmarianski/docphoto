@@ -38,6 +38,13 @@
                              non-nills)]
     (with-meta result-map {:sobject sobj})))
 
+(defn ^UnexpectedErrorFault unexpected-error-fault-cause
+  "Given an exception, find the UnexpectedErrorFault or nil"
+  [^Exception e]
+  (and e (if (instance? UnexpectedErrorFault e)
+           e
+           (unexpected-error-fault-cause (.getCause e)))))
+
 ;; automatically reconnect on session invalidation
 ;; salesforce connection must be first binding
 (defmacro defsfcommand
@@ -54,10 +61,9 @@
                     results#))
                body)
             (catch Exception e#
-              (if-let [cause# (.getCause e#)]
-                (if (and (instance? UnexpectedErrorFault cause#)
-                         (= "INVALID_SESSION_ID"
-                            (.getLocalPart (.getFaultCode ^UnexpectedErrorFault cause#))))
+              (if-let [unexpected-error-fault# (unexpected-error-fault-cause e#)]
+                (if (= "INVALID_SESSION_ID"
+                       (.getLocalPart (.getFaultCode unexpected-error-fault#)))
                   (let [cfg# (.getConfig conn#)
                         login-result# (.login conn#
                                               (.getUsername cfg#)
