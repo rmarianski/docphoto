@@ -29,6 +29,7 @@
             [docphoto.guidelines :as guidelines]
             [hiccup.page-helpers :as ph]
             [ring.middleware.stacktrace :as stacktrace]
+            [ring.util.codec :as ring-codec]
             [decline.core :as decline])
   (:import [java.io File PipedInputStream PipedOutputStream OutputStream]
            [java.util.zip ZipOutputStream ZipEntry]
@@ -309,7 +310,7 @@
   (user-applications-link [username] "user" "applications" username)
   (cv-link [application-id] "cv" application-id)
   (profile-update-link [user-id] "profile" user-id)
-  (image-link [image-id scale filename] "image" image-id scale filename)
+  (image-link [image-id scale filename] "image" image-id scale (ring-codec/url-encode filename))
   (exhibits-link [] "exhibit/")
   (exhibit-link [exhibit-slug] "exhibit" exhibit-slug)
   (exhibit-apply-link [exhibit-slug] "exhibit" exhibit-slug "apply")
