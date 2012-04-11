@@ -997,15 +997,11 @@
 
 (defn app-view [request application]
   (let [app-id (:id application)
-        app-link (application-submit-link app-id)
         user (session/get-user request)]
-    (if (admin? user)
-      (layout
-       request "Application"
-       [:ul
-        [:li (ph/link-to app-link "Application summary")]
-        [:li (ph/link-to (application-review-link app-id) "Review application")]])
-      (redirect app-link))))
+    (redirect
+     (if (can-review-application? user application)
+       (application-review-link app-id)
+       (application-submit-link app-id)))))
 
 (defn render-image [request image]
   (list
