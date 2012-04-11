@@ -166,7 +166,7 @@ To reset your password, please click on the following link:
    :upload-image-reorder
    "The order of your images is an important consideration. Drag them to re-order."
    "Порядок изображений является важным фактором. Перетащите их на повторный заказ."
-   :proceed-to-upload-images "Proceed to Upload Images" "Приступить к Загрузить изображения"
+   :proceed-to-upload-images "Save Progress and Proceed to Upload Images" "Приступить к Загрузить изображения"
 
    :caption-required "Caption required" "Заголовок необходимые"
 
