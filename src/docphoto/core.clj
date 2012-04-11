@@ -999,7 +999,7 @@
   (let [app-id (:id application)
         user (session/get-user request)]
     (redirect
-     (if (can-review-application? user application)
+     (if (admin? user)
        (application-review-link app-id)
        (application-submit-link app-id)))))
 
