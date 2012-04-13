@@ -1392,11 +1392,15 @@
                  fields (application-review-fields application)]
              [:div
               [:h2 "Application Responses"]
-              (for [field fields]
-                (let [{[_ _ field-key {title :label}] :field} field]
-                  [:dl
-                   [:dt (i18n/translate title)]
-                   [:dd (application field-key)]]))
+              [:dl
+               (for [field fields]
+                 (let [{[_ _ field-key {title :label}] :field} field]
+                   (list
+                    [:dt (i18n/translate title)]
+                    [:dd (application field-key)])))
+               [:dt "CV"]
+               [:dd [:a {:href (cv-link (:id application))}
+                     (i18n/translate :cv-download)]]]
               [:h2 "Images"]
               [:ul
                (for [image images]
