@@ -1405,10 +1405,9 @@
               [:ul
                (for [image images]
                  [:li
-                  (ph/image (image-link (:id image) "small" (:filename__c image)))
+                  (ph/image (image-link (:id image) "large" (:filename__c image)))
                   [:br]
                   (:caption__c image)])]
-              
               [:form.uniForm {:method :post :action (:uri request)}
                [:h2 "Review"]
                (render-fields
