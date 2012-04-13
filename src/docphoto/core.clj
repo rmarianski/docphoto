@@ -804,7 +804,7 @@
                                 :validator {:fn not-empty :msg :required}}
    :website {:field [:text {} :website__c {:label "Website" :description "Personal Web Site (Optional)"}]}
    :multimedia {:field [:text {} :multimedia_Link__c
-                        {:label "Multmedia Link"
+                        {:label "Multimedia Link"
                          :description
                          "Moving Walls has the capacity to exhibit multimedia in addition to (but not in place of) the print exhibition. A multimedia sample should be submitted only if it complements or enhances, rather than duplicates, the other submitted materials. The sample will be judged on its ability to present complex issues through compelling multimedia storytelling, and will not negatively impact the print submission. If you are submitting a multimedia piece for consideration, please post the piece on a free public site such as YouTube or Vimeo and include a link. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
    
