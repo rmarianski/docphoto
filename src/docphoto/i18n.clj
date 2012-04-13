@@ -170,6 +170,12 @@ To reset your password, please click on the following link:
 
    :caption-required "Caption required" "Заголовок необходимые"
 
+   :not-enough-images "Not enough images uploaded" "Не достаточно загруженных изображений"
+   :not-all-captions-complete "Not all captions complete" "Не все подписи завершения"
+   :fix-errors-before-can-submit
+   "Before submitting your application, please correct the following:"
+   "Перед подачей заявки, пожалуйста, исправьте следующие:"
+
    :application-review "Application Review" "Обзор приложений"
    :review-application-before-submitting
    "Review your application before submitting."

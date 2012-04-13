@@ -1138,10 +1138,18 @@
        (application-submit-link (:id application))))))
 
 (defn application-submit-view [request application]
-  (let [app-id (:id application)]
+  (let [app-id (:id application)
+        images (query-images app-id)
+        errors (seq (concat
+                     (when (< (count images) 15)
+                       [:not-enough-images])
+                     (and (some empty? (map :caption__c images))
+                          [:not-all-captions-complete])))]
     (onpost
-     (and (sf/update-application-status conn app-id "Final")
-          (redirect (application-success-link app-id)))
+     (if errors
+       (redirect (application-submit-link app-id))
+       (and (sf/update-application-status conn app-id "Final")
+            (redirect (application-success-link app-id))))
      (layout
       request
       {:title "Review submission"}
@@ -1192,13 +1200,20 @@
             (ph/image (image-link (:id image) "small" (:filename__c image)))]
            [:div.goog-inline-block.image-caption (:caption__c image)]])]
        [:a {:href (application-upload-link app-id)} (i18n/translate :update)]]
-      [:form {:method :post :action (application-submit-link app-id)}
-       [:div.submit-button
-        (if (= "Final" (:submission_Status__c application))
-          [:p (i18n/translate :application-already-submitted)]
-          (list
-           [:p (i18n/translate :application-submit)]
-           [:input {:type "submit" :value (i18n/translate :application-submit-button)}]))]]]))))
+       (if errors
+         [:div
+          [:p (i18n/translate :fix-errors-before-can-submit)]
+          [:ul
+           (for [error errors]
+             [:li (i18n/translate error)])]]
+         [:form {:method :post :action (application-submit-link app-id)}
+          [:div.submit-button
+           (if (= "Final" (:submission_Status__c application))
+             [:p (i18n/translate :application-already-submitted)]
+             (list
+              [:p (i18n/translate :application-submit)]
+              [:input {:type "submit"
+                       :value (i18n/translate :application-submit-button)}]))]])]))))
 
 (defview application-success-view [application]
   {:title (i18n/translate :submission-thank-you)}
