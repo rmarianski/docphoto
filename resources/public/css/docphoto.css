@@ -270,6 +270,15 @@ a#upload:hover {
     font-weight: bold;
     font-size: 1.2em;
 }
+#review-images ul,
+#review-images li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+#review-images li {
+    margin: 1em 0;
+}
 
 #login-notes p {
     margin: 1em 0;
