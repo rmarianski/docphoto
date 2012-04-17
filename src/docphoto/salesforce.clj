@@ -186,11 +186,23 @@
                          first)]
        (.getId ^SaveResult result#))))
 
+(defn limit-string [^String s n]
+  (when s
+    (if (< (count s) n)
+      s
+      (.substring s 0 n))))
+
+(defn prepare-contact-fields [contact-data-map]
+  (-> contact-data-map
+      (update-in [:mailingState] limit-string 20)
+      (update-in [:mailingPostalCode] limit-string 20)))
+
 (defcreate create-contact add-owner [contact-data-map]
   (Contact.)
-  (select-keys
-   contact-data-map
-   contact-fields))
+  (prepare-contact-fields
+   (select-keys
+    contact-data-map
+    contact-fields)))
 
 (defcreate create-application add-owner [application-map]
   (Exhibit_Application__c.)
@@ -237,7 +249,8 @@
 
 (defn update-user [conn user-map]
   (update conn Contact
-          [(select-keys user-map (conj contact-fields :id))]))
+          [(prepare-contact-fields
+            (select-keys user-map (conj contact-fields :id)))]))
 
 (defn update-application [conn application-map]
   (update conn Exhibit_Application__c [application-map]))
@@ -245,12 +258,7 @@
 (defn normalize-image-map
   "update image map to allow for salesforce update, ie ensure length of captions is valid"
   [image-map]
-  (letfn [(limit-string [^String s n]
-            (when s
-              (if (< (count s) n)
-               s
-               (.substring s 0 n))))]
-    (update-in image-map [:caption__c] limit-string 255)))
+  (update-in image-map [:caption__c] limit-string 255))
 
 (defn update-images [conn image-maps]
   (update conn Image__c
