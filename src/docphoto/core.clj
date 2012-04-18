@@ -1060,6 +1060,10 @@
         (file base-image-path scale-type)
         width height)))))
 
+(defn normalize-image-filename [filename]
+  (apply str (filter #(or (Character/isLetterOrDigit %) (#{\- \_ \.} %))
+                     filename)))
+
 (defn app-upload-image [request application]
   (let [[filename content-type tempfile] ((juxt
                                            :filename :content-type :tempfile)
@@ -1069,7 +1073,7 @@
         order (-> (query-images application-id)
                   count inc double)
         image-id (create-image
-                  {:filename__c filename
+                  {:filename__c (normalize-image-filename filename)
                    :mime_type__c content-type
                    :exhibit_application__c application-id
                    :order__c order})]
