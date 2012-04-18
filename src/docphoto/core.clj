@@ -307,7 +307,7 @@
 
 (deflinks
   (application-link [application-id] "application" application-id)
-  (user-applications-link [username] "user" "applications" username)
+  (user-applications-link [username] "user" "applications" (ring-codec/url-encode username))
   (cv-link [application-id] "cv" application-id)
   (profile-update-link [user-id] "profile" user-id)
   (image-link [image-id scale filename] "image" image-id scale (ring-codec/url-encode filename))
@@ -1614,7 +1614,7 @@
 
   (GET "/user/applications" [] current-user-applications-view)
   (GET "/user/applications/:username" [username :as request]
-       (user-applications-view request username))
+       (user-applications-view request (ring-codec/url-decode username)))
 
   (context
    "/admin" []
