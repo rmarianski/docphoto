@@ -580,7 +580,7 @@
         user-params (merge {:id user-id} user-params)]
     (sf/update-user conn user-params)
     (when (= user-id (:id (session/get-user request)))
-      (session/save-user request user-params))
+      (session/save-user request (query-user-by-id user-id)))
     (redirect (or (:came-from params) "/"))))
 
 (defformpage profile-password-view [user-id]
