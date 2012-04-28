@@ -1060,8 +1060,9 @@
         (file base-image-path scale-type)
         width height)))))
 
-(defn normalize-image-filename [filename]
-  (apply str (filter #(or (Character/isLetterOrDigit %) (#{\- \_ \.} %))
+(defn normalize-image-filename [^String filename]
+  (apply str (filter #(or (Character/isLetterOrDigit ^Character %)
+                          (#{\- \_ \.} %))
                      filename)))
 
 (defn app-upload-image [request application]
