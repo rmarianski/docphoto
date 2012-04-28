@@ -497,7 +497,7 @@
            (map? options) options
            :else (throw (IllegalArgumentException.
                          (str "Unknown layout options: " options))))
-    (xhtml ~body)))
+    (html ~body)))
 
 ;; if this gets moved to utils, will need to separate layout stuff too
 ;; due to cyclical imports
@@ -805,7 +805,7 @@
 
 (defview exhibit-view [exhibit]
   {:title (:name exhibit)
-    :js-script "docphoto.removeAnchorTargets();"}
+   :js-script "docphoto.removeAnchorTargets();"}
   [:div#guidelines
    (exhibit-guidelines request exhibit)])
 
