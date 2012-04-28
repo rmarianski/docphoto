@@ -1135,6 +1135,8 @@
                      filename)))
 
 (defn app-upload-image [request application]
+  ;; cache needs to be cleared before/after because of order fetching
+  (cache-clear :images [(:id application)])
   (let [[filename content-type tempfile] ((juxt
                                            :filename :content-type :tempfile)
                                           (:file (:params request)))
@@ -1148,7 +1150,7 @@
                    :exhibit_application__c application-id
                    :order__c order})]
     (persist-all-image-scales tempfile exhibit-slug application-id image-id)
-    (cache-clear :images)
+    (cache-clear :images [application-id])
     (html (render-image request (query-image image-id)))))
 
 (defn image-view [request image scale-type]
@@ -1190,33 +1192,37 @@
 (defn application-update-images-view [request application]
   (if (= :post (:request-method request))
     ;; the :form-params data preserves ordering with multiple keys
-    (let [ordered-form-params (:form-params request)
-          ;; need to check if these are always lists
-          imageids (normalize-form-param (ordered-form-params "imageids"))
-          captions (normalize-form-param (ordered-form-params "captions"))
-          image-update-maps (create-image-update-maps imageids captions)
-          existing-images (query-images (:id application))
-          ;; only allow updates for images that user is allowed to see
-          ;; since it's tied to the application, we just need to make
-          ;; sure that the images are in the existing list
-          existing-imageids-set (set (map :id existing-images))
-          image-update-maps (filter #(existing-imageids-set (:id %))
-                                    image-update-maps)]
-      (if (not-empty image-update-maps)
-        (sf/update-images conn image-update-maps))
-      (let [imageids-to-delete (find-imageids-to-delete image-update-maps existing-images)]
-        (if (not-empty imageids-to-delete)
-          (delete-images (-> application :exhibit__r :slug__c)
-                         (:id application)
-                         imageids-to-delete)))
-      (cache-clear :images)
-      ;; might have to clear :image too ... but we don't actually
-      ;; read any data from there save the mimetype which we don't
-      ;; ever update
-      ;; the image cache is expensive to clear, as it will result in
-      ;; an additional query for each image again
-      (redirect
-       (application-submit-link (:id application))))))
+    (do
+      ;; clear the images cache just to be safe because we are
+      ;; potentially updating/deleting images based on ordering
+      (cache-clear :images [(:id application)])
+      (let [ordered-form-params (:form-params request)
+           ;; need to check if these are always lists
+           imageids (normalize-form-param (ordered-form-params "imageids"))
+           captions (normalize-form-param (ordered-form-params "captions"))
+           image-update-maps (create-image-update-maps imageids captions)
+           existing-images (query-images (:id application))
+           ;; only allow updates for images that user is allowed to see
+           ;; since it's tied to the application, we just need to make
+           ;; sure that the images are in the existing list
+           existing-imageids-set (set (map :id existing-images))
+           image-update-maps (filter #(existing-imageids-set (:id %))
+                                     image-update-maps)]
+       (if (not-empty image-update-maps)
+         (sf/update-images conn image-update-maps))
+       (let [imageids-to-delete (find-imageids-to-delete image-update-maps existing-images)]
+         (if (not-empty imageids-to-delete)
+           (delete-images (-> application :exhibit__r :slug__c)
+                          (:id application)
+                          imageids-to-delete)))
+       (cache-clear :images [(:id application)])
+       ;; might have to clear :image too ... but we don't actually
+       ;; read any data from there save the mimetype which we don't
+       ;; ever update
+       ;; the image cache is expensive to clear, as it will result in
+       ;; an additional query for each image again
+       (redirect
+        (application-submit-link (:id application)))))))
 
 (defn application-submit-view [request application]
   (let [app-id (:id application)
