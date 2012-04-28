@@ -8,7 +8,7 @@
                                           include-js javascript-tag)]
         [ring.adapter.jetty-servlet :only (run-jetty)]
         [ring.util.response :only (redirect)]
-        [clojure.core.incubator :only (-?> -?>>)]
+        [clojure.core.incubator :only (-?> -?>> dissoc-in)]
         [clojure.java.io :only (copy file input-stream output-stream)]
         [docphoto.utils :only (defn-debug-memo md5 multipart-form?
                                 send-message onpost when-logged-in dbg
@@ -96,6 +96,14 @@
 
 (defn cache-under [cache-key] (fn [args] [cache-key args]))
 
+(defn find-cache []
+  (when *request*
+    (or (session/get-cache *request*) {})))
+
+(defn cache-clear [& cache-keys]
+  (when-let [cache (find-cache)]
+    (session/set-cache *request* (dissoc-in cache cache-keys))))
+
 (defmacro defquery
   "Generate a call to sf/query returning multiple results."
   [fn-name args cache-get cache-set query-params & [alter-query-fn]]
@@ -104,10 +112,9 @@
     `(defn ~fn-name ~args
        ;; if we have a *request* bound we can access cache
        ;; functionality
-       (if *request*
-         (let [cache# (or (session/get-cache *request*) {})]
-           (or (~cache-get cache# ~args)
-               (~cache-set cache# ~args ~sfquery)))
+       (if-let [cache# (find-cache)]
+         (or (~cache-get cache# ~args)
+             (~cache-set cache# ~args ~sfquery))
          ~sfquery))))
 
 (defmacro defquery-single
@@ -977,6 +984,7 @@
                        (merge params
                               {:contact__c (:id (session/get-user request))
                                :exhibit__c (:id exhibit)}))]
+            (cache-clear :applications)
             (redirect (application-upload-link appid)))))
       (render-form params {})))))
 
@@ -1029,6 +1037,10 @@
                                    (normalize-empty-value :website__c)
                                    (normalize-empty-value :multimedia_Link__c))]
             (sf/update-application conn app-update-map)
+            (cache-clear :application [app-id])
+            ;; title could have changed too so it's safer to clear
+            ;; applications list also
+            (cache-clear :applications)
             (when-let [cv (:cv params)]
               (let [tempfile (:tempfile cv)
                     filename (persist/safe-filename (:filename cv))
@@ -1136,6 +1148,7 @@
                    :exhibit_application__c application-id
                    :order__c order})]
     (persist-all-image-scales tempfile exhibit-slug application-id image-id)
+    (cache-clear :images)
     (html (render-image request (query-image image-id)))))
 
 (defn image-view [request image scale-type]
@@ -1196,6 +1209,12 @@
           (delete-images (-> application :exhibit__r :slug__c)
                          (:id application)
                          imageids-to-delete)))
+      (cache-clear :images)
+      ;; might have to clear :image too ... but we don't actually
+      ;; read any data from there save the mimetype which we don't
+      ;; ever update
+      ;; the image cache is expensive to clear, as it will result in
+      ;; an additional query for each image again
       (redirect
        (application-submit-link (:id application))))))
 
@@ -1211,7 +1230,12 @@
      (if errors
        (redirect (application-submit-link app-id))
        (and (sf/update-application-status conn app-id "Final")
-            (redirect (application-success-link app-id))))
+            (do
+              (cache-clear :application [app-id])
+              ;; in case they view a page that displays the list
+              ;; with final/draft status
+              (cache-clear :applications)
+              (redirect (application-success-link app-id)))))
      (layout
       request
       {:title "Review submission"}
@@ -1220,7 +1244,10 @@
        [:p (i18n/translate :review-application-before-submitting)]
        [:fieldset
         [:legend (i18n/translate :contact-info)]
-        (let [user (query-user-by-id (:contact__c application))]
+        (let [curuser (session/get-user request)
+              user (if (= (:id curuser) (:contact__c application))
+                     curuser
+                     (query-user-by-id (:contact__c application)))]
           (list
            [:h2 (:name user)]
            [:p (:email user)]
@@ -1492,13 +1519,18 @@
         final? (= (:submit params) "Submit")
         updated-params (merge updated-params
                               {:status__c (if final? "Final" "Draft")})
-        application-id (:id application)
-        ]
+        application-id (:id application)]
     (if-let [review (query-review user-id application-id)]
-      (sf/update-review conn (merge review updated-params))
+      (do
+        (sf/update-review conn (merge review updated-params))
+        (cache-clear :review [user-id application-id]))
       (sf/create-review conn (assoc updated-params
                                :exhibit_Application__c application-id
                                :contact__c user-id)))
+    ; clear all these caches just to be safe
+    (cache-clear :review-requests)
+    (cache-clear :review-request-for-user)
+    (cache-clear :reviews-final)
     (layout request "Thank you for your review"
             [:div
              [:p "Thank you for your review. "
