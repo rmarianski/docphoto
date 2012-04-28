@@ -3,6 +3,7 @@
         [compojure.handler :only (api)]
         [compojure.response :only (render)]
         [ring.middleware.multipart-params :only (wrap-multipart-params)]
+        [ring.middleware.file-info :only (wrap-file-info)]
         [hiccup.core :only (html)]
         [hiccup.page-helpers :only (xhtml include-css
                                           include-js javascript-tag)]
@@ -1385,15 +1386,16 @@
 (defmacro prepare-image-routes
   "Fetch image, user, verify user can view application associated with image. Expects 'image-id' to be in scope. Injects 'user' and 'image'."
   [& image-routes]
-  `(fn [~'request]
-     (if-let [~'image (query-image ~'image-id)]
-       (when-logged-in
-        (let [~'application (:exhibit_application__r ~'image)]
-          (if (or
-               (can-view-application? ~'user ~'application)
-               (can-review-application? ~'user ~'application))
-            (routing ~'request ~@image-routes)
-            (forbidden ~'request)))))))
+  `(wrap-file-info
+    (fn [~'request]
+      (if-let [~'image (query-image ~'image-id)]
+        (when-logged-in
+         (let [~'application (:exhibit_application__r ~'image)]
+           (if (or
+                (can-view-application? ~'user ~'application)
+                (can-review-application? ~'user ~'application))
+             (routing ~'request ~@image-routes)
+             (forbidden ~'request))))))))
 
 (defn user-applications-view [request username]
   (when-logged-in
