@@ -30,7 +30,9 @@
   "generate a simple session fn setter"
   [fn-name attribute-name]
   `(defsession ~fn-name [attribute-value#]
-     (.setAttribute ~'session ~attribute-name attribute-value#)))
+     (do
+       (.setAttribute ~'session ~attribute-name attribute-value#)
+       attribute-value#)))
 
 (defsession-getter get-user "user")
 (defsession-setter save-user "user")
@@ -52,3 +54,6 @@
 
 (defsession-getter get-language "language")
 (defsession-setter save-language "language")
+
+(defsession-getter get-cache "cache")
+(defsession-setter set-cache "cache")

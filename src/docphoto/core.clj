@@ -38,6 +38,8 @@
 ;; global salesforce connection
 (defonce conn nil)
 
+(def ^:dynamic *request* nil)
+
 (defn connect->salesforce
   "connect global connection object to salesforce"
   [username password token]
@@ -77,95 +79,141 @@
   [review-request]
   (update-in review-request [:exhibit_Application__r] sf/sobject->map))
 
+(def no-cache-get (constantly nil))
+(defn no-cache-set [cache args query-results] query-results)
+
+(defmacro cachinate [cache-key-fn & body]
+  `(let [cache-key-fn# ~cache-key-fn
+         ~'cache-get (fn [cache# args#]
+                       (get-in cache# (cache-key-fn# args#)))
+         ~'cache-set (fn [cache# args# result#]
+                       (do
+                         (session/set-cache
+                          *request*
+                          (assoc-in cache# (cache-key-fn# args#) result#))
+                         result#))]
+     ~@body))
+
+(defn cache-under [cache-key] (fn [args] [cache-key args]))
+(defn cache-first-under [cache-key] (fn [args] [cache-key (first args)]))
+
 (defmacro defquery
   "Generate a call to sf/query returning multiple results."
-  [fn-name args query-params & [alter-query-fn]]
-  (let [alter-query-fn (or (eval alter-query-fn) identity)]
-   `(defn-debug-memo ~fn-name ~args
-      ~(alter-query-fn `(sf/query ~'conn ~@query-params)))))
+  [fn-name args cache-get cache-set query-params & [alter-query-fn]]
+  (let [alter-query-fn (eval (or alter-query-fn identity))
+        sfquery (alter-query-fn `(sf/query ~'conn ~@query-params))]
+    `(defn ~fn-name ~args
+       ;; if we have a *request* bound we can access cache
+       ;; functionality
+       (if *request*
+         (let [cache# (or (session/get-cache *request*) {})]
+           (or (~cache-get cache# ~args)
+               (~cache-set cache# ~args ~sfquery)))
+         ~sfquery))))
 
 (defmacro defquery-single
   "Generate a call to sf/query returning a single element."
-  [fn-name args query-params]
-  `(defquery ~fn-name ~args ~query-params
+  [fn-name args cache-get cache-set query-params]
+  `(defquery ~fn-name ~args
+     ~cache-get ~cache-set
+     ~query-params
      ~(fn [form] `(first ~form))))
 
 ;; the password passed in should be the hash
 (defquery-single query-user-by-credentials [username password]
+  no-cache-get no-cache-set
   (contact sf/user-fields [[username__c = username]
                            [password__c = password]]))
 
 ;; the password passed in should be the hash
 (defquery-single query-user-by-credentials-with-userid [user-id password]
+  no-cache-get no-cache-set
   (contact sf/user-fields [[id = user-id]
                            [password__c = password]]))
 
 (defquery-single query-user-by-email [email]
+  no-cache-get no-cache-set
   (contact [id] [[email = email]]))
 
 (defquery-single query-user-by-id [id]
+  no-cache-get no-cache-set
   (contact sf/user-fields [[id = id]]))
 
 (defquery-single query-user-by-username [username]
+  no-cache-get no-cache-set
   (contact [id] [[userName__c = username]]))
 
 (defquery query-exhibits []
+  no-cache-get no-cache-set
   (exhibit__c [id name slug__c application_start_date__c description__c]
               [[closed__c = false noquote]]
               :append "order by application_start_date__c asc"))
 
 (defquery-single query-latest-exhibit []
+  no-cache-get no-cache-set
   (exhibit__c [id name slug__c application_start_date__c description__c]
               [[closed__c = false noquote]]
               :append "order by application_start_date__c desc limit 1"))
 
-(defquery query-applications [userid]
-  (exhibit_application__c
-   [id title__c exhibit__r.name exhibit__r.slug__c
-    createdDate lastModifiedDate
-    submission_Status__c referredby__c]
-   [[exhibit_application__c.exhibit__r.closed__c = false noquote]
-    [exhibit_application__c.contact__r.id = userid]]
-   :append "order by lastModifiedDate desc")
-  (fn [form] `(map tweak-application-result ~form)))
+(cachinate (cache-first-under :applications)
+           (defquery query-applications [userid]
+             cache-get cache-set
+             (exhibit_application__c
+              [id title__c exhibit__r.name exhibit__r.slug__c
+               createdDate lastModifiedDate
+               submission_Status__c referredby__c]
+              [[exhibit_application__c.exhibit__r.closed__c = false noquote]
+               [exhibit_application__c.contact__r.id = userid]]
+              :append "order by lastModifiedDate desc")
+             (fn [form] `(map tweak-application-result ~form))))
 
 ;; used for cleaning up local disk, so only app ids are returned
 (defquery query-applications-for-exhibit [exhibit-slug]
+  no-cache-get no-cache-set
   (exhibit_application__c
    [id]
    [[exhibit__r.slug__c = exhibit-slug]]))
 
-(defquery-single query-exhibit [exhibit-slug]
-  (exhibit__c [id name description__c slug__c]
-              [[slug__c = exhibit-slug]]))
+(cachinate (cache-first-under :exhibit)
+           (defquery-single query-exhibit [exhibit-slug]
+             cache-get cache-set
+             (exhibit__c [id name description__c slug__c]
+                         [[slug__c = exhibit-slug]])))
 
-(defquery query-application
-  [app-id]
-  (exhibit_application__c
-   [id biography__c title__c website__c statementRich__c contact__c
-    submission_Status__c exhibit__r.name exhibit__r.slug__c
-    narrative__c multimedia_Link__c cover_Page__c
-    focus_Country_Single_Select__c focus_Region__c
-    referredby__c]
-   [[id = app-id]])
-  (fn [form] `(-?> ~form first tweak-application-result)))
+(cachinate (cache-first-under :application)
+           (defquery query-application
+             [app-id]
+             cache-get cache-set
+             (exhibit_application__c
+              [id biography__c title__c website__c statementRich__c contact__c
+               submission_Status__c exhibit__r.name exhibit__r.slug__c
+               narrative__c multimedia_Link__c cover_Page__c
+               focus_Country_Single_Select__c focus_Region__c
+               referredby__c]
+              [[id = app-id]])
+             (fn [form] `(-?> ~form first tweak-application-result))))
 
-(defquery query-image [image-id]
-  (image__c
-   [id caption__c filename__c mime_type__c order__c
-    exhibit_application__r.id
-    exhibit_application__r.exhibit__r.slug__c
-    exhibit_application__r.contact__c]
-   [[id = image-id]])
-  (fn [form] `(-?> ~form first tweak-image-result)))
+(cachinate (cache-first-under :image)
+           (defquery query-image [image-id]
+             cache-get cache-set
+             (image__c
+              [id caption__c filename__c mime_type__c order__c
+               exhibit_application__r.id
+               exhibit_application__r.exhibit__r.slug__c
+               exhibit_application__r.contact__c]
+              [[id = image-id]])
+             (fn [form] `(-?> ~form first tweak-image-result))))
 
-(defquery query-images [application-id]
-  (image__c [id caption__c order__c filename__c]
-            [[exhibit_application__c = application-id]]
-            :append "order by order__c"))
+(cachinate (cache-first-under :images)
+           (defquery query-images [application-id]
+             cache-get cache-set
+             (image__c [id caption__c order__c filename__c]
+                       [[exhibit_application__c = application-id]]
+                       :append "order by order__c")))
 
 ;; filter passed in images to those that current user can view
 (defquery query-allowed-images [user image-ids]
+  no-cache-get no-cache-set
   (image__c [id exhibit_application__r.contact__c]
             [[id IN (str "("
                          (string/join ", "
@@ -180,38 +228,48 @@
                                  (tweak-image-result %)))))
            ~form))))
 
-(defquery-single query-review-request [review-request-id]
-  (exhibit_review_request__c
-   [id exhibit_application__c reviewer__c review_stage__c]
-   [[id = review-request-id]]))
+(cachinate (cache-first-under :review-request)
+           (defquery-single query-review-request [review-request-id]
+             cache-get cache-set
+             (exhibit_review_request__c
+              [id exhibit_application__c reviewer__c review_stage__c]
+              [[id = review-request-id]])))
 
-(defquery query-review-requests [user-id application-id]
-  (exhibit_review_request__c
-   [id exhibit_application__c reviewer__c review_stage__c]
-   [[reviewer__c = user-id]
-    [exhibit_application__c = application-id]]))
+(cachinate (cache-under :review-requests)
+           (defquery query-review-requests [user-id application-id]
+             cache-get cache-set
+             (exhibit_review_request__c
+              [id exhibit_application__c reviewer__c review_stage__c]
+              [[reviewer__c = user-id]
+               [exhibit_application__c = application-id]])))
 
-(defquery query-review-requests-for-user [user-id]
-  (exhibit_review_request__c
-   [id exhibit_application__c reviewer__c review_stage__c
-    exhibit_application__r.title__c]
-   [[reviewer__c = user-id]]
-   :append "order by createdDate")
-  (fn [form] `(map tweak-review-request-result ~form)))
+(cachinate (cache-first-under :review-request-for-user)
+           (defquery query-review-requests-for-user [user-id]
+             cache-get cache-set
+             (exhibit_review_request__c
+              [id exhibit_application__c reviewer__c review_stage__c
+               exhibit_application__r.title__c]
+              [[reviewer__c = user-id]]
+              :append "order by createdDate")
+             (fn [form] `(map tweak-review-request-result ~form))))
 
-(defquery query-reviews-for-user-that-are-final [user-id]
-  (exhibit_application_review__c
-   [id exhibit_application__c contact__c
-    comments__c rating__c review_stage__c status__c]
-   [[contact__c = user-id]
-    [status__c = "Final"]]))
+(cachinate (cache-first-under :reviews-final)
+           (defquery query-reviews-for-user-that-are-final [user-id]
+             cache-get cache-set
+             (exhibit_application_review__c
+              [id exhibit_application__c contact__c
+               comments__c rating__c review_stage__c status__c]
+              [[contact__c = user-id]
+               [status__c = "Final"]])))
 
-(defquery-single query-review [user-id application-id]
-  (exhibit_application_review__c
-   [id exhibit_application__c contact__c
-    comments__c rating__c review_stage__c status__c]
-   [[contact__c = user-id]
-    [exhibit_application__c = application-id]]))
+(cachinate (cache-under :review)
+           (defquery-single query-review [user-id application-id]
+             cache-get cache-set
+             (exhibit_application_review__c
+              [id exhibit_application__c contact__c
+               comments__c rating__c review_stage__c status__c]
+              [[contact__c = user-id]
+               [exhibit_application__c = application-id]])))
 
 ;; picklist values for application
 (defn-debug-memo picklist-application-field-metadata [field-name]
@@ -1681,10 +1739,17 @@
     (i18n/with-language (session/get-language request)
       (handler request))))
 
+(defn bind-request [handler]
+  (fn [request]
+    ;; bind request so that query functions have access to session
+    (binding [*request* request]
+      (handler request))))
+
 (def app
   (->
    main-routes
    bind-language
+   bind-request
    wrap-stacktrace
    session/wrap-servlet-session
    wrap-multipart-convert-params
