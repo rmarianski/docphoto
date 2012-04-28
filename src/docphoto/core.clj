@@ -95,7 +95,6 @@
      ~@body))
 
 (defn cache-under [cache-key] (fn [args] [cache-key args]))
-(defn cache-first-under [cache-key] (fn [args] [cache-key (first args)]))
 
 (defmacro defquery
   "Generate a call to sf/query returning multiple results."
@@ -155,7 +154,7 @@
               [[closed__c = false noquote]]
               :append "order by application_start_date__c desc limit 1"))
 
-(cachinate (cache-first-under :applications)
+(cachinate (cache-under :applications)
            (defquery query-applications [userid]
              cache-get cache-set
              (exhibit_application__c
@@ -174,13 +173,13 @@
    [id]
    [[exhibit__r.slug__c = exhibit-slug]]))
 
-(cachinate (cache-first-under :exhibit)
+(cachinate (cache-under :exhibit)
            (defquery-single query-exhibit [exhibit-slug]
              cache-get cache-set
              (exhibit__c [id name description__c slug__c]
                          [[slug__c = exhibit-slug]])))
 
-(cachinate (cache-first-under :application)
+(cachinate (cache-under :application)
            (defquery query-application
              [app-id]
              cache-get cache-set
@@ -193,7 +192,7 @@
               [[id = app-id]])
              (fn [form] `(-?> ~form first tweak-application-result))))
 
-(cachinate (cache-first-under :image)
+(cachinate (cache-under :image)
            (defquery query-image [image-id]
              cache-get cache-set
              (image__c
@@ -204,7 +203,7 @@
               [[id = image-id]])
              (fn [form] `(-?> ~form first tweak-image-result))))
 
-(cachinate (cache-first-under :images)
+(cachinate (cache-under :images)
            (defquery query-images [application-id]
              cache-get cache-set
              (image__c [id caption__c order__c filename__c]
@@ -228,7 +227,7 @@
                                  (tweak-image-result %)))))
            ~form))))
 
-(cachinate (cache-first-under :review-request)
+(cachinate (cache-under :review-request)
            (defquery-single query-review-request [review-request-id]
              cache-get cache-set
              (exhibit_review_request__c
@@ -243,7 +242,7 @@
               [[reviewer__c = user-id]
                [exhibit_application__c = application-id]])))
 
-(cachinate (cache-first-under :review-request-for-user)
+(cachinate (cache-under :review-request-for-user)
            (defquery query-review-requests-for-user [user-id]
              cache-get cache-set
              (exhibit_review_request__c
@@ -253,7 +252,7 @@
               :append "order by createdDate")
              (fn [form] `(map tweak-review-request-result ~form))))
 
-(cachinate (cache-first-under :reviews-final)
+(cachinate (cache-under :reviews-final)
            (defquery query-reviews-for-user-that-are-final [user-id]
              cache-get cache-set
              (exhibit_application_review__c
