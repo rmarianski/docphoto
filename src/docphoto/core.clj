@@ -487,8 +487,9 @@
                      (str (heading-apply-text request) ": " (i18n/translate :apply-online)))]]]
      [:div#page
       [:div#content body]
-      [:div#sidebar
-       (sidebar-snippet request)]]
+      (when (:display-sidebar options true)
+        [:div#sidebar
+         (sidebar-snippet request)])]
      [:div#footer
       [:p "&copy; 2012 Open Society Foundations. All rights reserved."]]]
     (theme-js (:include-upload-js options))
@@ -1784,11 +1785,25 @@
     (binding [*request* request]
       (handler request))))
 
+(defview rate-limit-exceeded-view []
+  {:title "Rate limit exceeded" :display-sidebar false}
+  [:div
+   [:p "We are currently experiencing heavy traffic. Please wait a few minutes, and check back later. Note that the deadline has been extended to May 2."]])
+
+(defn wrap-rate-limit-exceeded [handler]
+  (fn [request]
+    (try (handler request)
+         (catch Exception e
+           (if (sf/rate-limit-exceeded? e)
+             (rate-limit-exceeded-view request)
+             (throw e))))))
+
 (def app
   (->
    main-routes
    bind-language
    bind-request
+   wrap-rate-limit-exceeded
    wrap-stacktrace
    session/wrap-servlet-session
    wrap-multipart-convert-params

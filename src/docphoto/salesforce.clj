@@ -44,7 +44,18 @@
   [^Exception e]
   (and e (if (instance? UnexpectedErrorFault e)
            e
-           (unexpected-error-fault-cause (.getCause e)))))
+           (recur (.getCause e)))))
+
+(defn error-code
+  "Given a salesforce error fault, return the error code as a string"
+  [^UnexpectedErrorFault e]
+  (.getLocalPart (.getFaultCode e)))
+
+(defn rate-limit-exceeded?
+  "Given an exception, return whether it is a rate limit exception"
+  [e]
+  (when-let [sf-fault (unexpected-error-fault-cause e)]
+    (= (error-code sf-fault) "REQUEST_LIMIT_EXCEEDED")))
 
 ;; automatically reconnect on session invalidation
 ;; salesforce connection must be first binding
@@ -63,8 +74,7 @@
                body)
             (catch Exception e#
               (if-let [unexpected-error-fault# (unexpected-error-fault-cause e#)]
-                (if (= "INVALID_SESSION_ID"
-                       (.getLocalPart (.getFaultCode unexpected-error-fault#)))
+                (if (= "INVALID_SESSION_ID" (error-code unexpected-error-fault#))
                   (let [cfg# (.getConfig conn#)
                         login-result# (.login conn#
                                               (.getUsername cfg#)
