@@ -163,6 +163,7 @@ To reset your password, please click on the following link:
    :upload "Upload" "загружать"
 
    :upload-image-limit "There is a 5 megabyte limit on images." "Существует 5 мегабайт ограничения на изображениях."
+   :captions-limited "Captions are limited to 255 characters." "Подписи превышать 255 символов."
    :upload-image-reorder
    "The order of your images is an important consideration. Drag them to re-order."
    "Порядок изображений является важным фактором. Перетащите их на повторный заказ."
