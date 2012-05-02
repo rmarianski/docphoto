@@ -20,3 +20,8 @@ plupload.Uploader.prototype.refresh = function() {};
   * @type {number}
  */
 plupload.FILE_EXTENSION_ERROR;
+
+/**
+  * @type {number}
+ */
+plupload.HTTP_ERROR;

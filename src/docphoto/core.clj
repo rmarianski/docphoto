@@ -1140,21 +1140,23 @@
 (defn app-upload-image [request application]
   ;; cache needs to be cleared before/after because of order fetching
   (cache-clear :images [(:id application)])
-  (let [[filename content-type tempfile] ((juxt
-                                           :filename :content-type :tempfile)
-                                          (:file (:params request)))
-        exhibit-slug (:slug__c (:exhibit__r application))
-        application-id (:id application)
-        order (-> (query-images application-id)
-                  count inc double)
-        image-id (create-image
-                  {:filename__c (normalize-image-filename filename)
-                   :mime_type__c content-type
-                   :exhibit_application__c application-id
-                   :order__c order})]
-    (persist-all-image-scales tempfile exhibit-slug application-id image-id)
-    (cache-clear :images [application-id])
-    (html (render-image request (query-image image-id)))))
+  (let [{:keys [filename content-type tempfile]} (:file (:params request))]
+    (if (some empty? [filename content-type])
+      {:status 400
+       :headers {}
+       :body "Invalid file"}
+      (let [exhibit-slug (:slug__c (:exhibit__r application))
+            application-id (:id application)
+            order (-> (query-images application-id)
+                      count inc double)
+            image-id (create-image
+                      {:filename__c (normalize-image-filename filename)
+                       :mime_type__c content-type
+                       :exhibit_application__c application-id
+                       :order__c order})]
+        (persist-all-image-scales tempfile exhibit-slug application-id image-id)
+        (cache-clear :images [application-id])
+        (html (render-image request (query-image image-id)))))))
 
 (defn image-view [request image scale-type]
   (let [f (persist/image-file-path

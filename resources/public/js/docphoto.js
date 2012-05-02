@@ -194,10 +194,14 @@ docphoto.Uploader.prototype.onFilesAdded = function(up, files) {
  * @param {string} string
  */
 docphoto.Uploader.prototype.updateFilePercentage = function(file, string) {
-  if (file.loaded) {
+  if (file.id) {
     var node = goog.dom.getElement(file.id);
-    var percent = goog.dom.getElementByClass('percent', node);
-    percent.innerHTML = string;
+    if (goog.isDefAndNotNull(node)) {
+      var percent = goog.dom.getElementByClass('percent', node);
+      if (goog.isDefAndNotNull(percent)) {
+        percent.innerHTML = string;
+      }
+    }
   }
 };
 
@@ -276,6 +280,12 @@ docphoto.Uploader.prototype.onUploadError = function(up, error) {
     var errorNode = goog.dom.createDom(
       goog.dom.TagName.P, undefined, errMsg);
     goog.dom.appendChild(this.filesList, errorNode);
+  } else if (error.code === plupload.HTTP_ERROR) {
+    var file = error.file;
+    if (goog.isDefAndNotNull(file)) {
+      this.updateFilePercentage(file, "Error uploading file.");
+    }
+    this.fileUploaded_();
   } else {
     var file = error.file;
     var msg = 'Error: ' + error.code + ' - ' + error.message;
