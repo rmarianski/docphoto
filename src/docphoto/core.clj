@@ -1277,7 +1277,7 @@
         [:dl
          (let [display-if-set (fn [k title]
                                 (let [x (k application)]
-                                  (when-not (empty? x)
+                                  (when (or (not-empty x) (= k :cv))
                                     (list
                                      [:dt (i18n/translate title)]
                                      [:dd
