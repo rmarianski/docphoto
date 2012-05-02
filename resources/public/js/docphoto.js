@@ -44,6 +44,7 @@ goog.require('goog.Uri');
  */
 docphoto.Uploader = function(containerId, pickFilesId, uploadId,
                       filesListId, imagesId, imagesDescription, options) {
+  this.extensions = "jpg,gif,png";
   var defaultOptions = {
     'runtimes': 'gears,html5,flash,silverlight,browserplus',
     'browse_button': pickFilesId,
@@ -52,7 +53,7 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
     'flash_swf_url': '/public/js/plupload/js/plupload.flash.swf',
     'silverlight_xap_url': '/public/js/plupload/js/plupload.silverlight.xap',
     'filters': [
-      {'title': "Image files", 'extensions': "jpg,gif,png"}
+      {'title': "Image files", 'extensions': this.extensions}
     ]
   };
   var uploadOptions = {};
@@ -174,9 +175,12 @@ docphoto.Uploader.prototype.onFilesAdded = function(up, files) {
   var filesList = this.filesList;
   var n = 0;
   goog.array.forEach(files, function(file) {
-    var name = goog.dom.createDom('span', undefined, file.name);
-    var percent = goog.dom.createDom('span', {'class': 'percent'}, '0%');
-    var node = goog.dom.createDom('p', {'id': file.id}, name, ' - ', percent);
+    var name = goog.dom.createDom(
+      goog.dom.TagName.SPAN, undefined, file.name);
+    var percent = goog.dom.createDom(
+      goog.dom.TagName.SPAN, {'class': 'percent'}, '0%');
+    var node = goog.dom.createDom(
+      goog.dom.TagName.P, {'id': file.id}, name, ' - ', percent);
     goog.dom.appendChild(filesList, node);
     n += 1;
   });
@@ -265,15 +269,25 @@ docphoto.Uploader.prototype.onUploadDone = function(up, file, responseObject) {
  * @param {Object} error
  */
 docphoto.Uploader.prototype.onUploadError = function(up, error) {
-  var file = error.file;
-  var msg = 'Error: ' + error.code + ' - ' + error.message;
-  if (goog.isDefAndNotNull(file)) {
-    this.updateFilePercentage(file, msg);
+  if (error.code === plupload.FILE_EXTENSION_ERROR) {
+    // when a file with an invalid extension is added
+    var errMsg = ('Not adding: ' + error.file.name +
+                  '. File must end in: ' + this.extensions);
+    var errorNode = goog.dom.createDom(
+      goog.dom.TagName.P, undefined, errMsg);
+    goog.dom.appendChild(this.filesList, errorNode);
   } else {
-    var node = goog.dom.createDom('p', undefined, msg);
-    goog.dom.appendChild(this.filesList, node);
+    var file = error.file;
+    var msg = 'Error: ' + error.code + ' - ' + error.message;
+    if (goog.isDefAndNotNull(file)) {
+      this.updateFilePercentage(file, msg);
+    } else {
+      var node = goog.dom.createDom(
+        goog.dom.TagName.P, undefined, msg);
+      goog.dom.appendChild(this.filesList, node);
+    }
+    this.fileUploaded_();
   }
-  this.fileUploaded_();
 };
 
 /**

@@ -15,3 +15,8 @@ plupload.Uploader.prototype.bind = function(eventname, f) {};
 plupload.Uploader.prototype.init = function() {};
 plupload.Uploader.prototype.start = function() {};
 plupload.Uploader.prototype.refresh = function() {};
+
+/**
+  * @type {number}
+ */
+plupload.FILE_EXTENSION_ERROR;
