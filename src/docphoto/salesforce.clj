@@ -202,10 +202,18 @@
       s
       (.substring s 0 n))))
 
+(defn limit-map-field [m k n]
+  (if (contains? m k)
+    (update-in m [k] limit-string n)
+    m))
+
 (defn prepare-contact-fields [contact-data-map]
   (-> contact-data-map
-      (update-in [:mailingState] limit-string 20)
-      (update-in [:mailingPostalCode] limit-string 20)))
+      (limit-map-field :mailingState 20)
+      (limit-map-field :mailingPostalCode 20)))
+
+(defn prepare-application-fields [app]
+  (limit-map-field app :multimedia_Link__c 255))
 
 (defcreate create-contact add-owner [contact-data-map]
   (Contact.)
@@ -216,12 +224,13 @@
 
 (defcreate create-application add-owner [application-map]
   (Exhibit_Application__c.)
-  (select-keys
-   application-map
-   [:statementRich__c :title__c :biography__c :website__c :narrative__c
-    :contact__c :exhibit__c :submission_Status__c :referredby__c
-    :multimedia_Link__c :cover_Page__c
-    :focus_Region__c :focus_Country_Single_Select__c]))
+  (prepare-application-fields
+   (select-keys
+    application-map
+    [:statementRich__c :title__c :biography__c :website__c :narrative__c
+     :contact__c :exhibit__c :submission_Status__c :referredby__c
+     :multimedia_Link__c :cover_Page__c
+     :focus_Region__c :focus_Country_Single_Select__c])))
 
 (defcreate create-image no-owner [image-map]
   (Image__c.)
@@ -263,12 +272,13 @@
             (select-keys user-map (conj contact-fields :id)))]))
 
 (defn update-application [conn application-map]
-  (update conn Exhibit_Application__c [application-map]))
+  (update conn Exhibit_Application__c
+          [(prepare-application-fields application-map)]))
 
 (defn normalize-image-map
   "update image map to allow for salesforce update, ie ensure length of captions is valid"
   [image-map]
-  (update-in image-map [:caption__c] limit-string 255))
+  (limit-map-field image-map :caption__c 255))
 
 (defn update-images [conn image-maps]
   (update conn Image__c
