@@ -1796,7 +1796,7 @@
     (try (handler request)
          (catch Exception e
            (if (sf/rate-limit-exceeded? e)
-             (rate-limit-exceeded-view request)
+             (render (rate-limit-exceeded-view request) request)
              (throw e))))))
 
 (def app
