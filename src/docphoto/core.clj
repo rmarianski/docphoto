@@ -193,8 +193,8 @@
              cache-get cache-set
              (exhibit_application__c
               [id biography__c title__c website__c statementRich__c contact__c
-               submission_Status__c exhibit__r.name exhibit__r.slug__c
-               narrative__c multimedia_Link__c cover_Page__c
+               submission_Status__c narrative__c multimedia_Link__c cover_Page__c
+               exhibit__r.name exhibit__r.slug__c exhibit__r.closed__c
                focus_Country_Single_Select__c focus_Region__c
                referredby__c]
               [[id = app-id]])
@@ -945,50 +945,60 @@
        [:pg-project-title :pg-project-summary
         :pg-proposal-narrative :pg-personal-statement]))
 
+(defn exhibit-closed? [exhibit] (:closed__c exhibit))
+
+(defview exhibit-closed-view [exhibit]
+  {:title (str (:name exhibit) " Closed")}
+  [:div
+   [:p "We are no longer accepting applications for " (:name exhibit) "."]
+   [:p "If you attempted to submit your application before or on the May 2nd deadline and had trouble with the online application system, please contact Felix Endara at " (ph/link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org") "."]])
+
 (defn exhibit-apply-view [request exhibit]
   (when-logged-in
-   (let [params (:params request)
-         fields (exhibit-apply-fields exhibit)
-         render-form (fn [params errors]
-                       (let [field (form/field-render-fn params errors)]
-                         (layout
-                          request
-                          {:title (str "Apply to " (:name exhibit))
-                           :include-editor-css true
-                           :js-script "docphoto.editor.triggerEditors();"}
-                          [:div
-                           [:form.uniForm {:method :post :action (:uri request)
-                                           :enctype "multipart/form-data"}
-                            [:h2 (str (i18n/translate :apply-to) (:name exhibit))]
-                            [:fieldset
-                             [:legend "Apply"]
-                             (letfn [(render-field [field-stanza]
-                                       (if-let [customfn (:custom field-stanza)]
-                                         (customfn request field params errors)
-                                         (if-let [fieldspec (:field field-stanza)]
-                                           (apply field fieldspec))))]
-                               (map render-field fields))]
-                            [:input {:type :submit :value (i18n/translate :proceed-to-upload-images)}]]])))]
-     (onpost
-      (let [validate (apply
-                      decline/validations
-                      (keep (fn [fieldspec]
-                              (let [{:keys [field validator]} fieldspec
-                                    {:keys [fn msg]} validator
-                                    [_ _ name] field]
-                                (when-not (some nil? [fn msg name])
-                                  (decline/validate-val name fn {name msg}))))
-                            fields))]
-        (if-let [errors (validate params)]
-          (render-form params errors)
-          (let [appid (create-application
-                       (:slug__c exhibit)
-                       (merge params
-                              {:contact__c (:id (session/get-user request))
-                               :exhibit__c (:id exhibit)}))]
-            (cache-clear :applications)
-            (redirect (application-upload-link appid)))))
-      (render-form params {})))))
+   (if (exhibit-closed? exhibit)
+     (exhibit-closed-view request exhibit)
+     (let [params (:params request)
+           fields (exhibit-apply-fields exhibit)
+           render-form (fn [params errors]
+                         (let [field (form/field-render-fn params errors)]
+                           (layout
+                            request
+                            {:title (str "Apply to " (:name exhibit))
+                             :include-editor-css true
+                             :js-script "docphoto.editor.triggerEditors();"}
+                            [:div
+                             [:form.uniForm {:method :post :action (:uri request)
+                                             :enctype "multipart/form-data"}
+                              [:h2 (str (i18n/translate :apply-to) (:name exhibit))]
+                              [:fieldset
+                               [:legend "Apply"]
+                               (letfn [(render-field [field-stanza]
+                                         (if-let [customfn (:custom field-stanza)]
+                                           (customfn request field params errors)
+                                           (if-let [fieldspec (:field field-stanza)]
+                                             (apply field fieldspec))))]
+                                 (map render-field fields))]
+                              [:input {:type :submit :value (i18n/translate :proceed-to-upload-images)}]]])))]
+       (onpost
+        (let [validate (apply
+                        decline/validations
+                        (keep (fn [fieldspec]
+                                (let [{:keys [field validator]} fieldspec
+                                      {:keys [fn msg]} validator
+                                      [_ _ name] field]
+                                  (when-not (some nil? [fn msg name])
+                                    (decline/validate-val name fn {name msg}))))
+                              fields))]
+          (if-let [errors (validate params)]
+            (render-form params errors)
+            (let [appid (create-application
+                         (:slug__c exhibit)
+                         (merge params
+                                {:contact__c (:id (session/get-user request))
+                                 :exhibit__c (:id exhibit)}))]
+              (cache-clear :applications)
+              (redirect (application-upload-link appid)))))
+        (render-form params {}))))))
 
 (defn application-update-view [request application]
   (when-logged-in
