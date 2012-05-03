@@ -184,7 +184,7 @@
 (cachinate (cache-under :exhibit)
            (defquery-single query-exhibit [exhibit-slug]
              cache-get cache-set
-             (exhibit__c [id name description__c slug__c]
+             (exhibit__c [id name description__c slug__c closed__c]
                          [[slug__c = exhibit-slug]])))
 
 (cachinate (cache-under :application)
