@@ -31,7 +31,8 @@
             [hiccup.page-helpers :as ph]
             [ring.middleware.stacktrace :as stacktrace]
             [ring.util.codec :as ring-codec]
-            [decline.core :as decline])
+            [decline.core :as decline]
+            [swank.swank])
   (:import [java.io File PipedInputStream PipedOutputStream OutputStream]
            [java.util.zip ZipOutputStream ZipEntry]
            [javax.servlet.http HttpSession]))
@@ -1847,6 +1848,28 @@
   (connect-to-prod)
   (def server (run-server)))
 
+(defn start-swank-server
+  "start a swank server"
+  [& server-options]
+  (apply swank.swank/start-server server-options))
+
+(defn stop-swank-server [] (swank.swank/stop-server))
+
 ;; used for war file init/destroy
-(defn servlet-init [] (connect-to-prod))
-(defn servlet-destroy [] (sf/disconnect conn))
+(defn servlet-init []
+  (println "connecting to salesforce ...")
+  (connect-to-prod)
+  (println "connected")
+  (when cfg/swank-server?
+    (println "starting swank server ...")
+    (start-swank-server :host "localhost" :port 4005 :dont-close true)
+    (println "swank server ready")))
+
+(defn servlet-destroy []
+  (println "disconnecting from sf")
+  (sf/disconnect conn)
+  (println "disconnected!")
+  (when cfg/swank-server?
+    (println "stopping swank server")
+    (stop-swank-server)
+    (println "swank server stopped")))

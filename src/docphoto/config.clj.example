@@ -31,3 +31,6 @@
 ;; where image will be saved
 ;; override for production deployments
 (def base-storage-path nil)
+
+;; whether to start a swank server on servlet init
+(def swank-server? false)
