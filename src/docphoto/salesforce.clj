@@ -278,7 +278,7 @@
 (defn normalize-image-map
   "update image map to allow for salesforce update, ie ensure length of captions is valid"
   [image-map]
-  (limit-map-field image-map :caption__c 255))
+  (limit-map-field image-map :caption__c 1500))
 
 (defn update-images [conn image-maps]
   (update conn Image__c
