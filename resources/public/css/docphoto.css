@@ -273,6 +273,12 @@ a#upload:hover {
 #review-images {
     height: 550px;
 }
+#review-images .galleria-container {
+    background-color: #E8F3FC;
+}
+#review-images .galleria-info-link {
+    display: none;
+}
 
 #login-notes p {
     margin: 1em 0;
