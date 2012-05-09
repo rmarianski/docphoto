@@ -494,6 +494,10 @@
      [:div#footer
       [:p "&copy; 2012 Open Society Foundations. All rights reserved."]]]
     (theme-js (:include-upload-js options))
+    (when (:review-js options)
+      (include-js
+       "http://ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.min.js"
+       "/public/js/galleria-1.2.7.min.js"))
     (if-let [js (:js-script options)]
       (javascript-tag js))]))
 
@@ -1498,46 +1502,55 @@
              :description "Your comments are important, and we pay particular attention to your feedback. In some instances, your comments are more valuable than the average rating."}]
     :validator {:fn not-empty :msg :required}}
    {:field [:hidden {} :review_Stage__c {}]}]
-  (layout request "Review"
-          [:div#review
-           (let [images (query-images (:id application))
-                 fields (application-review-fields application)]
-             [:div
-              [:h2 "Application Responses"]
-              [:dl
-               (for [field fields]
-                 (let [{[_ _ field-key {title :label}] :field} field]
-                   (list
-                    [:dt (i18n/translate title)]
-                    [:dd (application field-key)])))
-               [:dt "CV"]
-               [:dd [:a {:href (cv-link (:id application))}
-                     (i18n/translate :cv-download)]]]
-              [:h2 "Images"]
-              [:div#review-images
-               [:ul
-                (for [image images]
-                  [:li
-                   (ph/image (image-link (:id image) "large" (:filename__c image)))
-                   [:br]
-                   (:caption__c image)])]]
-              [:form.uniForm {:method :post :action (:uri request)}
-               [:h2 "Review"]
-               (render-fields
-                request
-                (merge
-                 {:review_Stage__c (or review-stage "Internal Review")}
-                 (normalize-review (query-review user-id (:id application)))
-                 params)
-                errors)
-               [:p.note
-                "Save will allow you to save your comments and come back to them later."]
-               [:input {:type "submit" :name :submit :value "Save"}]
-               [:p.note
-                "Submit means your review is final. You will have to contact: "
-                (ph/link-to "mailto:docphoto@sorosny.org" "docphoto")
-                " if you need to update your review."]
-               [:input {:type "submit" :name :submit :value "Submit"}]]])])
+  (layout
+   request
+   {:title "Review"
+    :review-js true
+    :js-script
+    (str
+     "Galleria.loadTheme('/public/galleria/galleria.classic.min.js'); "
+     "Galleria.run('#review-images'); "
+     "var caption = $('#featured-caption');"
+     "Galleria.on('image', function(e) { caption.text(e.galleriaData.title); });")}
+   [:div#review
+    (let [images (query-images (:id application))
+          fields (application-review-fields application)]
+      [:div
+       [:h2 "Application Responses"]
+       [:dl
+        (for [field fields]
+          (let [{[_ _ field-key {title :label}] :field} field]
+            (list
+             [:dt (i18n/translate title)]
+             [:dd (application field-key)])))
+        [:dt "CV"]
+        [:dd [:a {:href (cv-link (:id application))}
+              (i18n/translate :cv-download)]]]
+       [:h2 "Images"]
+       [:div#review-images
+        (for [image images]
+          [:a {:href (image-link (:id image) "large" (:filename__c image))}
+           [:img
+            {:src (image-link (:id image) "small" (:filename__c image))
+             :data-title (:caption__c image)}]])]
+       [:p#featured-caption]
+       [:form.uniForm {:method :post :action (:uri request)}
+        [:h2 "Review"]
+        (render-fields
+         request
+         (merge
+          {:review_Stage__c (or review-stage "Internal Review")}
+          (normalize-review (query-review user-id (:id application)))
+          params)
+         errors)
+        [:p.note
+         "Save will allow you to save your comments and come back to them later."]
+        [:input {:type "submit" :name :submit :value "Save"}]
+        [:p.note
+         "Submit means your review is final. You will have to contact: "
+         (ph/link-to "mailto:docphoto@sorosny.org" "docphoto")
+         " if you need to update your review."]
+        [:input {:type "submit" :name :submit :value "Submit"}]]])])
   (let [updated-params (update-in params [:rating__c] #(Double/valueOf ^String %))
         final? (= (:submit params) "Submit")
         updated-params (merge updated-params
