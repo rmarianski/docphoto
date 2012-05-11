@@ -163,6 +163,9 @@
               [[closed__c = false noquote]]
               :append "order by application_start_date__c desc limit 1"))
 
+(def mw20-or-prodgrant2012
+  (comp #{:mw20 :prodgrant2012} keyword :slug__c :exhibit__r))
+
 (cachinate (cache-under :applications)
            (defquery query-applications [userid]
              cache-get cache-set
@@ -170,10 +173,11 @@
               [id title__c exhibit__r.name exhibit__r.slug__c
                createdDate lastModifiedDate
                submission_Status__c referredby__c]
-              [[exhibit_application__c.exhibit__r.closed__c = false noquote]
-               [exhibit_application__c.contact__r.id = userid]]
+              [[exhibit_application__c.contact__r.id = userid]]
               :append "order by lastModifiedDate desc")
-             (fn [form] `(map tweak-application-result ~form))))
+             (fn [form] `(filter
+                         mw20-or-prodgrant2012
+                         (map tweak-application-result ~form)))))
 
 ;; used for cleaning up local disk, so only app ids are returned
 (defquery query-applications-for-exhibit [exhibit-slug]
