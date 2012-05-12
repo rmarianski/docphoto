@@ -12,6 +12,13 @@
        (assoc request :session (.getSession servlet-request true))
        request))))
 
+(defn set-session-attribute! [^HttpSession session attr-key attr-val]
+  (.setAttribute session attr-key attr-val)
+  attr-val)
+
+(defn get-session-attribute [^HttpSession session attr-key]
+  (.getAttribute session attr-key))
+
 (defmacro defsession
   "generate an anaphoric function that pulls the session out of the request"
   [fn-name args body]
@@ -24,20 +31,21 @@
   "generate a session fn getter"
   [fn-name attribute-name]
   `(defsession ~fn-name []
-     (.getAttribute ~'session ~attribute-name)))
+     (get-session-attribute ~'session ~attribute-name)))
 
 (defmacro defsession-setter
   "generate a simple session fn setter"
   [fn-name attribute-name]
   `(defsession ~fn-name [attribute-value#]
-     (do
-       (.setAttribute ~'session ~attribute-name attribute-value#)
-       attribute-value#)))
+     (set-session-attribute! ~'session ~attribute-name attribute-value#)))
 
 (defsession-getter get-user "user")
 (defsession-setter save-user "user")
 
 (defsession delete [] (.invalidate session))
+(defsession clear []
+  (doseq [argname (enumeration-seq (.getAttributeNames session))]
+    (.removeAttribute session argname)))
 
 (defsession-getter get-token "reset-token")
 (defsession save-token [reset-token userid]
@@ -46,7 +54,7 @@
 
 (defsession allow-password-reset [userid]
   (do (.removeAttribute session "reset-token")
-      (.setAttribute session "allow-password-reset" userid)))
+      (set-session-attribute! session "allow-password-reset" userid)))
 
 (defsession-getter password-reset-userid "allow-password-reset")
 (defsession remove-allow-password-reset []
