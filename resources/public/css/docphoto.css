@@ -269,6 +269,7 @@ a#upload:hover {
 #review dt {
     font-weight: bold;
     font-size: 1.2em;
+    margin: 1em;
 }
 #review-images {
     height: 550px;

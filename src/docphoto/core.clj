@@ -1520,13 +1520,17 @@
     (let [images (query-images (:id application))
           fields (application-review-fields application)]
       [:div
-       [:h2 "Application Responses"]
+       [:h2 "Review Application"]
        [:dl
+        [:dt "Applicant"]
+        [:dd (:name (query-user-by-id (:contact__c application)))]
         (for [field fields]
-          (let [{[_ _ field-key {title :label}] :field} field]
-            (list
-             [:dt (i18n/translate title)]
-             [:dd (application field-key)])))
+          (let [{[_ _ field-key {title :label}] :field} field
+                field-value (application field-key)]
+            (when-not (empty? field-value)
+              (list
+              [:dt (i18n/translate title)]
+              [:dd (application field-key)]))))
         [:dt "CV"]
         [:dd [:a {:href (cv-link (:id application))}
               (i18n/translate :cv-download)]]]
