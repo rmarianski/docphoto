@@ -147,7 +147,7 @@
 
 (defquery-single query-user-by-username [username]
   no-cache-get no-cache-set
-  (contact [id] [[userName__c = username]]))
+  (contact sf/user-fields [[userName__c = username]]))
 
 (defquery query-exhibits []
   no-cache-get no-cache-set
@@ -389,6 +389,7 @@
   (image-delete-link [image-id] "image" image-id "delete")
   (admin-password-reset-link [] "admin" "password-reset")
   (admin-download-link [] "admin" "download")
+  (admin-login-as-link [] "admin" "login-as")
   (admin-create-vetter-link [] "admin" "create-vetter-account")
   (switch-language-link [lang came-from] "language" lang {:came-from came-from})
   (review-request-link [review-request-id] "review-request" review-request-id)
@@ -441,9 +442,10 @@
           [:div#admin
            [:h2 "Admin"]
            [:ul
-            [:li (ph/link-to (admin-password-reset-link) "Reset user password")]
+            [:li (ph/link-to (admin-password-reset-link) "Reset User Password")]
             [:li (ph/link-to (admin-create-vetter-link) "Create Vetter Account")]
-            [:li (ph/link-to (admin-download-link) "Download application images")]]]))))))
+            [:li (ph/link-to (admin-download-link) "Download Images")]
+            [:li (ph/link-to (admin-login-as-link) "Login As Other User")]]]))))))
 
 (defmacro when-multiple-languages [& body]
   (cond
@@ -1693,6 +1695,23 @@
                   (list
                    [:h1 "User '" username "' successfully created"])))))))
 
+(defformpage admin-login-as-view []
+  [(req-textfield :username "Username to log in as")
+   {:custom came-from-field}]
+  (layout
+   request "Admin Login As"
+   [:div
+    [:form.uniForm {:method :post :action (:uri request)}
+     (render-fields request params errors)
+     [:input {:type :submit :value "Login"}]]])
+  (let [username (:username params)]
+    (if-let [user (query-user-by-username username)]
+      (do
+        (session/clear request)
+        (login request user)
+        (redirect (or (:came-from params) "/")))
+      (render-form params {:username "Username not found in salesforce"}))))
+
 (defroutes main-routes
   (GET "/" request home-view)
   (GET "/userinfo" [] userinfo-view)
@@ -1753,7 +1772,8 @@
    (admin-routes
     (ANY "/download" [] admin-download-view)
     (ANY "/password-reset" [] admin-password-reset)
-    (ANY "/create-vetter-account" [] admin-create-vetter-view)))
+    (ANY "/create-vetter-account" [] admin-create-vetter-view)
+    (ANY "/login-as" [] admin-login-as-view)))
 
   (ANY "/language/:language/" [language came-from :as request]
        (language-view request language came-from))
