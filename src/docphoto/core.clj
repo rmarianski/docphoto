@@ -91,7 +91,8 @@
          ~'cache-set (fn [cache# args# result#]
                        (session/set-cache
                         *request*
-                        (assoc-in cache# (cache-key-fn# args#) result#)))]
+                        (assoc-in cache# (cache-key-fn# args#) result#))
+                       result#)]
      ~@body))
 
 (defn cache-under [cache-key] (fn [args] [cache-key args]))
