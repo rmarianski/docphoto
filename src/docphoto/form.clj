@@ -156,7 +156,7 @@
 
 (defmacro req-textfield
   "helper to simplify generating required text fields"
-  [fieldname label & description]
+  [fieldname label & [description]]
   (assoc (textfield fieldname label description)
     :validator {:fn not-empty :msg :required}))
 

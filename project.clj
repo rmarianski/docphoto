@@ -21,7 +21,6 @@
                  [org.clojure/core.incubator "0.1.0"]
                  [clj-stacktrace "0.2.4"]
                  [swank-clojure "1.4.2"]]
-  :warn-on-reflection false
   :ring {:handler docphoto.core/app
          :init docphoto.core/servlet-init
          :destroy docphoto.core/servlet-destroy})
