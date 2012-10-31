@@ -358,7 +358,7 @@
   "Generate a string link from the parts. They are joined together with str"
   [fn-name args & uri-parts]
   `(defn ~fn-name ~args
-     (hu/url "/" ~@(interpose "/" uri-parts))))
+     (str "/" ~@(interpose "/" uri-parts))))
 
 (defmacro deflinks [& deflink-specs]
   `(do ~@(for [spec deflink-specs]
