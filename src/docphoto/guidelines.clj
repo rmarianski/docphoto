@@ -1,5 +1,5 @@
 (ns docphoto.guidelines
-  (:use [hiccup.page-helpers :only (link-to)]))
+  (:use [hiccup.element :only (link-to)]))
 
 (defn link
   "gudielines have many cases where the text of the link is the link itself"

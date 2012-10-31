@@ -4,9 +4,10 @@
         [compojure.response :only (render)]
         [ring.middleware.multipart-params :only (wrap-multipart-params)]
         [ring.middleware.file-info :only (wrap-file-info)]
+        [hiccup.util :only (escape-html)]
         [hiccup.core :only (html)]
-        [hiccup.page-helpers :only (xhtml include-css
-                                          include-js javascript-tag)]
+        [hiccup.page :only (xhtml include-css include-js)]
+        [hiccup.element :only (javascript-tag)]
         [ring.adapter.jetty-servlet :only (run-jetty)]
         [ring.util.response :only (redirect)]
         [clojure.core.incubator :only (-?> -?>> dissoc-in)]
@@ -28,7 +29,9 @@
             [clojure.string :as string]
             [clojure.set]
             [docphoto.guidelines :as guidelines]
-            [hiccup.page-helpers :as ph]
+            [hiccup.page :as ph]
+            [hiccup.util :as hu]
+            [hiccup.element :as he]
             [ring.middleware.stacktrace :as stacktrace]
             [ring.util.codec :as ring-codec]
             [decline.core :as decline]
@@ -354,7 +357,7 @@
   "Generate a string link from the parts. They are joined together with str"
   [fn-name args & uri-parts]
   `(defn ~fn-name ~args
-     (ph/url "/" ~@(interpose "/" uri-parts))))
+     (hu/url "/" ~@(interpose "/" uri-parts))))
 
 (defmacro deflinks [& deflink-specs]
   `(do ~@(for [spec deflink-specs]
@@ -417,7 +420,7 @@
      (when user
        (list
         [:div#update-profile
-         (ph/link-to (profile-update-link (:id user)) (i18n/translate :update-profile))]
+         (he/link-to (profile-update-link (:id user)) (i18n/translate :update-profile))]
         (let [apps (query-applications (:id user))]
           (when (not-empty apps)
             [:div#applications-list
@@ -443,10 +446,10 @@
           [:div#admin
            [:h2 "Admin"]
            [:ul
-            [:li (ph/link-to (admin-password-reset-link) "Reset User Password")]
-            [:li (ph/link-to (admin-create-vetter-link) "Create Vetter Account")]
-            [:li (ph/link-to (admin-download-link) "Download Images")]
-            [:li (ph/link-to (admin-login-as-link) "Login As Other User")]]]))))))
+            [:li (he/link-to (admin-password-reset-link) "Reset User Password")]
+            [:li (he/link-to (admin-create-vetter-link) "Create Vetter Account")]
+            [:li (he/link-to (admin-download-link) "Download Images")]
+            [:li (he/link-to (admin-login-as-link) "Login As Other User")]]]))))))
 
 (defmacro when-multiple-languages [& body]
   (cond
@@ -473,7 +476,7 @@
    [:body
     [:div#wrapper
      [:div#header
-      [:div#osf-logo (ph/image "/public/osf-logo.png"
+      [:div#osf-logo (he/image "/public/osf-logo.png"
                                "Open Society Foundations")]
       (when-multiple-languages
        [:div#language
@@ -484,11 +487,11 @@
              [:li
               (if (= (keyword lang) current-language)
                 text
-                (ph/link-to
+                (he/link-to
                  (switch-language-link lang came-from) text))]))]])
       [:div#heading-section
-       [:div#contact (ph/link-to "mailto:docphoto@sorosny.org" "Contact Us")]
-       [:h1#heading (ph/link-to
+                                        ;[:div#contact (he/link-to "mailto:docphoto@sorosny.org" "Contact Us")]
+       [:h1#heading (he/link-to
                      "/"
                      (str (heading-apply-text request) ": " (i18n/translate :apply-online)))]]]
      [:div#page
@@ -961,7 +964,7 @@
   {:title (str (:name exhibit) " Closed")}
   [:div
    [:p "We are no longer accepting applications for " (:name exhibit) "."]
-   [:p "If you attempted to submit your application before or on the May 2nd deadline and had trouble with the online application system, please contact Felix Endara at " (ph/link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org") "."]])
+   [:p "If you attempted to submit your application before or on the May 2nd deadline and had trouble with the online application system, please contact Felix Endara at " (he/link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org") "."]])
 
 (defn exhibit-apply-view [request exhibit]
   (when-logged-in
@@ -1097,7 +1100,7 @@
 (defn render-image [request image]
   (list
    [:div.image-container.goog-inline-block
-    (ph/image (image-link (:id image) "small" (:filename__c image)))]
+    (he/image (image-link (:id image) "small" (:filename__c image)))]
    [:input {:type :hidden :name :imageids :value (:id image)}]
    [:textarea {:name "captions" :class "image-caption"}
     (or (:caption__c image) "")]
@@ -1317,7 +1320,7 @@
         (for [image (query-images app-id)]
           [:li
            [:div.image-container.goog-inline-block
-            (ph/image (image-link (:id image) "small" (:filename__c image)))]
+            (he/image (image-link (:id image) "small" (:filename__c image)))]
            [:div.goog-inline-block.image-caption (:caption__c image)]])]
        [:a {:href (application-upload-link app-id)} (i18n/translate :update)]]
        (if errors
@@ -1557,7 +1560,7 @@
         [:input {:type "submit" :name :submit :value "Save"}]
         [:p.note
          "Submit means your review is final. You will have to contact: "
-         (ph/link-to "mailto:docphoto@sorosny.org" "docphoto")
+         (he/link-to "mailto:docphoto@sorosny.org" "docphoto")
          " if you need to update your review."]
         [:input {:type "submit" :name :submit :value "Submit"}]]])])
   (let [updated-params (update-in params [:rating__c] #(Double/valueOf ^String %))
@@ -1581,7 +1584,7 @@
              [:p "Thank you for your review. "
               (when-not final?
                 (list "You may "
-                      (ph/link-to (:uri request) "update")
+                      (he/link-to (:uri request) "update")
                       " it at any time."))]])))
 
 (defn can-view-review-request [request review-request-id f]
@@ -1752,7 +1755,7 @@
     (prepare-exhibit-routes
      (ANY "/apply" [] (exhibit-apply-view request exhibit))
      (GET "/" [] (exhibit-view request exhibit))))
-  
+
   (context "/image/:image-id" [image-id]
     (prepare-image-routes
      (GET "/small/*" [] (image-view request image "small"))
@@ -1818,7 +1821,7 @@
                    [:p
                     "We're sorry. We ran into an error. If the problem continues, "
                     "please contact "
-                    (ph/link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org")]))})))))
+                    (he/link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org")]))})))))
 
 (defn wrap-stacktrace
   "wrap the appropriate stack trace handler based on if debugging"
@@ -1888,28 +1891,30 @@
   (connect-to-prod)
   (def server (run-server)))
 
-(defn start-swank-server
-  "start a swank server"
-  [& server-options]
-  (apply swank.swank/start-server server-options))
+;; (defn start-swank-server
+;;   "start a swank server"
+;;   [& server-options]
+;;   (apply swank.swank/start-server server-options))
 
-(defn stop-swank-server [] (swank.swank/stop-server))
+;; (defn stop-swank-server [] (swank.swank/stop-server))
 
 ;; used for war file init/destroy
 (defn servlet-init []
   (println "connecting to salesforce ...")
   (connect-to-prod)
   (println "connected")
-  (when cfg/swank-server?
-    (println "starting swank server ...")
-    (start-swank-server :host "localhost" :port 4005 :dont-close true)
-    (println "swank server ready")))
+  ;; (when cfg/swank-server?
+  ;;   (println "starting swank server ...")
+  ;;   (start-swank-server :host "localhost" :port 4005 :dont-close true)
+  ;;   (println "swank server ready"))
+  )
 
 (defn servlet-destroy []
   (println "disconnecting from sf")
   (sf/disconnect conn)
   (println "disconnected!")
-  (when cfg/swank-server?
-    (println "stopping swank server")
-    (stop-swank-server)
-    (println "swank server stopped")))
+  ;; (when cfg/swank-server?
+  ;;   (println "stopping swank server")
+  ;;   (stop-swank-server)
+  ;;   (println "swank server stopped"))
+  )

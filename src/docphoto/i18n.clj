@@ -1,5 +1,5 @@
 (ns docphoto.i18n
-  (:require [hiccup.page-helpers :as ph]
+  (:require [hiccup.element :as he]
             [docphoto.guidelines :as guidelines]))
 
 (def ^:dynamic *language* :en)
@@ -35,24 +35,24 @@
    :new-password "New Password" "Новый пароль"
    :update-password "Update Password" "Обновление пароля"
    :reset-password-text
-   (fn [reset-link] (list (ph/link-to reset-link "Reset") " your password instead."))
-   (fn [reset-link] (list (ph/link-to reset-link "Сбросить ") " пароль вместо."))
+   (fn [reset-link] (list (he/link-to reset-link "Reset") " your password instead."))
+   (fn [reset-link] (list (he/link-to reset-link "Сбросить ") " пароль вместо."))
 
    :already-logged-in (fn [username] (str "Already logged in as: " username))
                       (fn [username] (str "Уже вошли как: " username))
    :invalid-credentials "Invalid Credentials" "Неверное Полномочия"
    :forgot-your-password-reset (fn [forgot-link]
                                  (list "Forgot your password? "
-                                       (ph/link-to forgot-link "Reset it") "."))
+                                       (he/link-to forgot-link "Reset it") "."))
                                (fn [forgot-link]
                                  (list "Забыли пароль? "
-                                       (ph/link-to forgot-link "Сброс этого") "."))
+                                       (he/link-to forgot-link "Сброс этого") "."))
 
    :no-account-register
    (fn [register-link]
-     (list "Don't have an account? " (ph/link-to register-link "Register") "."))
+     (list "Don't have an account? " (he/link-to register-link "Register") "."))
    (fn [register-link]
-     (list "Вы не имеете учетной записи? " (ph/link-to register-link "регистрировать") "."))
+     (list "Вы не имеете учетной записи? " (he/link-to register-link "регистрировать") "."))
 
    :first-name "First Name" "имя"
    :last-name "Last Name" "Фамилия"
@@ -88,11 +88,11 @@
    :token-expired
    (fn [link]
      [:span "Token expired. Are you using the same browser session as when you requested a password reset? If so, you can "
-      (ph/link-to link "resend")
+      (he/link-to link "resend")
       " a password reset email."])
    (fn [link]
      [:span "Маркер истек. Используете ли вы той же сессии браузера, когда вы просили сброса пароля? Если "
-      (ph/link-to link "это") " так, вы можете повторно электронной почты для сброса пароля."])
+      (he/link-to link "это") " так, вы можете повторно электронной почты для сброса пароля."])
 
    :reset-password-for
    (fn [username] (str "Reset password for: " username))
