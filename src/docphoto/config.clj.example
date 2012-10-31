@@ -1,6 +1,8 @@
 (ns docphoto.config)
 
 (def debug false)
+(def debug-css false)
+(def debug-js false)
 
 (def conn-dev {:user "username"
                :pass "password"

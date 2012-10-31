@@ -317,7 +317,7 @@
   (vec (list-all-editor-css-files)))
 
 (defmacro theme-css [editor-css?]
-  (if cfg/debug
+  (if cfg/debug-css
     (let [debug-css-files ["/public/css/google/common.css"
                            "/public/css/uni-form.css"
                            "/public/css/docphoto.css"]]
@@ -329,7 +329,7 @@
     ["/public/css/docphoto-min.css"]))
 
 (defmacro theme-js [include-upload-js?]
-  (if cfg/debug
+  (if cfg/debug-js
     (let [debug-js-file "http://localhost:9810/compile?id=docphoto"]
       `(apply
         include-js
