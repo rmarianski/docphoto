@@ -35,7 +35,8 @@
             [ring.middleware.stacktrace :as stacktrace]
             [ring.util.codec :as ring-codec]
             [decline.core :as decline]
-            [swank.swank])
+            ;[swank.swank]
+            )
   (:import [java.io File PipedInputStream PipedOutputStream OutputStream]
            [java.util.zip ZipOutputStream ZipEntry]
            [javax.servlet.http HttpSession]))
