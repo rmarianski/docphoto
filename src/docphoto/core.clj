@@ -578,6 +578,14 @@
 (defn logout [request]
   (session/delete request))
 
+;; move to form maybe?
+(defn error-map->errors-list [errors-map field-name->field-label]
+  (for [[field-name error-msg] errors-map
+        :let [field-label (field-name->field-label field-name)]
+        :when field-label]
+    {:label field-label
+     :msg error-msg}))
+
 (defformpage login-view []
   [(req-textfield :userName__c :username)
    (req-password :password__c :password)
@@ -588,6 +596,15 @@
    (list
     [:form.uniForm {:method :post :action (login-link)}
      [:h2 (i18n/translate :login)]
+     (when (seq errors)
+       (when-let [errors-list (error-map->errors-list errors field->label)]
+         [:div.form-errors
+          [:p (i18n/translate :there-were-errors)]
+          [:ul
+           (for [{:keys [label msg]} errors-list]
+             [:li
+              (str (i18n/translate label) ": ")
+              [:span (i18n/translate msg)]])]]))
      [:fieldset
       (when-let [user (session/get-user request)]
         [:p ((i18n/translate :already-logged-in) (:name user))])

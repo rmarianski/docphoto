@@ -132,6 +132,14 @@
   `(fn [~'params ~'errors]
      ~form-render-body))
 
+(defn make-field-label-mapping [fieldspecs]
+  (into
+   {}
+   (for [fieldspec fieldspecs
+         :let [{[_ _ field-id {label :label}] :field} fieldspec]
+         :when (and field-id label)]
+     [field-id label])))
+
 (defmacro defformpage
   "Should write a lot of documentation here. Especially on anaphora. And what's expected. Fieldspecs need to be documented too. The fact that the body parameters need to be single forms too."
   [fn-name args fieldspecs form-render-body success-body]
@@ -140,6 +148,7 @@
            ~'validate-fields ~(make-validator-fn fieldspecs)]
        (defn ~fn-name [~'request ~@args]
          (let [~'params (:params ~'request)
+               ~'field->label ~(make-field-label-mapping fieldspecs)
                ~'render-form ~(make-form-render-fn form-render-body)]
            (onpost
             (if-let [~'errors (~'validate-fields ~'params)]

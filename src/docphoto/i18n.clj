@@ -177,6 +177,10 @@ To reset your password, please click on the following link:
    "Before submitting your application, please correct the following:"
    "Перед подачей заявки, пожалуйста, исправьте следующие:"
 
+   :there-were-errors
+   "There were errors. Please correct:"
+   "Были ошибки. Пожалуйста, исправьте:"
+
    :application-review "Application Review" "Обзор приложений"
    :review-application-before-submitting
    "Review your application before submitting."
