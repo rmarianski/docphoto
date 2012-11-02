@@ -1551,6 +1551,7 @@
           fields (application-review-fields application)]
       [:div
        [:h2 "Review Application"]
+       (display-error-summary errors field->label)
        [:dl
         [:dt "Applicant"]
         [:dd (:name (query-user-by-id (:contact__c application)))]

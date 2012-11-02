@@ -169,18 +169,18 @@ a:hover {
     float: none;
 }
 
-.uniForm .form-errors {
+#page .form-errors {
     padding: 10px;
     border: 2px solid red;
 }
-.uniForm .form-errors p {
+#page .form-errors p {
     color: red;
     font-weight: bold;
 }
-.uniForm .form-errors ul {
+#page .form-errors ul {
     float: none;
 }
-.uniForm .form-errors li span {
+#page .form-errors li span {
     color: red;
     font-weight: bold;
 }
