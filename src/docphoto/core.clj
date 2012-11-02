@@ -724,6 +724,7 @@
    {}
    [:form.uniForm {:method :post :action (register-link)}
     [:h2 (i18n/translate :register)]
+    (display-error-summary errors field->label)
     (render-fields request params errors)
     [:input {:type :submit :value (i18n/translate :register)}]])
   (let [{password1 :password__c password2 :password2
