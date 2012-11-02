@@ -17,7 +17,7 @@
                                 not-empty-and-ascii?)]
         [docphoto.form :only (defformpage came-from-field
                                req-textfield textfield req-password
-                               english-only-textfield)])
+                               english-only-textfield make-field-label-mapping)])
   (:require [compojure.route :as route]
             [docphoto.salesforce :as sf]
             [docphoto.persist :as persist]
@@ -586,6 +586,17 @@
     {:label field-label
      :msg error-msg}))
 
+(defn display-error-summary [errors-map field->label]
+  (when (seq errors-map)
+    (when-let [errors-list (error-map->errors-list errors-map field->label)]
+      [:div.form-errors
+       [:p (i18n/translate :there-were-errors)]
+       [:ul
+        (for [{:keys [label msg]} errors-list]
+          [:li
+           (str (i18n/translate label) ": ")
+           [:span (i18n/translate msg)]])]])))
+
 (defformpage login-view []
   [(req-textfield :userName__c :username)
    (req-password :password__c :password)
@@ -596,15 +607,7 @@
    (list
     [:form.uniForm {:method :post :action (login-link)}
      [:h2 (i18n/translate :login)]
-     (when (seq errors)
-       (when-let [errors-list (error-map->errors-list errors field->label)]
-         [:div.form-errors
-          [:p (i18n/translate :there-were-errors)]
-          [:ul
-           (for [{:keys [label msg]} errors-list]
-             [:li
-              (str (i18n/translate label) ": ")
-              [:span (i18n/translate msg)]])]]))
+     (display-error-summary errors field->label)
      [:fieldset
       (when-let [user (session/get-user request)]
         [:p ((i18n/translate :already-logged-in) (:name user))])
@@ -904,7 +907,7 @@
                         {:label "Multimedia Link"
                          :description
                          "Moving Walls has the capacity to exhibit multimedia in addition to (but not in place of) the print exhibition. A multimedia sample should be submitted only if it complements or enhances, rather than duplicates, the other submitted materials. The sample will be judged on its ability to present complex issues through compelling multimedia storytelling, and will not negatively impact the print submission. If you are submitting a multimedia piece for consideration, please post the piece on a free public site such as YouTube or Vimeo and include a link. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
-   
+
    ;; prodgrant fields
    :pg-project-title {:field [:text {} :title__c {:label :pg-project-title}]
                       :validator {:fn not-empty-and-ascii? :msg :required-english-only}}
@@ -990,6 +993,7 @@
      (exhibit-closed-view request exhibit)
      (let [params (:params request)
            fields (exhibit-apply-fields exhibit)
+           field->label (make-field-label-mapping fields)
            render-form (fn [params errors]
                          (let [field (form/field-render-fn params errors)]
                            (layout
@@ -1001,6 +1005,7 @@
                              [:form.uniForm {:method :post :action (:uri request)
                                              :enctype "multipart/form-data"}
                               [:h2 (str (i18n/translate :apply-to) (:name exhibit))]
+                              (display-error-summary errors field->label)
                               [:fieldset
                                [:legend "Apply"]
                                (letfn [(render-field [field-stanza]
@@ -1036,6 +1041,7 @@
    (let [params (:params request)
          exhibit (:exhibit__r application)
          fields (application-update-fields application)
+         field->label (make-field-label-mapping fields)
          render-form (fn [params errors]
                        (let [field (form/field-render-fn params errors)]
                          (layout
@@ -1046,6 +1052,7 @@
                           [:div
                            [:form.uniForm {:method :post :action (:uri request)
                                            :enctype "multipart/form-data"}
+                            (display-error-summary errors field->label)
                             [:fieldset
                              [:legend "Update application"]
                              (letfn [(render-field [field-stanza]
