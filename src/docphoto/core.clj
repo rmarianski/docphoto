@@ -166,8 +166,8 @@
               [[closed__c = false noquote]]
               :append "order by application_start_date__c desc limit 1"))
 
-(def mw20-or-prodgrant2012
-  (comp #{:mw20 :prodgrant2012} keyword :slug__c :exhibit__r))
+(def mw21-or-prodgrant2012-2
+  (comp #{:mw21 :prodgrant2012-2} keyword :slug__c :exhibit__r))
 
 (cachinate (cache-under :applications)
            (defquery query-applications [userid]
@@ -179,7 +179,7 @@
               [[exhibit_application__c.contact__r.id = userid]]
               :append "order by lastModifiedDate desc")
              (fn [form] `(filter
-                         mw20-or-prodgrant2012
+                         mw21-or-prodgrant2012-2
                          (map tweak-application-result ~form)))))
 
 ;; used for cleaning up local disk, so only app ids are returned
@@ -465,7 +465,7 @@
   (let [host (host-header request)]
     (if (= host "docphoto.soros.org")
       "Production Grant 2012"
-      "Moving Walls 20")))
+      "Moving Walls 21")))
 
 (defn layout [request options body]
   (xhtml
@@ -547,8 +547,8 @@
   (redirect
    (str "/exhibit/"
         (if (= (host-header request) "docphoto.soros.org")
-          "prodgrant2012"
-          "mw20"))))
+          "prodgrant2012-2"
+          "mw21"))))
 
 (defview userinfo-view {:title "User Info View" :logged-in true}
   [:dl
@@ -886,20 +886,20 @@
    ;; these are listed here to prevent duplication with the fields
    ;; listed for review
 
-   ;; mw20 fields
-   :mw20-project-title (req-textfield :title__c "Project Title")
-   :mw20-project-summary {:field [:text-area#coverpage.editor {:style "height: 50px"} :cover_Page__c
+   ;; mw21 fields
+   :mw21-project-title (req-textfield :title__c "Project Title")
+   :mw21-project-summary {:field [:text-area#coverpage.editor {:style "height: 50px"} :cover_Page__c
                                   {:label "Project Summary"
                                    :description "A one sentence description of the project, including title (if applicable) and main subject/content."}]
                           :validator {:fn not-empty :msg :required}}
-   :mw20-project-statement {:field [:text-area#statement.editor {:style "height: 500px"} :statementRich__c
+   :mw21-project-statement {:field [:text-area#statement.editor {:style "height: 500px"} :statementRich__c
                                     {:label "Project Statement" :description "(600 words maximum) describing the project you would like to exhibit"}]
                             :validator {:fn not-empty :msg :required}}
-   :mw20-bio {:field [:text-area#biography.editor {:style "height: 250px"} :biography__c
+   :mw21-bio {:field [:text-area#biography.editor {:style "height: 250px"} :biography__c
                       {:label "Short Narrative Bio"
                        :description "(250 words maximum) summarizing your previous work and experience"}]
               :validator {:fn not-empty :msg :required}}
-   :mw20-summary-of-engagement {:field [:text-area#summaryEngagement.editor {:style "height: 500px"} :narrative__c
+   :mw21-summary-of-engagement {:field [:text-area#summaryEngagement.editor {:style "height: 500px"} :narrative__c
                                         {:label "Summary of your engagement"
                                          :description "(600 words maximum) Please comment on your relationship with the issue or community you photographed. How and why did you begin the project? How long have you  been working on the project? Are there particular methods you  use while working?   What do you hope a viewer will take away from your project?"}]
                                 :validator {:fn not-empty :msg :required}}
@@ -924,12 +924,12 @@
 
 (defmulti exhibit-apply-fields (comp keyword :slug__c))
 
-(defmethod exhibit-apply-fields :mw20 [exhibit]
-  [(application-fields :mw20-project-title)
-   (application-fields :mw20-project-summary)
-   (application-fields :mw20-project-statement)
-   (application-fields :mw20-bio)
-   (application-fields :mw20-summary-of-engagement)
+(defmethod exhibit-apply-fields :mw21 [exhibit]
+  [(application-fields :mw21-project-title)
+   (application-fields :mw21-project-summary)
+   (application-fields :mw21-project-statement)
+   (application-fields :mw21-bio)
+   (application-fields :mw21-summary-of-engagement)
    (application-fields :cv)
    (findout-field)
    (application-fields :website)
@@ -937,7 +937,7 @@
    (application-fields :focus-region)
    (application-fields :focus-country)])
 
-(defmethod exhibit-apply-fields :prodgrant2012 [exhibit]
+(defmethod exhibit-apply-fields :prodgrant2012-2 [exhibit]
   [(application-fields :pg-project-title)
    (application-fields :pg-project-summary)
    (application-fields :pg-proposal-narrative)
@@ -961,21 +961,21 @@
           field))
        fields))
 
-(defmethod application-update-fields :mw20 [application]
+(defmethod application-update-fields :mw21 [application]
   (make-cv-field-optional (exhibit-apply-fields (:exhibit__r application))))
 
-(defmethod application-update-fields :prodgrant2012 [application]
+(defmethod application-update-fields :prodgrant2012-2 [application]
   (make-cv-field-optional (exhibit-apply-fields (:exhibit__r application))))
 
 (defmulti application-review-fields (comp keyword :slug__c :exhibit__r))
 
-(defmethod application-review-fields :mw20 [application]
+(defmethod application-review-fields :mw21 [application]
   (map application-fields
-       [:mw20-project-title :mw20-project-summary :mw20-project-statement
-        :mw20-bio :mw20-summary-of-engagement
+       [:mw21-project-title :mw21-project-summary :mw21-project-statement
+        :mw21-bio :mw21-summary-of-engagement
         :website :multimedia]))
 
-(defmethod application-review-fields :prodgrant2012 [application]
+(defmethod application-review-fields :prodgrant2012-2 [application]
   (map application-fields
        [:pg-project-title :pg-project-summary
         :pg-proposal-narrative :pg-personal-statement]))
