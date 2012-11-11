@@ -1420,13 +1420,14 @@
 
 (defmacro prepare-application-routes
   "Take care of fetching the application, and checking security. Anaphora: depends on having 'app-id' in context matching and injects 'application' into scope. Expects 'request' symbol in scope."
-  [& app-routes]
+  [can-view? & app-routes]
   `(fn [~'request]
-     (when-application ~'app-id
-       (when-logged-in
-         (if (can-view-application? ~'user ~'application)
-           (routing ~'request ~@app-routes)
-           (forbidden ~'request))))))
+     (when-application
+      ~'app-id
+      (when-logged-in
+       (if (~can-view? (:uri ~'request) ~'user ~'application)
+         (routing ~'request ~@app-routes)
+         (forbidden ~'request))))))
 
 (defmacro prepare-exhibit-routes
   "Fetch exhibit, and inject 'exhibit' through anaphora. Expects 'exhibit-id' to exist in scope."
@@ -1629,7 +1630,7 @@
     (review-view request user-id application review-stage)))
 
 (defn application-review-view [request application]
-  (when-admin
+  (when-logged-in
    (review-view request (:id user) application)))
 
 (defmacro admin-routes
@@ -1767,6 +1768,10 @@
 
   (context "/application/:app-id" [app-id]
     (prepare-application-routes
+     (fn [uri user application]
+       (if (.endsWith ^String uri "/review")
+         (can-review-application? user application)
+         (can-view-application? user application)))
      (POST "/upload" [] (app-upload-image request application))
      (GET "/upload" [] (app-upload request application))
      (POST "/update-images" [] (application-update-images-view request application))
@@ -1793,6 +1798,7 @@
   (GET "/cv/:app-id" [app-id :as request]
     ;; re-using application macro for setup logic
     (prepare-application-routes
+     (fn [uri user application] (can-review-application? user application))
      (ANY "*" [] (cv-view request application))))
 
   (ANY "/review-request/:review-request-id" [review-request-id :as request]
