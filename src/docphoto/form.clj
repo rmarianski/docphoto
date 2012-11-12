@@ -63,7 +63,22 @@
     (if (and (= type :radio)
              (not-empty opts))
       (for [[label opt-value] opts]
-        [:div label (f type attrs name opt-value value) [:br]])
+        [:div
+         (i18n/translate label)
+         (f type attrs name opt-value value) [:br]])
+      (f type attrs name opts value))))
+
+(defn wrap-radio-group-single-line
+  "expand out the radio button options but place on one line"
+  [f]
+  (fn [type attrs name opts value]
+    (if (and (= type :radio-single-line)
+             (not-empty opts))
+      [:div
+       (for [[label opt-value] opts]
+         [:span {:class (:class attrs)}
+          (f :radio attrs name opt-value value)
+          (i18n/translate label)])]
       (f type attrs name opts value))))
 
 (defn wrap-select
@@ -79,6 +94,7 @@
 
 (def base-field-render-fn
   (-> html4-fields
+      wrap-radio-group-single-line
       wrap-radio-group
       wrap-checkbox-opts-normalize
       wrap-select

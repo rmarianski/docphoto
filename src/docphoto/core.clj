@@ -203,8 +203,9 @@
               [id biography__c title__c website__c statementRich__c contact__c
                submission_Status__c narrative__c multimedia_Link__c cover_Page__c
                exhibit__r.name exhibit__r.slug__c exhibit__r.closed__c
-               focus_Country_Single_Select__c focus_Region__c
-               referredby__c]
+               focus_Country_Single_Select__c focus_Region__c referredby__c
+               english_language_proficiency__c russian_language_proficiency__c
+               additional_language_proficiency__c]
               [[id = app-id]])
              (fn [form] `(-?> ~form first tweak-application-result))))
 
@@ -396,12 +397,17 @@
   (admin-download-link [] "admin" "download")
   (admin-login-as-link [] "admin" "login-as")
   (admin-create-vetter-link [] "admin" "create-vetter-account")
-  (switch-language-link [lang came-from] "language" lang {:came-from came-from})
   (review-request-link [review-request-id] "review-request" review-request-id)
-  (login-link [& [came-from]] "login" (when came-from {:came-from came-from}))
   (logout-link [] "logout")
   (register-link [] "register")
   (profile-reset-password-link [user-id] "profile" user-id "password"))
+
+(defn switch-language-link [lang came-from]
+  (str "/language/" lang "/?came-from=" (ring-codec/url-encode came-from)))
+
+(defn login-link [& [came-from]]
+  (str "/login"
+       (when came-from (str "?came-from=" (ring-codec/url-encode came-from)))))
 
 (defn find-remaining-review-requests [review-requests final-reviews]
   (let [s (set (map :exhibit_Application__c final-reviews))]
@@ -867,6 +873,9 @@
                    [:findout-friend "Friend"]
                    [:findout-other "Other"]]}]})
 
+(def language-fluency-options
+  (map #(vector % (string/capitalize (name %))) [:beginner :intermediate :advanced :fluent]))
+
 (def application-fields
 
   ;; common fields
@@ -920,11 +929,20 @@
                            :validator {:fn not-empty :msg :required}}
    :pg-personal-statement {:field [:text-area#personal-statement.editor {:style "height: 500px"} :biography__c
                                    {:label :pg-personal-statement :description :pg-personal-statement-description}]
-                           :validator {:fn not-empty :msg :required}}})
+                           :validator {:fn not-empty :msg :required}}
+   :pg-english-language-proficiency {:field [:radio-single-line {:class :inline-radio} :english_language_proficiency__c
+                                             {:label :pg-english-language-proficiency :opts language-fluency-options}]
+                                     :validator {:fn not-empty :msg :required}}
+   :pg-russian-language-proficiency {:field [:radio-single-line {:class :inline-radio} :russian_language_proficiency__c
+                                             {:label :pg-russian-language-proficiency :opts language-fluency-options}]
+                                     :validator {:fn not-empty :msg :required}}
+   :pg-additional-language-proficiency {:field [:text-area {:rows 4} :additional_language_proficiency__c
+                                                {:label :pg-additional-language-proficiency
+                                                 :description :pg-additional-language-proficiency-description}]}})
 
 (defmulti exhibit-apply-fields (comp keyword :slug__c))
 
-(defmethod exhibit-apply-fields :mw21 [exhibit]
+(def mw-fields
   [(application-fields :mw21-project-title)
    (application-fields :mw21-project-summary)
    (application-fields :mw21-project-statement)
@@ -937,7 +955,10 @@
    (application-fields :focus-region)
    (application-fields :focus-country)])
 
-(defmethod exhibit-apply-fields :prodgrant2012-2 [exhibit]
+(defmethod exhibit-apply-fields :mw20 [exhibit] mw-fields)
+(defmethod exhibit-apply-fields :mw21 [exhibit] mw-fields)
+
+(def pg-fields
   [(application-fields :pg-project-title)
    (application-fields :pg-project-summary)
    (application-fields :pg-proposal-narrative)
@@ -946,6 +967,12 @@
    (findout-field)
    (application-fields :focus-region)
    (application-fields :focus-country)])
+
+(defmethod exhibit-apply-fields :prodgrant2012 [exhibit] pg-fields)
+(defmethod exhibit-apply-fields :prodgrant2012-2 [exhibit]
+  (into pg-fields [(application-fields :pg-english-language-proficiency)
+                   (application-fields :pg-russian-language-proficiency)
+                   (application-fields :pg-additional-language-proficiency)]))
 
 (defmulti application-update-fields (comp keyword :slug__c :exhibit__r))
 
@@ -961,24 +988,43 @@
           field))
        fields))
 
-(defmethod application-update-fields :mw21 [application]
+(defn mw-update-fields [application]
   (make-cv-field-optional (exhibit-apply-fields (:exhibit__r application))))
 
-(defmethod application-update-fields :prodgrant2012-2 [application]
+(defmethod application-update-fields :mw20 [application]
+  (mw-update-fields application))
+(defmethod application-update-fields :mw21 [application]
+  (mw-update-fields application))
+
+(defn pg-update-fields [application]
   (make-cv-field-optional (exhibit-apply-fields (:exhibit__r application))))
+
+(defmethod application-update-fields :prodgrant2012 [application]
+  (pg-update-fields application))
+(defmethod application-update-fields :prodgrant2012-2 [application]
+  (pg-update-fields application))
 
 (defmulti application-review-fields (comp keyword :slug__c :exhibit__r))
 
-(defmethod application-review-fields :mw21 [application]
+(def mw-review-fields
   (map application-fields
        [:mw21-project-title :mw21-project-summary :mw21-project-statement
         :mw21-bio :mw21-summary-of-engagement
         :website :multimedia]))
 
-(defmethod application-review-fields :prodgrant2012-2 [application]
+(defmethod application-review-fields :mw20 [application] mw-fields)
+(defmethod application-review-fields :mw21 [application] mw-fields)
+
+(def pg-review-fields
   (map application-fields
        [:pg-project-title :pg-project-summary
         :pg-proposal-narrative :pg-personal-statement]))
+
+(defmethod application-review-fields :prodgrant2012 [application] pg-review-fields)
+(defmethod application-review-fields :prodgrant2012-2 [application]
+  (into pg-review-fields [(application-fields :english_language_proficiency__c)
+                          (application-fields :russian_language_proficiency__c)
+                          (application-fields :additional_language_proficiency__c)]))
 
 (defn exhibit-closed? [exhibit] (:closed__c exhibit))
 
@@ -1086,7 +1132,8 @@
                                    (normalize-empty-value :focus_Country_Single_Select__c)
                                    (normalize-empty-value :referredby__c)
                                    (normalize-empty-value :website__c)
-                                   (normalize-empty-value :multimedia_Link__c))]
+                                   (normalize-empty-value :multimedia_Link__c)
+                                   (normalize-empty-value :additional_language_proficiency__c))]
             (sf/update-application conn app-update-map)
             (cache-clear :application [app-id])
             ;; title could have changed too so it's safer to clear

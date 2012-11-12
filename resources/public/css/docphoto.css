@@ -169,6 +169,10 @@ a:hover {
     float: none;
 }
 
+.uniForm span.inline-radio {
+    margin-right: 3em;
+}
+
 #page .form-errors {
     padding: 10px;
     border: 2px solid red;

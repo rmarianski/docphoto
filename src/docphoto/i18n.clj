@@ -220,6 +220,27 @@ To reset your password, please click on the following link:
 
    :submitted "Submitted" "представленный"
 
+   :pg-english-language-proficiency
+   "English Language Proficiency"
+   "Владения английским языком"
+
+   :pg-russian-language-proficiency
+   "Russian Language Proficiency"
+   "Русский языком"
+
+   :pg-additional-language-proficiency
+   "Additional Language Proficiency"
+   "Дополнительная языку"
+
+   :beginner "Beginner" "начинающий"
+   :intermediate "Intermediate" "промежуточный"
+   :advanced "Advanced" "передовой"
+   :fluent "Fluent" "беглый"
+
+   :pg-additional-language-proficiency-description
+   "Please list any additional languages you speak, and your proficiency level (Beginner, Intermediate, Advanced, or Fluent):"
+   "Пожалуйста, перечислите любую дополнительную языках вы говорите, и ваш уровень мастерства (начальный, средний, продвинутый или свободный):"
+
    :guidelines-prodgrant2012
    (:en (guidelines/guidelines :prodgrant2012))
    (:ru (guidelines/guidelines :prodgrant2012))

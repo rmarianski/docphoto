@@ -213,7 +213,9 @@
       (limit-map-field :mailingPostalCode 20)))
 
 (defn prepare-application-fields [app]
-  (limit-map-field app :multimedia_Link__c 255))
+  (-> app
+      (limit-map-field :multimedia_Link__c 255)
+      (limit-map-field :additional_language_proficiency__c 255)))
 
 (defcreate create-contact add-owner [contact-data-map]
   (Contact.)
@@ -230,7 +232,9 @@
     [:statementRich__c :title__c :biography__c :website__c :narrative__c
      :contact__c :exhibit__c :submission_Status__c :referredby__c
      :multimedia_Link__c :cover_Page__c
-     :focus_Region__c :focus_Country_Single_Select__c])))
+     :focus_Region__c :focus_Country_Single_Select__c
+     :english_language_proficiency__c :russian_language_proficiency__c
+     :additional_language_proficiency__c])))
 
 (defcreate create-image no-owner [image-map]
   (Image__c.)
