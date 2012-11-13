@@ -11,7 +11,7 @@
         [ring.adapter.jetty-servlet :only (run-jetty)]
         [ring.util.response :only (redirect)]
         [clojure.core.incubator :only (-?> -?>> dissoc-in)]
-        [clojure.java.io :only (copy file input-stream output-stream)]
+        [clojure.java.io :only (copy file input-stream output-stream resource)]
         [docphoto.utils :only (defn-debug-memo md5 multipart-form?
                                 send-message onpost when-logged-in dbg
                                 not-empty-and-ascii?)]
@@ -1074,10 +1074,11 @@
                               fields))]
           (if-let [errors (validate params)]
             (render-form params errors)
-            (let [appid (create-application
+            (let [user (session/get-user request)
+                  appid (create-application
                          (:slug__c exhibit)
                          (merge params
-                                {:contact__c (:id (session/get-user request))
+                                {:contact__c (:id user)
                                  :exhibit__c (:id exhibit)}))]
               (cache-clear :applications)
               (redirect (application-upload-link appid)))))
@@ -1325,7 +1326,7 @@
        (redirect
         (application-submit-link (:id application)))))))
 
-(defn application-submit-view [request application]
+(defn application-submit-view [request application after-application-submitted]
   (let [app-id (:id application)
         images (query-images app-id)
         errors (seq (concat
@@ -1342,6 +1343,10 @@
               ;; in case they view a page that displays the list
               ;; with final/draft status
               (cache-clear :applications)
+              (let [curuser (session/get-user request)]
+                (when (= (:id curuser) (:contact__c application))
+                  (after-application-submitted (:slug__c (:exhibit__r application))
+                                               (:email curuser))))
               (redirect (application-success-link app-id)))))
      (layout
       request
@@ -1795,6 +1800,26 @@
         (redirect (or (:came-from params) "/")))
       (render-form params {:username "Username not found in salesforce"}))))
 
+(let [email-text (slurp (resource "app-created-email.txt"))]
+  (defn app-email-text [exhibit language]
+    ;; will need to most likely dispatch based on exhibit and language
+    email-text))
+
+(defn appsubmit-println-processor [exhibit email-address]
+  (println "sending email for" exhibit "to:" email-address)
+  (println (app-email-text exhibit :en)))
+
+(defn appsubmit-email-processor [exhibit email-address]
+  (send-message
+   {:to email-address
+    :subject "[Moving Walls] Application Received"
+    :body (app-email-text exhibit :en)}))
+
+(defmacro application-submitted-function-from-config []
+  (if cfg/debug
+    `appsubmit-println-processor
+    `appsubmit-email-processor))
+
 (defroutes main-routes
   (GET "/" request home-view)
   (GET "/userinfo" [] userinfo-view)
@@ -1822,7 +1847,8 @@
      (POST "/upload" [] (app-upload-image request application))
      (GET "/upload" [] (app-upload request application))
      (POST "/update-images" [] (application-update-images-view request application))
-     (ANY "/submit" [] (application-submit-view request application))
+     (ANY "/submit" [] (application-submit-view request application
+                                                (application-submitted-function-from-config)))
      (GET "/success" [] (application-success-view request application))
      (ANY "/update" [] (application-update-view request application))
      (GET "/debug" [] (app-debug-view request application))
