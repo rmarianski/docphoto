@@ -1345,7 +1345,7 @@
               (cache-clear :applications)
               (let [curuser (session/get-user request)]
                 (when (= (:id curuser) (:contact__c application))
-                  (after-application-submitted (:slug__c (:exhibit__r application))
+                  (after-application-submitted (:exhibit__r application)
                                                (:email curuser))))
               (redirect (application-success-link app-id)))))
      (layout
@@ -1800,20 +1800,24 @@
         (redirect (or (:came-from params) "/")))
       (render-form params {:username "Username not found in salesforce"}))))
 
-(let [email-text (slurp (resource "app-created-email.txt"))]
-  (defn app-email-text [exhibit language]
-    ;; will need to most likely dispatch based on exhibit and language
-    email-text))
+(defn app-email-text [exhibit]
+  (let [i18nkeyword (case (keyword (:slug__c exhibit))
+                      :mw20 :mw-app-submitted-email
+                      :mw21 :mw-app-submitted-email
+                      :prodgrant2012 :pg-app-submitted-email
+                      :prodgrant2012-2 :pg-app-submitted-email
+                      )]
+    (i18n/translate i18nkeyword)))
 
 (defn appsubmit-println-processor [exhibit email-address]
   (println "sending email for" exhibit "to:" email-address)
-  (println (app-email-text exhibit :en)))
+  (println (app-email-text exhibit)))
 
 (defn appsubmit-email-processor [exhibit email-address]
   (send-message
    {:to email-address
-    :subject "[Moving Walls] Application Received"
-    :body (app-email-text exhibit :en)}))
+    :subject ("[" (:name exhibit) "] Application Received")
+    :body (app-email-text exhibit)}))
 
 (defmacro application-submitted-function-from-config []
   (if cfg/debug

@@ -1,6 +1,7 @@
 (ns docphoto.i18n
   (:require [hiccup.element :as he]
-            [docphoto.guidelines :as guidelines]))
+            [docphoto.guidelines :as guidelines]
+            [clojure.java.io :as io]))
 
 (def ^:dynamic *language* :en)
 
@@ -249,6 +250,23 @@ To reset your password, please click on the following link:
    (:en (guidelines/guidelines :mw20))
    ;; only need english guidelines for mw20
    (:en (guidelines/guidelines :mw20))
+
+   :guidelines-mw21
+   (:en (guidelines/guidelines :mw21))
+   ;; only need english guidelines for mw21
+   (:en (guidelines/guidelines :mw21))
+
+   :guidelines-prodgrant2012-2
+   (:en (guidelines/guidelines :prodgrant2012-2))
+   (:ru (guidelines/guidelines :prodgrant2012-2))
+
+   :pg-app-submitted-email
+   (slurp (io/resource "pg-en-app-submitted-email.txt"))
+   (slurp (io/resource "pg-ru-app-submitted-email.txt"))
+
+   :mw-app-submitted-email
+   (slurp (io/resource "mw-app-submitted-email.txt"))
+   (slurp (io/resource "mw-app-submitted-email.txt"))
 
    ))
 
