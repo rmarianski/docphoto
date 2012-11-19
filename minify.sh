@@ -2,7 +2,7 @@
 
 (cd resources/public/js && \
   cp plupload/js/plupload.full.js docphoto-min.js && \
-  java -jar plovr.jar build config.js >> docphoto-min.js)
+  java -jar ../../../plovr.jar build config.js >> docphoto-min.js)
 
 cat `find resources/public/css/google -name '*.css'` \
   resources/public/css/uni-form.css \
