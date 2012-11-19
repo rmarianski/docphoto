@@ -1816,7 +1816,7 @@
 (defn appsubmit-email-processor [exhibit email-address]
   (send-message
    {:to email-address
-    :subject ("[" (:name exhibit) "] Application Received")
+    :subject (str "[" (:name exhibit) "] Application Received")
     :body (app-email-text exhibit)}))
 
 (defmacro application-submitted-function-from-config []
