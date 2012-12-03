@@ -35,6 +35,7 @@
             [ring.middleware.stacktrace :as stacktrace]
             [ring.util.codec :as ring-codec]
             [decline.core :as decline]
+            [clojure-csv.core :as csv]
             ;[swank.swank]
             )
   (:import [java.io File PipedInputStream PipedOutputStream OutputStream]
@@ -396,6 +397,7 @@
   (admin-password-reset-link [] "admin" "password-reset")
   (admin-download-link [] "admin" "download")
   (admin-login-as-link [] "admin" "login-as")
+  (admin-export-captions-link [] "admin" "export" "captions")
   (admin-create-vetter-link [] "admin" "create-vetter-account")
   (review-request-link [review-request-id] "review-request" review-request-id)
   (logout-link [] "logout")
@@ -456,7 +458,8 @@
             [:li (he/link-to (admin-password-reset-link) "Reset User Password")]
             [:li (he/link-to (admin-create-vetter-link) "Create Vetter Account")]
             [:li (he/link-to (admin-download-link) "Download Images")]
-            [:li (he/link-to (admin-login-as-link) "Login As Other User")]]]))))))
+            [:li (he/link-to (admin-login-as-link) "Login As Other User")]
+            [:li (he/link-to (admin-export-captions-link) "Export Image Captions")]]]))))))
 
 (defmacro when-multiple-languages [& body]
   (cond
@@ -1818,6 +1821,31 @@
     `appsubmit-println-processor
     `appsubmit-email-processor))
 
+(defn csv-image-captions [image-objects]
+  (csv/write-csv
+   (into
+    [["Salesforce Id" "Filename" "Caption"]]
+    (for [image image-objects]
+      [(:id image) (:filename__c image) (:caption__c image)]))))
+
+(defformpage admin-export-captions []
+  [(req-textfield :application-id "Application id (from url)")]
+  (layout
+   request "Admin Export Image Captions"
+   [:div
+    [:form.uniForm {:method :post :action (:uri request)}
+     (render-fields request params errors)
+     [:input {:type :submit :value "Export Image Captions"}]]])
+  (let [application-id (:application-id params)]
+    (if-let [application (query-application application-id)]
+      {:headers
+       {"Content-Type" "text/csv"
+        "Content-Disposition" (str
+                               "attachment; filename=" application-id ".csv")}
+       :status 200
+       :body (csv-image-captions (query-images application-id))}
+      (render-form params {:username "Username not found in salesforce"}))))
+
 (defroutes main-routes
   (GET "/" request home-view)
   (GET "/userinfo" [] userinfo-view)
@@ -1879,7 +1907,8 @@
     (ANY "/download" [] admin-download-view)
     (ANY "/password-reset" [] admin-password-reset)
     (ANY "/create-vetter-account" [] admin-create-vetter-view)
-    (ANY "/login-as" [] admin-login-as-view)))
+    (ANY "/login-as" [] admin-login-as-view)
+    (ANY "/export/captions" [] admin-export-captions)))
 
   (ANY "/language/:language/" [language came-from :as request]
        (language-view request language came-from))

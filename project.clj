@@ -15,7 +15,8 @@
                  [org.imgscalr/imgscalr-lib "4.1"]
                  [com.draines/postal "1.7.0"]
                  [org.clojure/core.incubator "0.1.0"]
-                 [clj-stacktrace "0.2.4"]]
+                 [clj-stacktrace "0.2.4"]
+                 [clojure-csv "2.0.0-alpha2"]]
   :ring {:handler docphoto.core/app
          :init docphoto.core/servlet-init
          :destroy docphoto.core/servlet-destroy
