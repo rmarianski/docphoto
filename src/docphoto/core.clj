@@ -166,8 +166,8 @@
               [[closed__c = false noquote]]
               :append "order by application_start_date__c desc limit 1"))
 
-(def mw21-or-prodgrant2012-2
-  (comp #{:mw21 :prodgrant2012-2} keyword :slug__c :exhibit__r))
+(def mw21-or-prodgrant2013
+  (comp #{:mw21 :prodgrant2013} keyword :slug__c :exhibit__r))
 
 (cachinate (cache-under :applications)
            (defquery query-applications [userid]
@@ -179,7 +179,7 @@
               [[exhibit_application__c.contact__r.id = userid]]
               :append "order by lastModifiedDate desc")
              (fn [form] `(filter
-                         mw21-or-prodgrant2012-2
+                         mw21-or-prodgrant2013
                          (map tweak-application-result ~form)))))
 
 ;; used for cleaning up local disk, so only app ids are returned
@@ -538,23 +538,14 @@
            `(when-logged-in ~(layout-form options body))
            (layout-form options body)))))
 
-(defn- exhibits-html [request]
-  (let [exhibits (query-exhibits)]
-    (if (not-empty exhibits)
-      [:ul
-       (for [exhibit exhibits]
-         [:li
-          [:a {:href (exhibit-link (:slug__c exhibit))}
-           (:name exhibit)]])])))
-
 (defn home-view
   "Redirect to the appropriate competition landing page. Host logic hard coded here too."
   [request]
   (redirect
-   (str "/exhibit/"
+   (str "/"
         (if (= (host-header request) "docphoto.soros.org")
-          "prodgrant2012-2"
-          "mw21"))))
+          "2013"
+          "21"))))
 
 (defview userinfo-view {:title "User Info View" :logged-in true}
   [:dl
@@ -842,9 +833,6 @@
      (sf/delete-ids conn [application-id])
      (persist/delete-application exhibit-slug application-id)))
 
-(defview exhibit-list-view [] "Exhibits"
-  (exhibits-html request))
-
 (defn guidelines-keyword [exhibit-slug]
   (keyword (str "guidelines-" exhibit-slug)))
 
@@ -969,7 +957,7 @@
    (application-fields :focus-country)])
 
 (defmethod exhibit-apply-fields :prodgrant2012 [exhibit] pg-fields)
-(defmethod exhibit-apply-fields :prodgrant2012-2 [exhibit]
+(defmethod exhibit-apply-fields :prodgrant2013 [exhibit]
   (into pg-fields [(application-fields :pg-english-language-proficiency)
                    (application-fields :pg-russian-language-proficiency)
                    (application-fields :pg-additional-language-proficiency)]))
@@ -1001,7 +989,7 @@
 
 (defmethod application-update-fields :prodgrant2012 [application]
   (pg-update-fields application))
-(defmethod application-update-fields :prodgrant2012-2 [application]
+(defmethod application-update-fields :prodgrant2013 [application]
   (pg-update-fields application))
 
 (defmulti application-review-fields (comp keyword :slug__c :exhibit__r))
@@ -1021,7 +1009,7 @@
         :pg-proposal-narrative :pg-personal-statement]))
 
 (defmethod application-review-fields :prodgrant2012 [application] pg-review-fields)
-(defmethod application-review-fields :prodgrant2012-2 [application]
+(defmethod application-review-fields :prodgrant2013 [application]
   (into pg-review-fields [(application-fields :english_language_proficiency__c)
                           (application-fields :russian_language_proficiency__c)
                           (application-fields :additional_language_proficiency__c)]))
@@ -1481,13 +1469,19 @@
          (routing ~'request ~@app-routes)
          (forbidden ~'request))))))
 
+(defn lookup-exhibit-slug [exhibit-spec]
+  (case exhibit-spec
+    "21" "mw21"
+    "2013" "prodgrant2013"
+    nil))
+
 (defmacro prepare-exhibit-routes
   "Fetch exhibit, and inject 'exhibit' through anaphora. Expects 'exhibit-id' to exist in scope."
   [& exhibit-routes]
   `(fn [~'request]
-     (if-let [~'exhibit (query-exhibit ~'exhibit-id)]
-       (routing ~'request ~@exhibit-routes)
-       (not-found-view ~'request))))
+     (when-let [exhibit-slug# (lookup-exhibit-slug ~'exhibit-id)]
+      (when-let [~'exhibit (query-exhibit exhibit-slug#)]
+        (routing ~'request ~@exhibit-routes)))))
 
 (defmacro prepare-image-routes
   "Fetch image, user, verify user can view application associated with image. Expects 'image-id' to be in scope. Injects 'user' and 'image'."
@@ -1805,7 +1799,7 @@
                       :mw20 :mw-app-submitted-email
                       :mw21 :mw-app-submitted-email
                       :prodgrant2012 :pg-app-submitted-email
-                      :prodgrant2012-2 :pg-app-submitted-email
+                      :prodgrant2013 :pg-app-submitted-email
                       )]
     (i18n/translate i18nkeyword)))
 
@@ -1859,12 +1853,6 @@
      (ANY "/review" [] (application-review-view request application))
      (GET "/" [] (app-view request application))))
 
-  (GET "/exhibit" [] exhibit-list-view)
-  (context "/exhibit/:exhibit-id" [exhibit-id]
-    (prepare-exhibit-routes
-     (ANY "/apply" [] (exhibit-apply-view request exhibit))
-     (GET "/" [] (exhibit-view request exhibit))))
-
   (context "/image/:image-id" [image-id]
     (prepare-image-routes
      (GET "/small/*" [] (image-view request image "small"))
@@ -1895,6 +1883,11 @@
 
   (ANY "/language/:language/" [language came-from :as request]
        (language-view request language came-from))
+
+  (context "/:exhibit-id" [exhibit-id]
+    (prepare-exhibit-routes
+     (ANY "/apply" [] (exhibit-apply-view request exhibit))
+     (GET "/" [] (exhibit-view request exhibit))))
 
   (route/resources "/" {:root nil})
 
