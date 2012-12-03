@@ -473,7 +473,7 @@
   [request]
   (let [host (host-header request)]
     (if (= host "docphoto.soros.org")
-      "Production Grant 2012"
+      "Production Grant 2013"
       "Moving Walls 21")))
 
 (defn layout [request options body]

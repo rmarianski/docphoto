@@ -256,9 +256,9 @@ To reset your password, please click on the following link:
    ;; only need english guidelines for mw21
    (:en (guidelines/guidelines :mw21))
 
-   :guidelines-prodgrant2012-2
-   (:en (guidelines/guidelines :prodgrant2012-2))
-   (:ru (guidelines/guidelines :prodgrant2012-2))
+   :guidelines-prodgrant2013
+   (:en (guidelines/guidelines :prodgrant2013))
+   (:ru (guidelines/guidelines :prodgrant2013))
 
    :pg-app-submitted-email
    (slurp (io/resource "pg-en-app-submitted-email.txt"))

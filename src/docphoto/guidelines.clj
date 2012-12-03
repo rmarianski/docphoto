@@ -53,20 +53,20 @@
      [:p "For more details and the application instructions, please visit: " (link "http://www.soros.org/initiatives/photography/focus_areas/mw/guidelines")]
      [:p "If you have any questions, please contact Felix Endara, Exhibitions Coordinator, at 212-547-6909 or " (link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org") "."]
      [:p "Moving Walls 21 deadline: Tuesday, February 26, 2013, 5 p.m. EST."]
-     [:p "To apply, please visit: " (link "http://apply.movingwalls.org/exhibit/mw21/apply")])}
+     [:p "To apply, please visit: " (link "http://apply.movingwalls.org/21/apply")])}
 
-   :prodgrant2012-2
+   :prodgrant2013
    {:en
     (list
      [:p "The Open Society Documentary Photography Project and the Arts and Culture Program are offering grants for documentary photographers from Central Asia, the South Caucasus, Afghanistan, Mongolia, and Pakistan. With these grants, we support visual documentation of important human rights and social issues in the region and provide training and mentorship to local photographers.  For more details and the application instructions, please visit: " (link "http://www.soros.org/initiatives/photography/focus_areas/production-individual/guidelines")]
      [:p "If you have any questions, please contact Anna Overstrom-Coleman, Program Assistant, at 212-506-0009 or " (link-to "mailto:aoverstrom-coleman@sorosny.org" "aoverstrom-coleman@sorosny.org") "."]
-     [:p "CAC 2012 deadline: Thursday, May 10, 2012, 5 p.m. EST."]
-     [:p "To apply, please visit: " (link "http://docphoto.soros.org/exhibit/prodgrant2012-2/apply")])
+     [:p "CAC 2013 deadline: Tuesday, February 12, 2013, 5 p.m. EST."]
+     [:p "To apply, please visit: " (link "http://docphoto.soros.org/2013/apply")])
     :ru
     (list
      [:p "«Проект в области документальной фотографии» и «Программа по искусству и культуре» прелагают гранты для фотографов-документалистов из Центральной Азии, Южного Кавказа, Афганистана, Монголии и Пакистана. При помощи данных грантов мы поддерживаем визуальное документирование  важных вопросов прав человека и социальных тем региона и предоставляем тренинг и наставническую профессиональную поддержку местным фотографам.  Более подробная информация и инструкции по оформлению заявки – пожалуйста, посетите вебсайт: " (link "http://www.soros.org/initiatives/photography/focus_areas/production-individual/guidelines")]
      [:p "Если у Вас возникли вопросы, пожалуйста, обращайтесь к Анне Overstrom-Коулман, ассистент программы, в 212-506-0009 или " (link-to "mailto:aoverstrom-coleman@sorosny.org" "aoverstrom-coleman@sorosny.org") "."]
-     [:p "CAC 2012 срок: четверга, 10 Мая 2012, 5 вечера EST."]
-     [:p "Чтобы подать заявку, пожалуйста, посетите: " (link "http://docphoto.soros.org/exhibit/prodgrant2012-2/apply")])}
+     [:p "CAC 2013 срок: Вторник, 12 Февраля 2013, 5 вечера EST."]
+     [:p "Чтобы подать заявку, пожалуйста, посетите: " (link "http://docphoto.soros.org/2013/apply")])}
 
    })
