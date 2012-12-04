@@ -738,7 +738,7 @@
                         (update-in [:password__c] md5)
                         user-update-mailinglist-value))
           (login request (query-user-by-credentials username (md5 password1)))
-          (redirect "/exhibit"))))))
+          (redirect "/"))))))
 
 (defmacro send-email-reset [request email token]
   (let [reset-link-sym (gensym "resetlink__")]
