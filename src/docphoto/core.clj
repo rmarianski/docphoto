@@ -1891,7 +1891,10 @@
   (GET "/cv/:app-id" [app-id :as request]
     ;; re-using application macro for setup logic
     (prepare-application-routes
-     (fn [uri user application] (can-review-application? user application))
+     (fn [uri user application]
+       (or
+        (can-view-application? user application)
+        (can-review-application? user application)))
      (ANY "*" [] (cv-view request application))))
 
   (ANY "/review-request/:review-request-id" [review-request-id :as request]
