@@ -1411,7 +1411,7 @@
   {:title (i18n/translate :submission-thank-you)}
   [:div
    [:h2 (i18n/translate :submission-thank-you)]
-   [:p (i18n/translate :selection-email-notification) (:email (session/get-user request))]
+   [:p ((i18n/translate :selection-email-notification) (:email (session/get-user request)))]
    [:p (i18n/translate :view-all-applications)
     [:a {:href (user-applications-link (:userName__c (session/get-user request)))}
      (i18n/translate :applications)] "."]])
