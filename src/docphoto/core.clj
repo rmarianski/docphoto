@@ -1186,7 +1186,7 @@
    :include-upload-js true
    :js-script (format (str "new docphoto.Uploader('plupload', 'pick-files', "
                            "'upload', 'files-list', 'images-list', "
-                           "'images-description', "
+                           "'images-description', 'num-images-error', "
                            "{url: \"%s\", captionRequiredText: '" (i18n/translate :caption-required) "'});")
                       (:uri request))}
   (list
@@ -1206,6 +1206,7 @@
      (i18n/translate :upload-image-reorder)]
     [:form {:method :post :action (images-update-link (:id application))}
      (render-images request (query-images (:id application)))
+     [:p#num-images-error.error {:style "display: none"} (i18n/translate :num-images-error)]
      [:input {:type "submit" :value (i18n/translate :save)}]]]))
 
 (defn persist-all-image-scales [^File chunk exhibit-slug application-id image-id]

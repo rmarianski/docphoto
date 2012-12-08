@@ -32,6 +32,9 @@ goog.require('goog.ui.editor.ToolbarController');
 goog.require('goog.debug.ErrorHandler');
 goog.require('goog.Uri');
 
+
+docphoto.errorClass = 'error';
+
 /**
  * @param {!string} containerId
  * @param {!string} pickFilesId
@@ -39,11 +42,13 @@ goog.require('goog.Uri');
  * @param {!string} filesListId
  * @param {!string} imagesId
  * @param {!string} imagesDescription
+ * @param {!string} numImagesErrorId
  * @param {Object} options
  * @constructor
  */
 docphoto.Uploader = function(containerId, pickFilesId, uploadId,
-                      filesListId, imagesId, imagesDescription, options) {
+                      filesListId, imagesId, imagesDescription,
+                      numImagesErrorId, options) {
   this.extensions = "jpg,gif,png";
   var defaultOptions = {
     'runtimes': 'gears,html5,flash,silverlight,browserplus',
@@ -75,8 +80,10 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
   goog.events.listen(this.images, goog.events.EventType.CLICK,
                      this.onImageDelete, false, this);
 
-  var submitButton = goog.dom.getNextElementSibling(this.images);
-  goog.events.listen(submitButton, goog.events.EventType.CLICK,
+  this.numImagesError = goog.dom.getElement(numImagesErrorId);
+
+  this.submitButton = goog.dom.getNextElementSibling(this.numImagesError);
+  goog.events.listen(this.submitButton, goog.events.EventType.CLICK,
                      this.onImagesSave, false, this);
 
   this.filesToUpload = 0;
@@ -91,6 +98,9 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
       var id = goog.getUid(textarea);
       this.captions[id] = textarea;
     }, this);
+    this.adjustNumImagesError();
+  } else {
+    this.submitButton.disabled = 'disabled';
   }
 
   this.dlg = null;
@@ -102,6 +112,7 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
   this.uploader.bind('UploadProgress', goog.bind(this.onUploadProgress, this));
   this.uploader.bind('Error', goog.bind(this.onUploadError, this));
   this.uploader.bind('FileUploaded', goog.bind(this.onUploadDone, this));
+
 };
 
 /**
@@ -221,6 +232,18 @@ docphoto.Uploader.prototype.fileUploaded_ = function() {
       this.imagesDescription.style.display = 'block';
       docphoto.fadeIn(this.imagesDescription);
     }
+    this.adjustNumImagesError();
+  }
+};
+
+docphoto.Uploader.prototype.adjustNumImagesError = function() {
+  var nImages = this.countImages_();
+  if (nImages >= 20 && nImages <= 25) {
+    this.numImagesError.style.display = 'none';
+    this.submitButton.removeAttribute('disabled');
+  } else {
+    this.numImagesError.style.display = 'block';
+    this.submitButton.disabled = 'disabled';
   }
 };
 
@@ -228,7 +251,14 @@ docphoto.Uploader.prototype.fileUploaded_ = function() {
  * @return boolean
  */
 docphoto.Uploader.prototype.haveImages_ = function() {
-  return goog.dom.getChildren(this.images).length > 0;
+  return this.countImages_() > 0;
+};
+
+/**
+ * @return {!number}
+ */
+docphoto.Uploader.prototype.countImages_ = function() {
+  return goog.dom.getChildren(this.images).length;
 };
 
 /**
@@ -263,7 +293,6 @@ docphoto.Uploader.prototype.onUploadDone = function(up, file, responseObject) {
   }
 
   this.updateFilePercentage(file, '100%');
-
 
   this.fileUploaded_();
 };
@@ -320,6 +349,7 @@ docphoto.Uploader.prototype.onImageDelete = function(event) {
             delete this.captions[id];
           }
           goog.dom.removeNode(li);
+          this.adjustNumImagesError();
         }
         break;
       }
@@ -338,20 +368,19 @@ docphoto.Uploader.prototype.onImagesSave = function(event) {
   // check to see that all captions have something set
   // and if not, flag an error and prevent form submission
 
-  var errorClass = 'error';
   var containsErrors = false;
   var error = null;
   var focusElt = null; // focus in on this error element
   goog.object.forEach(this.captions, function(textarea, id) {
     var li = textarea.parentNode;
     error = goog.dom.getElementsByTagNameAndClass(
-      goog.dom.TagName.P, errorClass, li)[0];
+      goog.dom.TagName.P, docphoto.errorClass, li)[0];
     if (goog.isDefAndNotNull(error)) {
       goog.dom.removeNode(error);
     }
     if (goog.string.isEmpty(textarea.value)) {
       error = goog.dom.createDom(goog.dom.TagName.P,
-                                 errorClass,
+                                 docphoto.errorClass,
                                  this.captionRequiredText);
       goog.dom.insertChildAt(li, error, 0);
       focusElt = textarea;
@@ -523,7 +552,8 @@ docphoto.editor.maxWordsError = function(field, maxWords, errMsg, wordCount) {
   // display error message next to text area
   var errorField = docphoto.editor.findErrorFieldFromDataField(field);
   if (!goog.isDefAndNotNull(errorField)) {
-    errorField = goog.dom.createDom(goog.dom.TagName.DIV, 'error');
+    errorField = goog.dom.createDom(goog.dom.TagName.DIV,
+                                    docphoto.errorClass);
   }
   errMsg = errMsg + wordCount;
   errorField.innerHTML = errMsg;
@@ -541,7 +571,7 @@ docphoto.editor.maxWordsError = function(field, maxWords, errMsg, wordCount) {
 docphoto.editor.findErrorFieldFromDataField = function(field) {
   var parent = field.parentNode;
   var errorField = null;
-  var errorElts = parent.getElementsByClassName('error');
+  var errorElts = parent.getElementsByClassName(docphoto.errorClass);
   return errorElts.length > 0 ? errorElts[0] : null;
 };
 
