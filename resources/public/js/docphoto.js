@@ -390,17 +390,34 @@ docphoto.parseImageId_ = function(imageEl) {
 //   // });
 // };
 
-docphoto.editor.triggerEditors = function() {
+/**
+ * @param {!string} maxWordsErrMsg
+ */
+docphoto.editor.triggerEditors = function(maxWordsErrMsg) {
   var textareas = goog.dom.getElementsByTagNameAndClass(
     goog.dom.TagName.TEXTAREA, 'editor');
-  goog.array.forEach(textareas, docphoto.editor.makeEditor);
+  goog.array.forEach(textareas,
+                     goog.partial(docphoto.editor.makeEditor,
+                                  maxWordsErrMsg));
 };
 
 /**
  * @param {!Element} textarea
  */
-docphoto.editor.makeEditor = function(textarea) {
+docphoto.editor.makeEditor = function(maxWordsErrMsg, textarea) {
   var id = textarea.getAttribute('id');
+  var classes = goog.dom.classes.get(textarea);
+  var maxWords = null;
+  goog.array.forEach(classes, function(cls) {
+    if (cls.indexOf('max-') === 0) {
+      var maxValue = cls.substr(4);
+      maxWords = parseInt(maxValue, 10);
+      if (isNaN(maxWords)) {
+        maxWords = null;
+      }
+    }
+  });
+
   var field = new goog.editor.Field(id);
 
   field.registerPlugin(new goog.editor.plugins.BasicTextFormatter());
@@ -450,9 +467,17 @@ docphoto.editor.makeEditor = function(textarea) {
   dataField.value = textarea.value;
   goog.dom.insertSiblingBefore(dataField, textarea);
 
+  var errFn = null;
+  var clearErrFn = null;
+  if (goog.isDefAndNotNull(maxWords)) {
+    errFn = goog.partial(docphoto.editor.maxWordsError,
+                         dataField, maxWords, maxWordsErrMsg);
+    clearErrFn = goog.partial(docphoto.editor.maxWordsClearError, dataField);
+  }
+
   goog.events.listen(field, goog.editor.Field.EventType.DELAYEDCHANGE,
                      goog.partial(docphoto.editor.updateFieldContents_,
-                                  dataField, field));
+                                  dataField, field, maxWords, errFn, clearErrFn));
 
   field.makeEditable();
 
@@ -467,9 +492,110 @@ docphoto.editor.makeEditor = function(textarea) {
 /**
  * @param {!Element} dataField
  * @param {!Object} editorField
+ * @param {?number} maxWords
+ * @param {?function(!number)} errFn
+ * @param {?function()} clearErrFn
  */
-docphoto.editor.updateFieldContents_ = function(dataField, editorField) {
-  dataField.value = editorField.getCleanContents();
+docphoto.editor.updateFieldContents_ = function(dataField, editorField, maxWords,
+                                         errFn, clearErrFn) {
+  var contents = editorField.getCleanContents();
+  dataField.value = contents;
+
+  if (goog.isDefAndNotNull(maxWords)) {
+    var text = docphoto.editor.convertHtmlToText(contents);
+    var wordCount = docphoto.editor.countWords(text);
+    if (wordCount > maxWords) {
+      errFn(wordCount);
+    } else {
+      clearErrFn();
+    }
+  }
+};
+
+
+/**
+ * @param {!Element} field
+ * @param {number} maxWords
+ * @param {string} errMsg
+ * @param {number} wordCount
+*/
+docphoto.editor.maxWordsError = function(field, maxWords, errMsg, wordCount) {
+  // display error message next to text area
+  var errorField = docphoto.editor.findErrorFieldFromDataField(field);
+  if (!goog.isDefAndNotNull(errorField)) {
+    errorField = goog.dom.createDom(goog.dom.TagName.DIV, 'error');
+  }
+  errMsg = errMsg + wordCount;
+  errorField.innerHTML = errMsg;
+  field.parentNode.appendChild(errorField);
+
+  // disable submit button
+  var submit = docphoto.editor.findSubmitButton(field);
+  submit.disabled = 'disabled';
+};
+
+/**
+ * @param {!Element} field
+ * @return {?Element}
+*/
+docphoto.editor.findErrorFieldFromDataField = function(field) {
+  var parent = field.parentNode;
+  var errorField = null;
+  var errorElts = parent.getElementsByClassName('error');
+  return errorElts.length > 0 ? errorElts[0] : null;
+};
+
+/**
+ * @param {!Element} field
+*/
+docphoto.editor.maxWordsClearError = function(field) {
+  var errorField = docphoto.editor.findErrorFieldFromDataField(field);
+  if (goog.isDefAndNotNull(errorField)) {
+    goog.dom.removeNode(errorField);
+  }
+
+  // enable submit button
+  var submit = docphoto.editor.findSubmitButton(field);
+  submit.removeAttribute('disabled');
+};
+
+/**
+ * @param {!Element} field
+*/
+docphoto.editor.findSubmitButton = function(field) {
+  var elt = field;
+  while (true) {
+    elt = elt.parentNode;
+    if (!goog.isDefAndNotNull(elt) || elt.nodeName === goog.dom.TagName.FORM) {
+      break;
+    }
+  }
+  return goog.dom.getLastElementChild(elt);
+};
+
+/**
+ * @param {!string} html
+ * @return {!string}
+ */
+docphoto.editor.convertHtmlToText = function(html) {
+  // set the html on a dom element, and then grab the text from there
+  var dummyNode = goog.dom.createElement(goog.dom.TagName.DIV);
+  dummyNode.innerHTML = html;
+  var text = goog.dom.getTextContent(dummyNode);
+  return text;
+};
+
+/**
+ * @param {!string} text
+ * @return {number}
+ */
+docphoto.editor.countWords = function(text) {
+  var normalized = text.replace(/\s/g, ' ');
+  var words = normalized.split(' ');
+  var count = goog.array.reduce(words, function(acc, word) {
+    return word.length > 0 ? acc + 1 : acc;
+  }, 0);
+  return /** @type {number} */ (count);
 };
 
 // remove target=_blank attributes automatically added by salesforce

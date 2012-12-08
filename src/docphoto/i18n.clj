@@ -242,6 +242,10 @@ To reset your password, please click on the following link:
    "Please list any additional languages you speak, and your proficiency level (Beginner, Intermediate, Advanced, or Fluent):"
    "Пожалуйста, перечислите любую дополнительную языках вы говорите, и ваш уровень мастерства (начальный, средний, продвинутый или свободный):"
 
+   :too-many-words
+   "Too many words: "
+   "Слишком много слов: "
+
    :guidelines-prodgrant2012
    (:en (guidelines/guidelines :prodgrant2012))
    (:ru (guidelines/guidelines :prodgrant2012))

@@ -892,14 +892,14 @@
                                   {:label "Project Summary"
                                    :description "A one sentence description of the project, including title (if applicable) and main subject/content."}]
                           :validator {:fn not-empty :msg :required}}
-   :mw21-project-statement {:field [:text-area#statement.editor {:style "height: 500px"} :statementRich__c
+   :mw21-project-statement {:field [:text-area#statement {:style "height: 500px" :class "editor max-600"} :statementRich__c
                                     {:label "Project Statement" :description "(600 words maximum) describing the project you would like to exhibit"}]
                             :validator {:fn not-empty :msg :required}}
-   :mw21-bio {:field [:text-area#biography.editor {:style "height: 250px"} :biography__c
+   :mw21-bio {:field [:text-area#biography {:style "height: 250px" :class "editor max-250"} :biography__c
                       {:label "Short Narrative Bio"
                        :description "(250 words maximum) summarizing your previous work and experience"}]
               :validator {:fn not-empty :msg :required}}
-   :mw21-summary-of-engagement {:field [:text-area#summaryEngagement.editor {:style "height: 500px"} :narrative__c
+   :mw21-summary-of-engagement {:field [:text-area#summaryEngagement {:style "height: 500px" :class "editor max-600"} :narrative__c
                                         {:label "Summary of your engagement"
                                          :description "(600 words maximum) Please comment on your relationship with the issue or community you photographed. How and why did you begin the project? How long have you  been working on the project? Are there particular methods you  use while working?   What do you hope a viewer will take away from your project?"}]
                                 :validator {:fn not-empty :msg :required}}
@@ -1038,7 +1038,9 @@
                             request
                             {:title (str "Apply to " (:name exhibit))
                              :include-editor-css true
-                             :js-script "docphoto.editor.triggerEditors();"}
+                             :js-script (str "docphoto.editor.triggerEditors('"
+                                             (i18n/translate :too-many-words)
+                                             "');")}
                             [:div
                              [:form.uniForm {:method :post :action (:uri request)
                                              :enctype "multipart/form-data"}
@@ -1087,7 +1089,9 @@
                           request
                           {:title (str "Update application")
                            :include-editor-css true
-                           :js-script "docphoto.editor.triggerEditors();"}
+                           :js-script (str "docphoto.editor.triggerEditors('"
+                                           (i18n/translate :too-many-words)
+                                           "');")}
                           [:div
                            [:form.uniForm {:method :post :action (:uri request)
                                            :enctype "multipart/form-data"}
