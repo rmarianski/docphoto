@@ -213,9 +213,12 @@ To reset your password, please click on the following link:
    :application-submit-button "Submit your application" "Подайте заявку"
 
    :submission-thank-you "Thank you for your submission" "Спасибо за Ваше представление"
-   :selection-email-notification
+   :mw-selection-email-notification
    (fn [email] (str "When we have made our selections, we will notify you at the email address you provided: " email ". You should expect to hear from us sometime in May 2013."))
-   (fn [email] "Когда мы сделали наш выбор, мы сообщим вам на адрес электронной почты, при условии: ")
+   (fn [email] "Когда мы сделали наш выбор, мы сообщим вам на адрес электронной почты, при условии: " email)
+   :pg-selection-email-notification
+   (fn [email] (str "When we have made our selections, we will notify you at the email address you provided: " email ". You should expect to hear from us sometime in June 2013."))
+   (fn [email] "Когда мы сделали наш выбор, мы сообщим вам на адрес электронной почты, при условии: " email)
 
    :view-all-applications "You can view all your " "Вы можете просмотреть все "
 

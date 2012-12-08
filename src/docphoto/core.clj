@@ -965,7 +965,9 @@
                    (application-fields :pg-russian-language-proficiency)
                    (application-fields :pg-additional-language-proficiency)]))
 
-(defmulti application-update-fields (comp keyword :slug__c :exhibit__r))
+(def exhibit-slug-from-application (comp keyword :slug__c :exhibit__r))
+
+(defmulti application-update-fields exhibit-slug-from-application)
 
 (defn make-cv-field-optional
   "The cv field is optional when updating the application"
@@ -1416,7 +1418,9 @@
   {:title (i18n/translate :submission-thank-you)}
   [:div
    [:h2 (i18n/translate :submission-thank-you)]
-   [:p ((i18n/translate :selection-email-notification) (:email (session/get-user request)))]
+   [:p ((i18n/translate (if (= :prodgrant2013 (exhibit-slug-from-application application))
+                          :pg-selection-email-notification :mw-selection-email-notification))
+        (:email (session/get-user request)))]
    [:p (i18n/translate :view-all-applications)
     [:a {:href (user-applications-link (:userName__c (session/get-user request)))}
      (i18n/translate :applications)] "."]])
