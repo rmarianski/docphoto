@@ -26,6 +26,7 @@
             [docphoto.session :as session]
             [docphoto.form :as form]
             [docphoto.i18n :as i18n]
+            [docphoto.pdf :as pdf]
             [clojure.string :as string]
             [clojure.set]
             [docphoto.guidelines :as guidelines]
@@ -224,7 +225,7 @@
 (cachinate (cache-under :images)
            (defquery query-images [application-id]
              cache-get cache-set
-             (image__c [id caption__c order__c filename__c]
+             (image__c [id caption__c order__c filename__c mime_type__c]
                        [[exhibit_application__c = application-id]]
                        :append "order by order__c")))
 
@@ -398,6 +399,7 @@
   (admin-download-link [] "admin" "download")
   (admin-login-as-link [] "admin" "login-as")
   (admin-export-captions-link [] "admin" "export" "captions")
+  (admin-export-pdf-link [] "admin" "export" "pdf")
   (admin-create-vetter-link [] "admin" "create-vetter-account")
   (review-request-link [review-request-id] "review-request" review-request-id)
   (logout-link [] "logout")
@@ -457,9 +459,10 @@
            [:ul
             [:li (he/link-to (admin-password-reset-link) "Reset User Password")]
             [:li (he/link-to (admin-create-vetter-link) "Create Vetter Account")]
-            [:li (he/link-to (admin-download-link) "Download Images")]
             [:li (he/link-to (admin-login-as-link) "Login As Other User")]
-            [:li (he/link-to (admin-export-captions-link) "Export Image Captions")]]]))))))
+            [:li (he/link-to (admin-download-link) "Download Application Images")]
+            [:li (he/link-to (admin-export-captions-link) "Export Image Captions")]
+            [:li (he/link-to (admin-export-pdf-link) "Export Application Pdf")]]]))))))
 
 (defmacro when-multiple-languages [& body]
   (cond
@@ -1855,6 +1858,25 @@
        :body (csv-image-captions (query-images application-id))}
       (render-form params {:username "Username not found in salesforce"}))))
 
+(defformpage admin-export-pdf []
+  [(req-textfield :application-id "Application id (from url)")]
+  (layout
+   request "Admin Export Pdf"
+   [:div
+    [:form.uniForm {:method :post :action (:uri request)}
+     (render-fields request params errors)
+     [:input {:type :submit :value "Export Application Pdf"}]]])
+  (let [application-id (:application-id params)]
+    (if-let [application (query-application application-id)]
+      (let [app-model (assoc application :images (query-images application-id))]
+        {:headers
+         {"Content-Type" "application/pdf"
+          "Content-Disposition" (str "attachment; filename=" application-id ".pdf")}
+         :status 200
+         :body (create-input-stream-from-output
+                (partial pdf/render-application-as-pdf app-model))})
+      (render-form params {:username "Username not found in salesforce"}))))
+
 (defroutes main-routes
   (GET "/" request home-view)
   (GET "/userinfo" [] userinfo-view)
@@ -1920,7 +1942,8 @@
     (ANY "/password-reset" [] admin-password-reset)
     (ANY "/create-vetter-account" [] admin-create-vetter-view)
     (ANY "/login-as" [] admin-login-as-view)
-    (ANY "/export/captions" [] admin-export-captions)))
+    (ANY "/export/captions" [] admin-export-captions)
+    (ANY "/export/pdf" [] admin-export-pdf)))
 
   (ANY "/language/:language/" [language came-from :as request]
        (language-view request language came-from))

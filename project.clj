@@ -1,6 +1,7 @@
 (defproject foo "1.0.0-SNAPSHOT"
   :description "FIXME: write description"
   :dev-dependencies [[lein-ring "0.5.2"]]
+  :jvm-opts ["-Djava.protocol.handler.pkgs=org.xhtmlrenderer.protocols"]
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [compojure "1.1.3"]
                  [hiccup "1.0.0"]
@@ -16,7 +17,10 @@
                  [com.draines/postal "1.7.0"]
                  [org.clojure/core.incubator "0.1.0"]
                  [clj-stacktrace "0.2.4"]
-                 [clojure-csv "2.0.0-alpha2"]]
+                 [clojure-csv "2.0.0-alpha2"]
+                 [org.xhtmlrenderer/flying-saucer-pdf "9.0.1"]
+                 [org.clojure/data.codec "0.1.0"]
+                 [org.ccil.cowan.tagsoup/tagsoup "1.2.1"]]
   :ring {:handler docphoto.core/app
          :init docphoto.core/servlet-init
          :destroy docphoto.core/servlet-destroy

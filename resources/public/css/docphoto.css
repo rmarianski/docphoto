@@ -92,6 +92,7 @@ a:hover {
     float: right;
     width: 200px;
     text-align: right;
+    margin-bottom: 2em;
 }
 #sidebar h2 {
     color: #414141;
