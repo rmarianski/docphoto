@@ -34,5 +34,8 @@
 ;; override for production deployments
 (def base-storage-path nil)
 
+;; pdf generation will issue requests to this url to fetch images
+(def pdf-generation-base-url "http://127.0.0.1:8080")
+
 ;; whether to start a swank server on servlet init
 (def swank-server? false)

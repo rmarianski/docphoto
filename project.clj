@@ -1,7 +1,6 @@
-(defproject foo "1.0.0-SNAPSHOT"
+(defproject docphoto "1.0.0-SNAPSHOT"
   :description "FIXME: write description"
   :dev-dependencies [[lein-ring "0.5.2"]]
-  :jvm-opts ["-Djava.protocol.handler.pkgs=org.xhtmlrenderer.protocols"]
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [compojure "1.1.3"]
                  [hiccup "1.0.0"]

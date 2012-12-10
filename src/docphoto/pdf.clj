@@ -2,6 +2,7 @@
   (:require [hiccup.core :as hic]
             [clojure.java.io :as io]
             [clojure.data.codec.base64 :as b64]
+            [docphoto.config :as cfg]
             [docphoto.persist :as persist])
   (:import [org.xhtmlrenderer.pdf ITextRenderer]
            [javax.xml.parsers DocumentBuilder DocumentBuilderFactory]
@@ -22,13 +23,9 @@
 
 (defn render-pdf [out doc]
   (doto (ITextRenderer.)
-    ;; no need for base url because we are using inline base64 encoded images
     (.setDocument doc nil)
     (.layout)
     (.createPDF out)))
-
-(def images (atom []))
-(def applications (atom []))
 
 (defn generate-hiccup-markup [application]
   (hic/html
@@ -60,11 +57,14 @@
          [:div.image-row
           [:div.image-container
            [:img
-            {:src
-             (str
-              "data:" (:mime_type__c image) ";base64,"
-              (base64 (persist/image-file-path exhibit-slug app-id (:id image) "small")))}]]
-          [:p (:caption__c image)]]))]]))
+            {:src (str cfg/pdf-generation-base-url "/image/" (:id image) "/small/" (:filename__c image))
+             ;; not base64 encoding due to jvm custom url handler issues
+             ;; #_(str
+             ;;    "data:" (:mime_type__c image) ";base64,"
+             ;;    (base64 (persist/image-file-path exhibit-slug app-id (:id image) "small")))
+             }]]
+          [:p (:caption__c image)]]))]])
+  )
 
 ;; without tagsoup
 ;; (defn make-w3c-document [html-as-string]

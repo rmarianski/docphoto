@@ -1498,19 +1498,24 @@
       (when-let [~'exhibit (query-exhibit exhibit-slug#)]
         (routing ~'request ~@exhibit-routes)))))
 
+(defn local-request? [request]
+  (= "127.0.0.1" (:remote-addr request)))
+
 (defmacro prepare-image-routes
   "Fetch image, user, verify user can view application associated with image. Expects 'image-id' to be in scope. Injects 'user' and 'image'."
   [& image-routes]
   `(wrap-file-info
     (fn [~'request]
       (if-let [~'image (query-image ~'image-id)]
-        (when-logged-in
-         (let [~'application (:exhibit_application__r ~'image)]
-           (if (or
-                (can-view-application? ~'user ~'application)
-                (can-review-application? ~'user ~'application))
-             (routing ~'request ~@image-routes)
-             (forbidden ~'request))))))))
+        (let [~'application (:exhibit_application__r ~'image)]
+          (if (local-request? ~'request)
+            (routing ~'request ~@image-routes)
+            (when-logged-in
+             (if (or
+                  (can-view-application? ~'user ~'application)
+                  (can-review-application? ~'user ~'application))
+               (routing ~'request ~@image-routes)
+               (forbidden ~'request)))))))))
 
 (defn user-applications-view [request username]
   (when-logged-in
