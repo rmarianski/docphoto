@@ -9,7 +9,7 @@
         [hiccup.page :only (xhtml include-css include-js)]
         [hiccup.element :only (javascript-tag)]
         [ring.adapter.jetty-servlet :only (run-jetty)]
-        [ring.util.response :only (redirect)]
+        [ring.util.response :only (redirect resource-response)]
         [clojure.core.incubator :only (-?> -?>> dissoc-in)]
         [clojure.java.io :only (copy file input-stream output-stream resource)]
         [docphoto.utils :only (defn-debug-memo md5 multipart-form?
@@ -41,6 +41,7 @@
             )
   (:import [java.io File PipedInputStream PipedOutputStream OutputStream]
            [java.util.zip ZipOutputStream ZipEntry]
+           java.util.Calendar
            [javax.servlet.http HttpSession]))
 
 ;; global salesforce connection
@@ -319,6 +320,11 @@
 (defmacro editor-css []
   (vec (list-all-editor-css-files)))
 
+(defn resource-version-string []
+  (let [c (Calendar/getInstance)]
+    (apply str (map #(.get c %)
+                    [Calendar/YEAR Calendar/DAY_OF_YEAR]))))
+
 (defmacro theme-css [editor-css?]
   (if cfg/debug-css
     (let [debug-css-files ["/public/css/google/common.css"
@@ -329,7 +335,7 @@
            (concat debug-css-files
                    (editor-css)))
          ~debug-css-files))
-    ["/public/css/docphoto-min.css"]))
+    [(str "/public/css/docphoto-min-" (resource-version-string) ".css")]))
 
 (defmacro theme-js [include-upload-js?]
   (if cfg/debug-js
@@ -339,7 +345,7 @@
         (if ~include-upload-js?
           ["/public/js/plupload/js/plupload.full.js" ~debug-js-file]
           [~debug-js-file])))
-    `(include-js "/public/js/docphoto-min.js")))
+    `(include-js (str "/public/js/docphoto-min-" (resource-version-string) ".js"))))
 
 (defn host-header
   "parse the host header differently based on whether we are proxied to or not"
@@ -1957,6 +1963,15 @@
     (prepare-exhibit-routes
      (ANY "/apply" [] (exhibit-apply-view request exhibit))
      (GET "/" [] (exhibit-view request exhibit))))
+
+  (fn [request]
+    (let [^String uri (:uri request)]
+      (cond
+       (.startsWith uri "/public/js/docphoto-min-")
+       (resource-response "/public/js/docphoto-min.js")
+
+       (.startsWith uri "/public/css/docphoto-min-")
+       (resource-response "/public/css/docphoto-min.css"))))
 
   (route/resources "/" {:root nil})
 
