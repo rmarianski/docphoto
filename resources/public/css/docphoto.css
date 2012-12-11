@@ -301,6 +301,10 @@ a#upload:hover {
 #review-images .galleria-info-link {
     display: none;
 }
+#review-images .galleria-thumb-nav-right,
+#review-images .galleria-thumb-nav-left {
+    background-color: #111;
+}
 
 #login-notes p {
     margin: 1em 0;
