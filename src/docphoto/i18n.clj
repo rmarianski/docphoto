@@ -218,7 +218,7 @@ To reset your password, please click on the following link:
    (fn [email] "Когда мы сделали наш выбор, мы сообщим вам на адрес электронной почты, при условии: " email)
    :pg-selection-email-notification
    (fn [email] (str "When we have made our selections, we will notify you at the email address you provided: " email ". You should expect to hear from us sometime in June 2013."))
-   (fn [email] "Когда мы сделали наш выбор, мы сообщим вам на адрес электронной почты, при условии: " email)
+   (fn [email] "Как только мы завершим наш отбор, мы известим Вас об этом по предоставленному Вами имейлу. Вам следует ожидать от нас новостей где-то в июне 2013 года.")
 
    :view-all-applications "You can view all your " "Вы можете просмотреть все "
 
