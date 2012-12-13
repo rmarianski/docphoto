@@ -250,8 +250,8 @@ To reset your password, please click on the following link:
    "Слишком много слов: "
 
    :num-images-error
-   "Please submit 20 - 25 images"
-   "Пожалуйста, отправляйте 20 - 25 фотографий"
+   "Please submit 15 - 20 images"
+   "Пожалуйста, отправляйте 15 - 20 фотографий"
 
    :guidelines-prodgrant2012
    (:en (guidelines/guidelines :prodgrant2012))

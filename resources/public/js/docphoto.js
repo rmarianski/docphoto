@@ -238,7 +238,7 @@ docphoto.Uploader.prototype.fileUploaded_ = function() {
 
 docphoto.Uploader.prototype.adjustNumImagesError = function() {
   var nImages = this.countImages_();
-  if (nImages >= 20 && nImages <= 25) {
+  if (nImages >= 15 && nImages <= 20) {
     this.numImagesError.style.display = 'none';
     this.submitButton.removeAttribute('disabled');
   } else {
