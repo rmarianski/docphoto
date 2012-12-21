@@ -58,7 +58,7 @@
    :prodgrant2013
    {:en
     (list
-     [:p "The Open Society Documentary Photography Project and the Arts and Culture Program are offering grants for documentary photographers from Central Asia, the South Caucasus, Afghanistan, Mongolia, and Pakistan. With these grants, we support visual documentation of important human rights and social issues in the region and provide training and mentorship to local photographers.  For more details and the application instructions, please visit: " (link "http://www.soros.org/initiatives/photography/focus_areas/production-individual/guidelines")]
+     [:p "The Open Society Documentary Photography Project is offering grants for documentary photographers from Central Asia, the South Caucasus, Afghanistan, Mongolia, and Pakistan. With these grants, we support visual documentation of important human rights and social issues in the region and provide training and mentorship to local photographers.  For more details and the application instructions, please visit: " (link "http://www.soros.org/initiatives/photography/focus_areas/production-individual/guidelines")]
      [:p "If you have any questions, please contact Anna Overstrom-Coleman, Program Assistant, at 212-506-0009 or " (link-to "mailto:aoverstrom-coleman@sorosny.org" "aoverstrom-coleman@sorosny.org") "."]
      [:p "CAC 2013 deadline: Tuesday, March 5, 2013, 5 p.m. EST."]
      [:p "To apply, please visit: " (link "http://docphoto.soros.org/2013/apply")])
