@@ -155,7 +155,7 @@ To reset your password, please click on the following link:
 
    ;; image upload
    :upload-images "Upload images" "Загрузка изображений"
-   :upload-image-amount "Please upload 15-20 images." "Пожалуйста, загрузите 15-20 изображений"
+   :upload-image-amount "Please upload 15-30 images." "Пожалуйста, загрузите 15-30 изображений"
    :upload-no-support
    "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus or HTML5 support."
    "Ваш браузер не установлен Flash, Silverlight, Gears, BrowserPlus или поддержки HTML5."
@@ -250,8 +250,8 @@ To reset your password, please click on the following link:
    "Слишком много слов: "
 
    :num-images-error
-   "Please submit 15 - 20 images"
-   "Пожалуйста, отправляйте 15 - 20 фотографий"
+   "Please submit 15 - 30 images"
+   "Пожалуйста, отправляйте 15 - 30 фотографий"
 
    :guidelines-prodgrant2012
    (:en (guidelines/guidelines :prodgrant2012))
