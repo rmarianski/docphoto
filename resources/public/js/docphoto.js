@@ -98,9 +98,11 @@ docphoto.Uploader = function(containerId, pickFilesId, uploadId,
       var id = goog.getUid(textarea);
       this.captions[id] = textarea;
     }, this);
-    this.adjustNumImagesError();
+    // don't show errors
+    //this.adjustNumImagesError();
   } else {
-    this.submitButton.disabled = 'disabled';
+    // always allow submission
+    //this.submitButton.disabled = 'disabled';
   }
 
   this.dlg = null;
@@ -237,14 +239,16 @@ docphoto.Uploader.prototype.fileUploaded_ = function() {
 };
 
 docphoto.Uploader.prototype.adjustNumImagesError = function() {
-  var nImages = this.countImages_();
-  if (nImages >= 15 && nImages <= 30) {
-    this.numImagesError.style.display = 'none';
-    this.submitButton.removeAttribute('disabled');
-  } else {
-    this.numImagesError.style.display = 'block';
-    this.submitButton.disabled = 'disabled';
-  }
+  // never show the error and always allow submission
+
+  // var nImages = this.countImages_();
+  // if (nImages >= 15 && nImages <= 30) {
+  //   this.numImagesError.style.display = 'none';
+  //   this.submitButton.removeAttribute('disabled');
+  // } else {
+  //   this.numImagesError.style.display = 'block';
+  //   this.submitButton.disabled = 'disabled';
+  // }
 };
 
 /**
