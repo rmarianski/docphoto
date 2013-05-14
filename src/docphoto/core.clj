@@ -1750,13 +1750,14 @@
         image-files (persist/application-image-files exhibit-slug
                                                      application-id)
         image-objects (query-images application-id)
-        images-with-files (weave-images-with-files image-objects image-files)]
+        images-with-files (weave-images-with-files image-objects image-files)
+        unique-images-with-files (map-indexed #(assoc %2 :filename (str (inc %) "-" (:filename %2))) images-with-files)]
     {:headers
      {"Content-Type" "application/zip"
       "Content-Disposition" (str
                              "attachment; filename=" application-id ".zip")}
      :status 200
-     :body (create-input-stream-from-output (create-images-zipper images-with-files))}))
+     :body (create-input-stream-from-output (create-images-zipper unique-images-with-files))}))
 
 (defn admin-download-view [request]
   (if-let [application-id (:application-id (:params request))]
