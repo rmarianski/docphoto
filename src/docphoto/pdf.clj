@@ -36,7 +36,7 @@
       ".page-break { page-break-after: always; }\n"
       "h1 { text-align: center; }\n"
       "h2 { margin-top: 2em; }\n"
-      ".image-row { clear: both; height: 120px;}\n"
+      ".image-row { clear: both; min-height: 120px;}\n"
       ".image-container { float: left; width: 130px; }\n"
       ]]
     [:body
