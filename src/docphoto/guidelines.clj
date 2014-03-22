@@ -69,4 +69,14 @@
      [:p "CAC 2013 срок: Вторник, 5 март 2013, 5 вечера EST."]
      [:p "Чтобы подать заявку, пожалуйста, посетите: " (link "http://docphoto.soros.org/2013/apply")])}
 
+   :mw22
+   {:en
+    (list
+     [:h1 "This text need to be updated"]
+     [:p "The Open Society Foundations invite photographers to submit a body of work for consideration in the Moving Walls 22 group exhibition, scheduled to open in New York in Fall 2013."]
+     [:p "The Moving Walls exhibition series showcases documentary photography that highlights human rights and social issues that coincide with the Open Society Foundations' mission. Moving Walls is exhibited at our offices in New York and Washington, D.C. "]
+     [:p "For more details and the application instructions, please visit: " (link "http://www.opensocietyfoundations.org/grants/moving-walls")]
+     [:p "If you have any questions, please contact Felix Endara, Exhibitions Coordinator, at 212-547-6909 or " (link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org") "."]
+     [:p "Moving Walls 22 deadline: Tuesday, February 26, 2013, 5 p.m. EST."]
+     [:p "To apply, please visit: " (link "http://apply.movingwalls.org/22/apply")])}
    })

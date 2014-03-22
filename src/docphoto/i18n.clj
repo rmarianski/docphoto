@@ -267,6 +267,11 @@ To reset your password, please click on the following link:
    ;; only need english guidelines for mw21
    (:en (guidelines/guidelines :mw21))
 
+   :guidelines-mw22
+   (:en (guidelines/guidelines :mw22))
+   ;; only need english guidelines for mw22
+   (:en (guidelines/guidelines :mw22))
+
    :guidelines-prodgrant2013
    (:en (guidelines/guidelines :prodgrant2013))
    (:ru (guidelines/guidelines :prodgrant2013))

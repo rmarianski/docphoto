@@ -172,6 +172,9 @@
 (def mw21-or-prodgrant2013
   (comp #{:mw21 :prodgrant2013} keyword :slug__c :exhibit__r))
 
+(defn active-applications-to-display [& exhibit-slugs]
+  (comp (set exhibit-slugs) keyword :slug__c :exhibit__r))
+
 (cachinate (cache-under :applications)
            (defquery query-applications [userid]
              cache-get cache-set
@@ -182,7 +185,8 @@
               [[exhibit_application__c.contact__r.id = userid]]
               :append "order by lastModifiedDate desc")
              (fn [form] `(filter
-                         mw21-or-prodgrant2013
+                         ;mw21-or-prodgrant2013
+                         (active-applications-to-display :mw22)
                          (map tweak-application-result ~form)))))
 
 ;; used for cleaning up local disk, so only app ids are returned
@@ -483,7 +487,7 @@
   (let [host (host-header request)]
     (if (= host "docphoto.soros.org")
       "Production Grant 2013"
-      "Moving Walls 21")))
+      "Moving Walls 22")))
 
 (defn layout [request options body]
   (xhtml
@@ -557,7 +561,7 @@
    (str "/"
         (if (= (host-header request) "docphoto.soros.org")
           "2013"
-          "21"))))
+          "22"))))
 
 (defview userinfo-view {:title "User Info View" :logged-in true}
   [:dl
@@ -957,6 +961,19 @@
 
 (defmethod exhibit-apply-fields :mw20 [exhibit] mw-fields)
 (defmethod exhibit-apply-fields :mw21 [exhibit] mw-fields)
+(defmethod exhibit-apply-fields :mw22 [exhibit]
+  [(application-fields :mw21-project-title)
+   (application-fields :focus-region)
+   {:field [:text-area#coverpage.editor {:style "height: 50px"} :cover_Page__c
+            {:label "Project Summary"
+             :description "A one sentence description of the project, including the title, topic, and location. (50 words maximum)"}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#statement {:style "height: 500px" :class "editor max-600"} :statementRich__c
+                                    {:label "Project Statement" :description "Describe the project you would like to exhibit, and how it relates to the theme of surveillance. (600 words maximum)"}]
+    :validator {:fn not-empty :msg :required}}
+   ;; up to describe your process new field ... need to create in salesforce
+   ]
+  )
 
 (def pg-fields
   [(application-fields :pg-project-title)
@@ -997,6 +1014,8 @@
   (mw-update-fields application))
 (defmethod application-update-fields :mw21 [application]
   (mw-update-fields application))
+(defmethod application-update-fields :mw22 [application]
+  (mw-update-fields application))
 
 (defn pg-update-fields [application]
   (make-cv-field-optional (exhibit-apply-fields (:exhibit__r application))))
@@ -1014,8 +1033,9 @@
         :mw21-bio :mw21-summary-of-engagement
         :website :multimedia]))
 
-(defmethod application-review-fields :mw20 [application] mw-fields)
-(defmethod application-review-fields :mw21 [application] mw-fields)
+(defmethod application-review-fields :mw20 [application] mw-review-fields)
+(defmethod application-review-fields :mw21 [application] mw-review-fields)
+(defmethod application-review-fields :mw22 [application] mw-review-fields)
 
 (def pg-review-fields
   (map application-fields
@@ -1493,6 +1513,7 @@
 (defn lookup-exhibit-slug [exhibit-spec]
   (case exhibit-spec
     "21" "mw21"
+    "22" "mw22"
     "2013" "prodgrant2013"
     nil))
 
@@ -1825,6 +1846,7 @@
   (let [i18nkeyword (case (keyword (:slug__c exhibit))
                       :mw20 :mw-app-submitted-email
                       :mw21 :mw-app-submitted-email
+                      :mw22 :mw-app-submitted-email
                       :prodgrant2012 :pg-app-submitted-email
                       :prodgrant2013 :pg-app-submitted-email
                       )]
