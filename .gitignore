@@ -2,3 +2,4 @@ target
 config.clj
 store
 .lein-deps-sum
+.nrepl-port
