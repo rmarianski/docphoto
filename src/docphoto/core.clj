@@ -523,7 +523,7 @@
         [:div#sidebar
          (sidebar-snippet request)])]
      [:div#footer
-      [:p "&copy; 2013 Open Society Foundations. All rights reserved."]]]
+      [:p "&copy; 2014 Open Society Foundations. All rights reserved."]]]
     (theme-js (:include-upload-js options))
     (when (:review-js options)
       (include-js
