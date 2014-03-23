@@ -234,7 +234,8 @@
      :multimedia_Link__c :cover_Page__c
      :focus_Region__c :focus_Country_Single_Select__c
      :english_language_proficiency__c :russian_language_proficiency__c
-     :additional_language_proficiency__c])))
+     :additional_language_proficiency__c
+     :process_Description__c])))
 
 (defcreate create-image no-owner [image-map]
   (Image__c.)

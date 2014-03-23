@@ -212,7 +212,8 @@
                exhibit__r.name exhibit__r.slug__c exhibit__r.closed__c
                focus_Country_Single_Select__c focus_Region__c referredby__c
                english_language_proficiency__c russian_language_proficiency__c
-               additional_language_proficiency__c]
+               additional_language_proficiency__c
+               process_Description__c]
               [[id = app-id]])
              (fn [form] `(-?> ~form first tweak-application-result))))
 
@@ -971,9 +972,23 @@
    {:field [:text-area#statement {:style "height: 500px" :class "editor max-600"} :statementRich__c
                                     {:label "Project Statement" :description "Describe the project you would like to exhibit, and how it relates to the theme of surveillance. (600 words maximum)"}]
     :validator {:fn not-empty :msg :required}}
-   ;; up to describe your process new field ... need to create in salesforce
-   ]
-  )
+   {:field [:text-area#process-description.editor {:style "height: 500px" :class "editor max-300"} :process_Description__c
+            {:label "Describe Your Process" :description "When and why you did you begin working on this project? Describe your process for creating this work. Who did you work with? (300 words maximum)"}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#biography {:style "height: 250px" :class "editor max-250"} :biography__c
+                      {:label "Short Narrative Bio"
+                       :description "Summarize your previous work and experience. (250 words maximum)"}]
+    :validator {:fn not-empty :msg :required}}
+   (application-fields :mw21-summary-of-engagement)
+   (application-fields :cv)
+   (findout-field)
+   (application-fields :website)
+   {:field [:text {} :multimedia_Link__c
+                        {:label "Multimedia Link"
+                         :description
+                         "If your project includes video or multi-media, you may submit it for consideration, but please note that our space has limited capacity to accommodate multi-media components. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
+   ;; need to also add other materials field
+   ])
 
 (def pg-fields
   [(application-fields :pg-project-title)
