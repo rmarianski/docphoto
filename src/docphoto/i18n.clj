@@ -155,7 +155,7 @@ To reset your password, please click on the following link:
 
    ;; image upload
    :upload-images "Upload images" "Загрузка изображений"
-   :upload-image-amount "Please upload 15-30 images." "Пожалуйста, загрузите 15-30 изображений"
+   :upload-image-amount "Please upload 15-30 images. If you have additional material that would help illustrate the work, such as installation shots or mock-ups, please upload them as jpegs here, after the individual images. There is a 5 megabyte limit for each image. Captions are limited to 500 characters." "Пожалуйста, загрузите 15-30 изображений"
    :upload-no-support
    "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus or HTML5 support."
    "Ваш браузер не установлен Flash, Silverlight, Gears, BrowserPlus или поддержки HTML5."
