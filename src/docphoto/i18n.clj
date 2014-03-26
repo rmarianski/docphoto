@@ -105,16 +105,14 @@
 
 If you did not initiate a docphoto password reset, then please ignore this message.
 
-To reset your password, please click on the following link: 
-" reset-link))
+To reset your password, please click on the following link: " reset-link))
    (fn [reset-link]
      (str
       "Привет,
 
 Если вы не начать сброс пароля, то не обращайте внимания на это сообщение.
 
-Чтобы восстановить пароль, пожалуйста, перейдите по следующей ссылке:"
-      reset-link))
+Чтобы восстановить пароль, пожалуйста, перейдите по следующей ссылке: " reset-link))
 
    ;; form related
    :required "Required" "требуется"
