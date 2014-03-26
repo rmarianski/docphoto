@@ -965,6 +965,7 @@
 (defmethod exhibit-apply-fields :mw22 [exhibit]
   [(application-fields :mw21-project-title)
    (application-fields :focus-region)
+   (application-fields :focus-country)
    {:field [:text-area#coverpage.editor {:style "height: 50px"} :cover_Page__c
             {:label "Project Summary"
              :description "A one sentence description of the project, including the title, topic, and location. (50 words maximum)"}]
