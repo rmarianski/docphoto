@@ -980,7 +980,6 @@
                       {:label "Short Narrative Bio"
                        :description "Summarize your previous work and experience. (250 words maximum)"}]
     :validator {:fn not-empty :msg :required}}
-   (application-fields :mw21-summary-of-engagement)
    (application-fields :cv)
    (findout-field)
    (application-fields :website)
