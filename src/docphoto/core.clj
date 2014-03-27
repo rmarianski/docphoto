@@ -966,14 +966,14 @@
   [(application-fields :mw21-project-title)
    (application-fields :focus-region)
    (application-fields :focus-country)
-   {:field [:text-area#coverpage.editor {:style "height: 50px"} :cover_Page__c
+   {:field [:text-area#coverpage {:style "height: 50px" :class "editor max-50"} :cover_Page__c
             {:label "Project Summary"
              :description "A one sentence description of the project, including the title, topic, and location. (50 words maximum)"}]
     :validator {:fn not-empty :msg :required}}
    {:field [:text-area#statement {:style "height: 500px" :class "editor max-600"} :statementRich__c
                                     {:label "Project Statement" :description "Describe the project you would like to exhibit, and how it relates to the theme of surveillance. (600 words maximum)"}]
     :validator {:fn not-empty :msg :required}}
-   {:field [:text-area#process-description.editor {:style "height: 500px" :class "editor max-300"} :process_Description__c
+   {:field [:text-area#process-description {:style "height: 500px" :class "editor max-300"} :process_Description__c
             {:label "Describe Your Process" :description "When and why you did you begin working on this project? Describe your process for creating this work. Who did you work with? (300 words maximum)"}]
     :validator {:fn not-empty :msg :required}}
    {:field [:text-area#biography {:style "height: 250px" :class "editor max-250"} :biography__c
