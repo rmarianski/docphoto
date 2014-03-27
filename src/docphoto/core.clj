@@ -1068,8 +1068,8 @@
 (defview exhibit-closed-view [exhibit]
   {:title (str (:name exhibit) " Closed")}
   [:div
-   [:p "We are no longer accepting applications for " (:name exhibit) "."]
-   [:p "If you attempted to submit your application before or on the May 2nd deadline and had trouble with the online application system, please contact Felix Endara at " (he/link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org") "."]])
+   [:p "We are no longer accepting applications for Moving Walls 22/Watching You, Watching Me."]
+   [:p "If you attempted to submit your application before or on the May 1st deadline and had trouble with the online application system, please contact the Open Society Documentary Photography Project at " (he/link-to "mailto:docphoto@opensocietyfoundations.org" "docphoto@opensocietyfoundations.org") "."]])
 
 (defn exhibit-apply-view [request exhibit]
   (when-logged-in
