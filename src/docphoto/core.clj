@@ -984,7 +984,7 @@
    (findout-field)
    (application-fields :website)
    {:field [:text {} :multimedia_Link__c
-                        {:label "Multimedia Link"
+                        {:label "Video/Multimedia Link (Optional)"
                          :description
                          "If your project includes video or multi-media, you may submit it for consideration, but please note that our space has limited capacity to accommodate multi-media components. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
    ;; need to also add other materials field
