@@ -1247,7 +1247,8 @@
        (i18n/translate :upload)]]]]
    [:div#images
     [:p (i18n/translate :upload-image-limit)]
-    [:p (i18n/translate :captions-limited)]
+    ;; we don't list a limit any more
+    ;; [:p (i18n/translate :captions-limited)]
     [:p#images-description {:style "display: none"}
      (i18n/translate :upload-image-reorder)]
     [:form {:method :post :action (images-update-link (:id application))}
