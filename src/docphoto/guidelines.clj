@@ -76,9 +76,9 @@
       [:strong "Moving Walls 22 / Watching You, Watching Me"]
       " group exhibition, scheduled to open at the Open Society Foundations' office in New York on October 29, 2014."]
      [:p "The Moving Walls exhibition series showcases documentary photography that highlights human rights and social issues that coincide with the Open Society Foundations' mission. For the fall 2014 exhibition, we are focusing on the theme of surveillance."]
-     [:p " Moving Walls is exhibited at our offices in New York and Washington, D.C."]
+     [:p " Moving Walls is exhibited at our offices in New York, Washington, D.C., and London."]
      [:p "For more details and the application instructions, please visit: " (link "http://www.opensocietyfoundations.org/grants/moving-walls")]
      [:p "If you have any questions, please contact the Open Society Documentary Photography Project at 212-547-6909 or " (link-to "mailto:docphoto@opensocietyfoundations.org" "docphoto@opensocietyfoundations.org") "."]
-     [:p "Moving Walls 22 deadline: Sunday, May 1, 2014, 5 p.m. EST."]
+     [:p "Moving Walls 22 deadline: Thursday, May 1, 2014, 5 p.m. EST."]
      [:p "To apply, please visit: " (link "http://apply.movingwalls.org/22/apply")])}
    })
