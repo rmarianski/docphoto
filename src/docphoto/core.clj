@@ -514,7 +514,6 @@
                 (he/link-to
                  (switch-language-link lang came-from) text))]))]])
       [:div#heading-section
-                                        ;[:div#contact (he/link-to "mailto:docphoto@sorosny.org" "Contact Us")]
        [:h1#heading (he/link-to
                      "/"
                      (str (heading-apply-text request) ": " (i18n/translate :apply-online)))]]]
@@ -1703,7 +1702,7 @@
         [:input {:type "submit" :name :submit :value "Save"}]
         [:p.note
          "Submit means your review is final. You will have to contact: "
-         (he/link-to "mailto:docphoto@sorosny.org" "docphoto")
+         (he/link-to "mailto:movingwalls@opensocietyfoundations.org" "docphoto")
          " if you need to update your review."]
         [:input {:type "submit" :name :submit :value "Submit"}]]])])
   (let [updated-params (update-in params [:rating__c] #(Double/valueOf ^String %))
@@ -2053,7 +2052,7 @@
                    [:p
                     "We're sorry. We ran into an error. If the problem continues, "
                     "please contact "
-                    (he/link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org")]))})))))
+                    (he/link-to "mailto:movingwalls@opensocietyfoundations.org" "movingwalls@opensocietyfoundations.org")]))})))))
 
 (defn wrap-stacktrace
   "wrap the appropriate stack trace handler based on if debugging"

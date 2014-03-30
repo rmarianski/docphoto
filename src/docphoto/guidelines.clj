@@ -27,7 +27,7 @@
      [:p "The Open Society Foundations invite photographers to submit a body of work for consideration in the Moving Walls 20 group exhibition, scheduled to open in New York in early 2013."]
      [:p "The Moving Walls exhibition series showcases documentary photography that highlights human rights and social issues that coincide with the Open Society Foundations' mission. Moving Walls is exhibited at our offices in New York and Washington, D.C. "]
      [:p "For more details and the application instructions, please visit: " (link "http://www.soros.org/initiatives/photography/focus_areas/mw/guidelines")]
-     [:p "If you have any questions, please contact Felix Endara, Exhibitions Coordinator, at 212-547-6909 or " (link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org") "."]
+     [:p "If you have any questions, please contact Felix Endara, Exhibitions Coordinator, at 212-547-6909 or " (link-to "mailto:movingwalls@opensocietyfoundations.org" "movingwalls@opensocietyfoundations.org") "."]
      [:p "Moving Walls 20 deadline: Wednesday, May 2nd, 2012, 5 p.m. EST."]
      [:p "To apply, please visit: " (link "http://apply.movingwalls.org/exhibit/mw20/apply")])}
 
@@ -51,7 +51,7 @@
      [:p "The Open Society Foundations invite photographers to submit a body of work for consideration in the Moving Walls 21 group exhibition, scheduled to open in New York in Fall 2013."]
      [:p "The Moving Walls exhibition series showcases documentary photography that highlights human rights and social issues that coincide with the Open Society Foundations' mission. Moving Walls is exhibited at our offices in New York and Washington, D.C. "]
      [:p "For more details and the application instructions, please visit: " (link "http://www.opensocietyfoundations.org/grants/moving-walls")]
-     [:p "If you have any questions, please contact Felix Endara, Exhibitions Coordinator, at 212-547-6909 or " (link-to "mailto:docphoto@sorosny.org" "docphoto@sorosny.org") "."]
+     [:p "If you have any questions, please contact Felix Endara, Exhibitions Coordinator, at 212-547-6909 or " (link-to "mailto:movingwalls@opensocietyfoundations.org" "movingwalls@opensocietyfoundations.org") "."]
      [:p "Moving Walls 21 deadline: Tuesday, February 26, 2013, 5 p.m. EST."]
      [:p "To apply, please visit: " (link "http://apply.movingwalls.org/21/apply")])}
 
