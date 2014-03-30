@@ -1010,15 +1010,19 @@
 
 (defmulti application-update-fields exhibit-slug-from-application)
 
+(defn field-name-from-spec [field]
+  (when-let [fieldspec (:field field)]
+    (when-let [field-name (nth fieldspec 2 nil)]
+      field-name)))
+
 (defn make-cv-field-optional
   "The cv field is optional when updating the application"
   [fields]
   (map (fn [field]
          (or
-          (when-let [fieldspec (:field field)]
-            (when-let [field-name (nth fieldspec 2 nil)]
-              (when (= field-name :cv)
-                (dissoc field :validator))))
+          (when-let [field-name (field-name-from-spec field)]
+            (when (= field-name :cv)
+              (dissoc field :validator)))
           field))
        fields))
 
@@ -1050,7 +1054,9 @@
 
 (defmethod application-review-fields :mw20 [application] mw-review-fields)
 (defmethod application-review-fields :mw21 [application] mw-review-fields)
-(defmethod application-review-fields :mw22 [application] mw-review-fields)
+(defmethod application-review-fields :mw22 [application]
+  (remove #(= :cv (field-name-from-spec %))
+          (exhibit-apply-fields (:exhibit__r application))))
 
 (def pg-review-fields
   (map application-fields
