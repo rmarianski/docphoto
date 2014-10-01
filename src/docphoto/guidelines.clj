@@ -81,4 +81,15 @@
      [:p "If you have any questions, please contact the Open Society Documentary Photography Project at 212-547-6909 or " (link-to "mailto:movingwalls@opensocietyfoundations.org" "movingwalls@opensocietyfoundations.org") "."]
      [:p "Moving Walls 22 deadline: Thursday, May 1, 2014, 5 p.m. EST."]
      [:p "To apply, please visit: " (link "http://apply.movingwalls.org/22/apply")])}
+
+   :mw23
+   {:en
+    (list
+     [:p "The Open Society Documentary Photography Project invites photographers to submit a body of work for consideration in the Moving Walls 23 group exhibition (opens in New York in June 2015)."]
+     [:p "We are seeking photo-based documentary projects that address a social justice or human rights issue in any region where the Open Society Foundations is active (see our " [:a {:href "http://opensocietyfoundations.org/"} "website"] " for more details)."]
+     [:p "We are particularly interested in work that provides a fresh perspective and expands the visual language of documentary photography. Therefore, we invite photographers and artists to submit documentary-based work that uses new or creative visual strategies, investigative/storytelling approaches, or technologies. We seek applicants who reflect a diversity of global perspectives, especially those that are under-represented in mainstream narratives and media."]
+     [:p "For more details and the application instructions, please visit: " (link "http://www.opensocietyfoundations.org/grants/moving-walls")]
+     [:p "If you have any questions, please contact the Open Society Documentary Photography Project at 212-547-6909 or " (link-to "mailto:movingwalls@opensocietyfoundations.org." "movingwalls@opensocietyfoundations.org") "."]
+     [:p "Moving Walls 23 deadline: Tuesday, November 18, 2014, 5 p.m. EST."]
+     [:p "To apply, please visit: " (link "http://apply.movingwalls.org/23/apply")])}
    })

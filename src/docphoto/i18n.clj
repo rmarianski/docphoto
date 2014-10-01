@@ -153,7 +153,7 @@ To reset your password, please click on the following link: " reset-link))
 
    ;; image upload
    :upload-images "Upload images" "Загрузка изображений"
-   :upload-image-amount "Please upload 15-30 images. If you have additional material that would help illustrate the work, such as installation shots or mock-ups, please upload them as jpegs here, after the individual images. There is a 5 megabyte limit for each image." "Пожалуйста, загрузите 15-30 изображений"
+   :upload-image-amount "Please upload 15-20 images. If you have additional material that would help illustrate the work, such as installation shots or mock-ups, please upload them as jpegs here, after the individual images. There is a 5 megabyte limit for each image." "Пожалуйста, загрузите 15-20 изображений"
    :upload-no-support
    "Your browser doesn't have Flash, Silverlight, Gears, BrowserPlus or HTML5 support."
    "Ваш браузер не установлен Flash, Silverlight, Gears, BrowserPlus или поддержки HTML5."
@@ -212,7 +212,7 @@ To reset your password, please click on the following link: " reset-link))
 
    :submission-thank-you "Thank you for your submission" "Спасибо за Ваше представление"
    :mw-selection-email-notification
-   (fn [email] (str "When we have made our selections, we will notify you at the email address you provided: " email ". You should expect to hear from us sometime in June 2014."))
+   (fn [email] (str "When we have made our selections, we will notify you at the email address you provided: " email ". You should expect to hear from us sometime in February 2015."))
    (fn [email] "Когда мы сделали наш выбор, мы сообщим вам на адрес электронной почты, при условии: " email)
    :pg-selection-email-notification
    (fn [email] (str "When we have made our selections, we will notify you at the email address you provided: " email ". You should expect to hear from us sometime in June 2013."))
@@ -269,6 +269,11 @@ To reset your password, please click on the following link: " reset-link))
    (:en (guidelines/guidelines :mw22))
    ;; only need english guidelines for mw22
    (:en (guidelines/guidelines :mw22))
+
+   :guidelines-mw23
+   (:en (guidelines/guidelines :mw23))
+   ;; only need english guidelines for mw23
+   (:en (guidelines/guidelines :mw23))
 
    :guidelines-prodgrant2013
    (:en (guidelines/guidelines :prodgrant2013))

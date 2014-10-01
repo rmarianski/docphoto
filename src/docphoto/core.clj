@@ -186,7 +186,7 @@
               :append "order by lastModifiedDate desc")
              (fn [form] `(filter
                          ;mw21-or-prodgrant2013
-                         (active-applications-to-display :mw22)
+                         (active-applications-to-display :mw23)
                          (map tweak-application-result ~form)))))
 
 ;; used for cleaning up local disk, so only app ids are returned
@@ -488,7 +488,7 @@
   (let [host (host-header request)]
     (if (= host "docphoto.soros.org")
       "Production Grant 2013"
-      "Moving Walls 22")))
+      "Moving Walls 23")))
 
 (defn layout [request options body]
   (xhtml
@@ -561,7 +561,7 @@
    (str "/"
         (if (= (host-header request) "docphoto.soros.org")
           "2013"
-          "22"))))
+          "23"))))
 
 (defview userinfo-view {:title "User Info View" :logged-in true}
   [:dl
@@ -986,7 +986,33 @@
                         {:label "Video/Multimedia Link (Optional)"
                          :description
                          "If your project includes video or multi-media, you may submit it for consideration, but please note that our space has limited capacity to accommodate multi-media components. If the piece is longer than five minutes, let us know what start time to begin watching at."}]}
-   ;; need to also add other materials field
+   ])
+
+(defmethod exhibit-apply-fields :mw23 [exhibit]
+  [(application-fields :mw21-project-title)
+   (application-fields :focus-region)
+   (application-fields :focus-country)
+   {:field [:text-area#coverpage {:style "height: 50px" :class "editor"} :cover_Page__c
+            {:label "Project Summary"
+             :description "A one sentence description of the project, including the title, topic, and location. (50 words maximum)"}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#statement {:style "height: 500px" :class "editor"} :statementRich__c
+                                    {:label "Project Statement" :description "Describe the project & the topic it addresses. How and why did you begin the project? How long have you been working on it? Is the project complete or an ongoing body of work? (500 words maximum)"}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#process-description {:style "height: 500px" :class "editor"} :process_Description__c
+            {:label "Process/Presentation description" :description "Describe your process for gaining access to the issue or community you photographed. Are there particular methods you use while working? How do you envision exhibiting the work? Has it been exhibited before? (500 words maximum)"}]
+    :validator {:fn not-empty :msg :required}}
+   {:field [:text-area#biography {:style "height: 250px" :class "editor"} :biography__c
+                      {:label "Short Narrative Bio"
+                       :description "about your previous work and experience (150 words maximum)"}]
+    :validator {:fn not-empty :msg :required}}
+   (application-fields :cv)
+   (findout-field)
+   (application-fields :website)
+   {:field [:text {} :multimedia_Link__c
+                        {:label "Video/Multimedia Link (Optional)"
+                         :description
+                         "A multimedia sample should be submitted only if it complements or enhances, rather than duplicates, other submitted materials. To submit a multimedia piece for consideration, please post the piece on a free public site such as YouTube or Vimeo and include a link. If the piece is longer than five minutes, let us know what start time to begin watching."}]}
    ])
 
 (def pg-fields
@@ -1034,6 +1060,8 @@
   (mw-update-fields application))
 (defmethod application-update-fields :mw22 [application]
   (mw-update-fields application))
+(defmethod application-update-fields :mw23 [application]
+  (mw-update-fields application))
 
 (defn pg-update-fields [application]
   (make-cv-field-optional (exhibit-apply-fields (:exhibit__r application))))
@@ -1056,6 +1084,10 @@
 (defmethod application-review-fields :mw22 [application]
   (remove #(= :cv (field-name-from-spec %))
           (exhibit-apply-fields (:exhibit__r application))))
+(defmethod application-review-fields :mw23 [application]
+  ;; no cv on review? extract into helper function?
+  (remove #(= :cv (field-name-from-spec %))
+          (exhibit-apply-fields (:exhibit__r application))))
 
 (def pg-review-fields
   (map application-fields
@@ -1073,8 +1105,8 @@
 (defview exhibit-closed-view [exhibit]
   {:title (str (:name exhibit) " Closed")}
   [:div
-   [:p "We are no longer accepting applications for Moving Walls 22/Watching You, Watching Me."]
-   [:p "If you attempted to submit your application before or on the May 1st deadline and had trouble with the online application system, please contact the Open Society Documentary Photography Project at " (he/link-to "mailto:movingwalls@opensocietyfoundations.org" "movingwalls@opensocietyfoundations.org") "."]])
+   [:p "We are no longer accepting applications for Moving Walls 23"]
+   [:p "If you attempted to submit your application before or on the November 18th deadline and had trouble with the online application system, please contact the Open Society Documentary Photography Project at " (he/link-to "mailto:movingwalls@opensocietyfoundations.org" "movingwalls@opensocietyfoundations.org") "."]])
 
 (defn exhibit-apply-view [request exhibit]
   (when-logged-in
@@ -1535,6 +1567,7 @@
   (case exhibit-spec
     "21" "mw21"
     "22" "mw22"
+    "23" "mw23"
     "2013" "prodgrant2013"
     nil))
 
@@ -1868,6 +1901,7 @@
                       :mw20 :mw-app-submitted-email
                       :mw21 :mw-app-submitted-email
                       :mw22 :mw-app-submitted-email
+                      :mw23 :mw-app-submitted-email
                       :prodgrant2012 :pg-app-submitted-email
                       :prodgrant2013 :pg-app-submitted-email
                       )]
