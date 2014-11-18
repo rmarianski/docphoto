@@ -91,5 +91,7 @@
      [:p "For more details and the application instructions, please visit: " (link "http://www.opensocietyfoundations.org/grants/moving-walls")]
      [:p "If you have any questions, please contact the Open Society Documentary Photography Project at 212-547-6909 or " (link-to "mailto:movingwalls@opensocietyfoundations.org." "movingwalls@opensocietyfoundations.org") "."]
      [:p "Moving Walls 23 deadline: Tuesday, November 18, 2014, 5 p.m. EST."]
-     [:p "To apply, please visit: " (link "http://apply.movingwalls.org/23/apply")])}
+     [:p "To apply, please visit: " (link "http://apply.movingwalls.org/23/apply")]
+     [:p "*It is " [:strong "strongly recommended"] " that applicants work on building their materials (i.e. submission texts, image sequencing, etc) " [:strong [:span {:style "text-decoration: underline"} "before"]] " creating an online submission.  Due to heavy traffic the application portal may experience issues with uploading/saving, especially close to the deadline.  Please use the application guidelines to prepare materials in advance, and then use the portal when ready to upload and submit the final application."]
+     [:p "Please also press the &quot;save progress&quot; button before exiting the system and coming back to it. Otherwise, the work will not be saved."])}
    })
