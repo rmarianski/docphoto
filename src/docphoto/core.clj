@@ -2110,7 +2110,7 @@
 (defview rate-limit-exceeded-view []
   {:title "Rate limit exceeded" :display-sidebar false}
   [:div
-   [:p "We are currently experiencing heavy traffic. Please wait a few minutes, and check back later. Note that the deadline has been extended to May 2."]])
+   [:p "We are currently experiencing heavy traffic. Please check back later."]])
 
 (defn wrap-rate-limit-exceeded [handler]
   (fn [request]
